@@ -9,7 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, BarChart3, Settings, Users, Zap, Bot } from "lucide-react";
+import { LayoutDashboard, BarChart3, Users, Zap, Bot } from "lucide-react";
 
 // Menu items.
 const items = [

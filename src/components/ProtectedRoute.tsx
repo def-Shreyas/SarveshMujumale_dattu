@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { isAuthenticated } from "@/hooks/useAuth";
+import type { JSX } from "react";
 
 export default function ProtectedRoute({
   children,
