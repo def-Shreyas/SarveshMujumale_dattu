@@ -49,7 +49,8 @@ const areaData = [
   { month: "Apr", incidents: 25 },
   { month: "May", incidents: 30 },
 ];
-const COLORS = ["#38bdf8", "#64748b", "#22c55e", "#facc15", "#ef4444"];
+// New palette applied to pie/chart slices: Soft Blue, Slate, Teal, Amber, Soft Red
+const COLORS = ["#2B6CB0", "#10243A", "#2CA3A3", "#F6A623", "#E04B4B"];
 
 // AI Motivational Quotes
 const aiQuotes = [
@@ -192,7 +193,7 @@ export default function UnsafetyDashboard() {
         useCORS: true,
         allowTaint: true,
         logging: false,
-        backgroundColor: "#0f172a",
+        backgroundColor: "#F6F8FB", // Off-White background for PDF capture
         width: reportRef.current.scrollWidth,
         height: reportRef.current.scrollHeight,
         windowWidth: reportRef.current.scrollWidth,
@@ -218,7 +219,7 @@ export default function UnsafetyDashboard() {
       }
 
       // Fill with background color first
-      ctx.fillStyle = "#0f172a";
+      ctx.fillStyle = "#F6F8FB"; // Off-White
       ctx.fillRect(0, 0, rgbCanvas.width, rgbCanvas.height);
 
       // Draw the original canvas onto RGB canvas
@@ -312,7 +313,7 @@ export default function UnsafetyDashboard() {
 
           if (ctx) {
             // Fill with background
-            ctx.fillStyle = "#0f172a";
+            ctx.fillStyle = "#F6F8FB"; // Off-White
             ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
 
             ctx.drawImage(
@@ -392,14 +393,14 @@ export default function UnsafetyDashboard() {
   // Show file upload if dashboard is not shown
   if (!showDashboard && !isGenerating) {
     return (
-      <div className="w-full min-h-screen bg-[#0f172a] text-white flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full min-h-screen bg-[#F6F8FB] text-[#10243A] flex items-center justify-center p-4 sm:p-6 lg:p-8">
         <motion.div
           className="w-full max-w-2xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="bg-[#1e293b] border border-slate-700/50 shadow-xl">
+          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 shadow-xl">
             <CardHeader className="text-center pb-6">
               <motion.div
                 className="flex justify-center mb-4"
@@ -407,14 +408,14 @@ export default function UnsafetyDashboard() {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
               >
-                <div className="p-4 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
-                  <Upload className="w-12 h-12 text-blue-400" />
+                <div className="p-4 rounded-full bg-gradient-to-br from-[#2B6CB0]/20 to-[#2CA3A3]/20 border border-[#2B6CB0]/30">
+                  <Upload className="w-12 h-12 text-[#2B6CB0]" />
                 </div>
               </motion.div>
-              <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+              <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
                 Upload Your Data File
               </CardTitle>
-              <p className="text-gray-300 text-sm sm:text-base lg:text-lg mt-2">
+              <p className="text-[#10243A] text-sm sm:text-base lg:text-lg mt-2">
                 Upload an Excel (.xlsx, .xls) or CSV file to generate your
                 safety dashboard
               </p>
@@ -432,30 +433,30 @@ export default function UnsafetyDashboard() {
                   />
                   <label
                     htmlFor="file-upload"
-                    className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-slate-600 rounded-lg cursor-pointer hover:border-blue-500/50 transition-colors duration-300 bg-[#0f172a]/50"
+                    className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#10243A]/40 rounded-lg cursor-pointer hover:border-[#2B6CB0]/50 transition-colors duration-300 bg-[#F6F8FB]/50"
                   >
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       {selectedFile ? (
                         <>
                           {selectedFile.name.endsWith(".csv") ? (
-                            <FileText className="w-16 h-16 text-green-400 mb-3" />
+                            <FileText className="w-16 h-16 text-[#1E9A61] mb-3" />
                           ) : (
-                            <FileSpreadsheet className="w-16 h-16 text-blue-400 mb-3" />
+                            <FileSpreadsheet className="w-16 h-16 text-[#2B6CB0] mb-3" />
                           )}
-                          <p className="mb-2 text-sm sm:text-base text-gray-300 font-semibold">
+                          <p className="mb-2 text-sm sm:text-base text-[#10243A] font-semibold">
                             {selectedFile.name}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-[#10243A]/70">
                             Click to change file
                           </p>
                         </>
                       ) : (
                         <>
-                          <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                          <p className="mb-2 text-sm sm:text-base text-gray-300 font-semibold">
+                          <Upload className="w-12 h-12 text-[#10243A] mb-3" />
+                          <p className="mb-2 text-sm sm:text-base text-[#10243A] font-semibold">
                             Click to upload or drag and drop
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-[#10243A]/70">
                             Excel (.xlsx, .xls) or CSV files only
                           </p>
                         </>
@@ -468,15 +469,15 @@ export default function UnsafetyDashboard() {
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg"
+                    className="p-4 bg-[#1E9A61]/10 border border-[#1E9A61]/30 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-5 h-5 text-green-400" />
+                      <FileSpreadsheet className="w-5 h-5 text-[#1E9A61]" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-green-400">
+                        <p className="text-sm font-medium text-[#1E9A61]">
                           File selected: {selectedFile.name}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-[#10243A]/70">
                           {(selectedFile.size / 1024).toFixed(2)} KB
                         </p>
                       </div>
@@ -487,9 +488,9 @@ export default function UnsafetyDashboard() {
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#38bdf8] to-[#06b6d4] text-black font-semibold py-6 text-lg hover:shadow-lg hover:shadow-sky-500/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] text-black font-semibold py-6 text-lg hover:shadow-lg hover:shadow-[#2B6CB0]/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
-                  <Sparkles className="w-5 h-5 mr-2" />
+                  <Sparkles className="w-5 h-5 mr-2 text-[#2B6CB0]" />
                   Generate Dashboard
                 </Button>
               </div>
@@ -503,7 +504,7 @@ export default function UnsafetyDashboard() {
   // Show loader with quotes during generation
   if (isGenerating) {
     return (
-      <div className="w-full min-h-screen bg-[#0f172a] text-white flex items-center justify-center p-4">
+      <div className="w-full min-h-screen bg-[#F6F8FB] text-[#10243A] flex items-center justify-center p-4">
         <motion.div
           className="text-center max-w-2xl"
           initial={{ opacity: 0 }}
@@ -515,8 +516,8 @@ export default function UnsafetyDashboard() {
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/30">
-              <Loader2 className="w-16 h-16 text-blue-400" />
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#2B6CB0]/20 to-[#2CA3A3]/20 border border-[#2B6CB0]/30">
+              <Loader2 className="w-16 h-16 text-[#2B6CB0]" />
             </div>
           </motion.div>
 
@@ -528,27 +529,27 @@ export default function UnsafetyDashboard() {
             transition={{ duration: 0.5 }}
             className="mb-4"
           >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
               Generating Your Dashboard...
             </h2>
             <div className="flex items-center justify-center gap-3 mb-6">
-              <Sparkles className="w-6 h-6 text-blue-400 animate-pulse" />
-              <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 font-medium">
+              <Sparkles className="w-6 h-6 text-[#2B6CB0] animate-pulse" />
+              <p className="text-lg sm:text-xl lg:text-2xl text-[#10243A] font-medium">
                 {aiQuotes[currentQuoteIndex]}
               </p>
-              <Sparkles className="w-6 h-6 text-cyan-400 animate-pulse" />
+              <Sparkles className="w-6 h-6 text-[#2CA3A3] animate-pulse" />
             </div>
             <div className="flex justify-center gap-2 mt-8">
               <div
-                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-[#2B6CB0] rounded-full animate-bounce"
                 style={{ animationDelay: "0s" }}
               ></div>
               <div
-                className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-[#2CA3A3] rounded-full animate-bounce"
                 style={{ animationDelay: "0.2s" }}
               ></div>
               <div
-                className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"
+                className="w-2 h-2 bg-[#2B6CB0] rounded-full animate-bounce"
                 style={{ animationDelay: "0.4s" }}
               ></div>
             </div>
@@ -560,7 +561,7 @@ export default function UnsafetyDashboard() {
 
   // Show dashboard
   return (
-    <div className="w-full bg-[#0f172a] text-white p-4 sm:p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8">
+    <div className="w-full bg-[#F6F8FB] text-[#10243A] p-4 sm:p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8">
       {/* Header Section */}
       <motion.div
         className="mb-6 lg:mb-8"
@@ -568,10 +569,10 @@ export default function UnsafetyDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 lg:mb-3 bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-          Factory Safety Observations Dashboard
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-3xl font-bold mb-2 lg:mb-3 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
+          DATTU Vision Console — The Safety Mind
         </h1>
-        <p className="text-sm sm:text-base lg:text-lg text-gray-300 max-w-3xl">
+        <p className="text-sm sm:text-base lg:text-lg text-[#10243A]/80 max-w-3xl">
           Visual representation of unsafe acts reported by safety officers.
         </p>
       </motion.div>
@@ -584,7 +585,7 @@ export default function UnsafetyDashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card className="bg-[#1e293b] border border-slate-700/50 hover:border-sky-500/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-sky-500/10">
+          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
                 Reported Unsafe Acts
@@ -600,27 +601,25 @@ export default function UnsafetyDashboard() {
                   data={unsafetyData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
                   <XAxis
                     dataKey="type"
-                    tick={{ fill: "#94a3b8", fontSize: 10 }}
+                    tick={{ fill: "#10243A", fontSize: 10 }}
                     angle={-15}
                     textAnchor="end"
                     height={60}
                   />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
+                      backgroundColor: "#E6EDF5",
+                      border: "1px solid #10243A",
                       borderRadius: "8px",
-                      color: "#fff",
+                      color: "#10243A",
                     }}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: "12px", color: "#94a3b8" }}
-                  />
-                  <Bar dataKey="count" fill="#38bdf8" radius={[8, 8, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: "12px", color: "#10243A" }} />
+                  <Bar dataKey="count" fill="#2B6CB0" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -633,7 +632,7 @@ export default function UnsafetyDashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card className="bg-[#1e293b] border border-slate-700/50 hover:border-sky-500/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-sky-500/10">
+          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
                 Unsafe Acts Distribution
@@ -667,10 +666,10 @@ export default function UnsafetyDashboard() {
                   </Pie>
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
+                      backgroundColor: "#E6EDF5",
+                      border: "1px solid #10243A",
                       borderRadius: "8px",
-                      color: "#fff",
+                      color: "#10243A",
                     }}
                   />
                 </PieChart>
@@ -685,7 +684,7 @@ export default function UnsafetyDashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="bg-[#1e293b] border border-slate-700/50 hover:border-sky-500/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-sky-500/10">
+          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
                 Trend of Safety Incidents
@@ -701,29 +700,24 @@ export default function UnsafetyDashboard() {
                   data={areaData}
                   margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
+                  <XAxis dataKey="month" tick={{ fill: "#10243A", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
+                      backgroundColor: "#E6EDF5",
+                      border: "1px solid #10243A",
                       borderRadius: "8px",
-                      color: "#fff",
+                      color: "#10243A",
                     }}
                   />
-                  <Legend
-                    wrapperStyle={{ fontSize: "12px", color: "#94a3b8" }}
-                  />
+                  <Legend wrapperStyle={{ fontSize: "12px", color: "#10243A" }} />
                   <Line
                     type="monotone"
                     dataKey="incidents"
-                    stroke="#38bdf8"
+                    stroke="#2B6CB0"
                     strokeWidth={3}
-                    dot={{ fill: "#38bdf8", r: 5 }}
+                    dot={{ fill: "#2B6CB0", r: 5 }}
                     activeDot={{ r: 7 }}
                   />
                 </LineChart>
@@ -738,7 +732,7 @@ export default function UnsafetyDashboard() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <Card className="bg-[#1e293b] border border-slate-700/50 hover:border-sky-500/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-sky-500/10">
+          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
             <CardHeader className="pb-3 lg:pb-4">
               <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
                 Cumulative Unsafe Observations
@@ -762,28 +756,25 @@ export default function UnsafetyDashboard() {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#2B6CB0" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#2B6CB0" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fill: "#94a3b8", fontSize: 11 }}
-                  />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
+                  <XAxis dataKey="month" tick={{ fill: "#10243A", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1e293b",
-                      border: "1px solid #334155",
+                      backgroundColor: "#E6EDF5",
+                      border: "1px solid #10243A",
                       borderRadius: "8px",
-                      color: "#fff",
+                      color: "#10243A",
                     }}
                   />
                   <Area
                     type="monotone"
                     dataKey="incidents"
-                    stroke="#38bdf8"
+                    stroke="#2B6CB0"
                     strokeWidth={2}
                     fill="url(#colorIncidents)"
                   />
@@ -797,7 +788,7 @@ export default function UnsafetyDashboard() {
       {/* Report Section - Responsive layout */}
       <motion.div
         ref={reportRef}
-        className="bg-[#1e293b] p-4 sm:p-6 lg:p-8 xl:p-10 rounded-lg lg:rounded-xl border border-slate-700/50 shadow-xl"
+        className="bg-[#E6EDF5] p-4 sm:p-6 lg:p-8 xl:p-10 rounded-lg lg:rounded-xl border border-[#10243A]/50 shadow-xl"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
@@ -806,7 +797,7 @@ export default function UnsafetyDashboard() {
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 lg:mb-4">
             Detailed Unsafety Report
           </h2>
-          <p className="text-sm sm:text-base lg:text-lg text-gray-300 max-w-3xl">
+          <p className="text-sm sm:text-base lg:text-lg text-[#10243A]/80 max-w-3xl">
             Summary of all unsafe acts reported in the factory and recommended
             prevention measures.
           </p>
@@ -817,19 +808,19 @@ export default function UnsafetyDashboard() {
           {reportData.map((item, index) => (
             <motion.div
               key={index}
-              className="p-4 sm:p-5 lg:p-6 rounded-lg lg:rounded-xl bg-[#0f172a] border-l-4 border-[#38bdf8] hover:border-[#06b6d4] hover:shadow-lg hover:shadow-sky-500/20 transition-all duration-300 hover:scale-[1.02]"
+              className="p-4 sm:p-5 lg:p-6 rounded-lg lg:rounded-xl bg-[#F6F8FB] border-l-4 border-[#2B6CB0] hover:border-[#2CA3A3] hover:shadow-lg hover:shadow-[#2B6CB0]/20 transition-all duration-300 hover:scale-[1.02]"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
             >
-              <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 lg:mb-3 text-sky-400">
+              <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 lg:mb-3 text-[#2B6CB0]">
                 {item.act}
               </h3>
-              <p className="text-xs sm:text-sm lg:text-base text-gray-300 mb-3 lg:mb-4 leading-relaxed">
+              <p className="text-xs sm:text-sm lg:text-base text-[#10243A]/80 mb-3 lg:mb-4 leading-relaxed">
                 {item.description}
               </p>
-              <div className="pt-2 lg:pt-3 border-t border-slate-700">
-                <p className="text-xs sm:text-sm lg:text-base text-green-400 font-medium">
+              <div className="pt-2 lg:pt-3 border-t border-[#10243A]/40">
+                <p className="text-xs sm:text-sm lg:text-base text-[#1E9A61] font-medium">
                   <span className="font-semibold">Prevention:</span>{" "}
                   {item.prevention}
                 </p>
@@ -841,7 +832,7 @@ export default function UnsafetyDashboard() {
         <div className="flex justify-center lg:justify-start">
           <Button
             onClick={downloadPDF}
-            className="bg-gradient-to-r from-[#38bdf8] to-[#06b6d4] text-black font-semibold px-6 sm:px-8 lg:px-10 py-2 sm:py-3 lg:py-4 text-sm sm:text-base lg:text-lg hover:shadow-lg hover:shadow-sky-500/50 transition-all duration-300 hover:scale-105"
+            className="bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] text-black font-semibold px-6 sm:px-8 lg:px-10 py-2 sm:py-3 lg:py-4 text-sm sm:text-base lg:text-lg hover:shadow-lg hover:shadow-[#2B6CB0]/50 transition-all duration-300 hover:scale-105"
           >
             Download Report as PDF
           </Button>
