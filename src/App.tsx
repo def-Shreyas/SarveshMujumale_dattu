@@ -1,64 +1,54 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AppLayout from "@/layouts/AppLayout";
-import Login from "@/pages/Login";
-import Unsafety from "@/pages/Unsafety";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Chatbot from "./pages/Chatbot";
-import Module2 from "./pages/Module2";
-import Dashboard from "@/pages/Dashboard";
+// src/App.tsx
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AppLayout } from "./layouts/AppLayout";
+import { Dashboard } from "./pages/Dashboard";
+import Login from './pages/Login'; // Import your Login page
+import { ProtectedRoute } from './components/ProtectedRoute'; // Import your gatekeeper
+import { Incidents } from "./pages/Incidents";
+import { PTW } from "./pages/PTW";
+import { Training } from "./pages/Training";
+import { Audits } from "./pages/Audits";
+import { Medical } from "./pages/Medical";
+import { PPE } from "./pages/PPE";
+import { RCA } from "./pages/RCA";
+import { Environmental } from "./pages/Environmental";
+import { Governance } from "./pages/Governance";
+import { SettingsPage } from "./pages/Settings";
+import { Unsafety } from './pages/Unsafety';
 
-export default function AppRouter() {
+// Import other pages
+// import { Incidents } from "./pages/Incidents"; 
+// import { PTW } from "./pages/PTW";
+
+function App() {
   return (
-    <BrowserRouter>
       <Routes>
-        {/* Public Route */}
-        <Route path="/" element={<Login />} />
+        {/* --- PUBLIC ROUTE --- */}
+        <Route path="/login" element={<Login />} />
 
-        {/* Protected Layout */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Dashboard /> {/* Dashboard page */}
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* --- PROTECTED ROUTES --- */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/unsafety" element={<Unsafety />} />
+            <Route path="/incidents" element={<Incidents />} />
+            <Route path="/ptw" element={<PTW />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/audits" element={<Audits />} />
+            <Route path="/medical" element={<Medical />} />
+            <Route path="/ppe" element={<PPE />} />
+            <Route path="/rca" element={<RCA />} />
+            <Route path="/environmental" element={<Environmental />} />
+            <Route path="/governance" element={<Governance />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+        </Route>
 
-        <Route
-          path="/unsafety"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Unsafety /> {/* Safety Analysis */}
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/module2"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Module2 /> {/* Compliance Tracking */}
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/chatbot"
-          element={
-            <ProtectedRoute>
-              <AppLayout>
-                <Chatbot /> {/* AI Assistant */}
-              </AppLayout>
-            </ProtectedRoute>
-          }
-        />
+        {/* --- CATCH-ALL REDIRECT --- */}
+        {/* If user types any other URL, send them to the dashboard */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
   );
 }
+
+export default App;

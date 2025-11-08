@@ -1,568 +1,596 @@
-"use client";
-import { motion } from "framer-motion";
-import { AlertTriangle, FileText, ShieldCheck, Users } from "lucide-react";
+// src/pages/Dashboard.tsx
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom"; // <-- REQUIRED for navigation
+import { motion } from "framer-motion"; // <-- REQUIRED for animations
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
   Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertOctagon,
+  ChevronsRight,
+  FileDown,
+  Mail,
+  PieChartIcon,
+  BarChartIcon,
+  LineChartIcon,
+  ShieldAlert,
+  FileText,
+  Users,
+  CheckSquare,
+  HeartPulse,
+  HardHat,
+  Target,
+  Leaf,
+  Building,
+  History,
+  Download,
+} from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
+  Tooltip as RechartsTooltip,
+  LineChart,
+  Line,
+  CartesianGrid,
 } from "recharts";
+import { cn } from "@/lib/utils";
+import type {
+  KpiData,
+  AiInsight,
+  TopRisk,
+  UnsafeActData,
+  OpenActionData,
+  CO2Data, // <-- Make sure to import CO2Data type
+} from "@/types";
 
-// DashboardPage.tsx — No sidebar version for use inside AppLayout
+// --- MOCK DATA (Replace with API calls) ---
 
-const STAT_CARDS = [
+const kpiData: KpiData[] = [
   {
-    id: "active-users",
-    title: "Active Users",
-    value: "128",
-    subtitle: "on site",
-    icon: <Users size={22} />,
-    bg: "#2B6CB0",
-    text: "#F6F8FB",
+    title: "Incidents Open",
+    value: "3",
+    comparison: "20% vs last 30d",
+    isPositive: false,
   },
   {
-    id: "incidents",
-    title: "Open Incidents",
-    value: "12",
-    subtitle: "last 24h",
-    icon: <AlertTriangle size={22} />,
-    bg: "#E04B4B",
-    text: "#F6F8FB",
+    title: "PTWs Active",
+    value: "22",
+    comparison: "5 expiring today",
+    isPositive: false,
   },
   {
-    id: "compliance",
-    title: "Compliance Rate",
-    value: "93%",
-    subtitle: "overall",
-    icon: <ShieldCheck size={22} />,
-    bg: "#1E9A61",
-    text: "#F6F8FB",
+    title: "Training Due",
+    value: "15",
+    comparison: "5% vs last 30d",
+    isPositive: false,
   },
   {
-    id: "reports",
-    title: "Reports Generated",
-    value: "56",
-    subtitle: "this month",
-    icon: <FileText size={22} />,
-    bg: "#F6A623",
-    text: "#10243A",
+    title: "Waste Recycled",
+    value: "78%",
+    comparison: "2% vs last 30d",
+    isPositive: true,
   },
 ];
 
-const areaData = [
-  { date: "01 Sep", incidents: 8, compliance: 85 },
-  { date: "08 Sep", incidents: 5, compliance: 87 },
-  { date: "15 Sep", incidents: 12, compliance: 82 },
-  { date: "22 Sep", incidents: 9, compliance: 88 },
-  { date: "29 Sep", incidents: 6, compliance: 91 },
-  { date: "06 Oct", incidents: 4, compliance: 93 },
+const unsafeActData: UnsafeActData[] = [
+  { name: "PPE Issues", value: 400, fill: "#FFC107" },
+  { name: "Housekeeping", value: 300, fill: "#E53935" },
+  { name: "Other", value: 300, fill: "#0B3D91" },
 ];
 
-const barData = [
-  { name: "Site A", incidents: 12 },
-  { name: "Site B", incidents: 8 },
-  { name: "Site C", incidents: 4 },
-  { name: "Site D", incidents: 6 },
-  { name: "Site E", incidents: 2 },
+const openActionData: OpenActionData[] = [
+  { name: "High", value: 5 },
+  { name: "Medium", value: 12 },
+  { name: "Low", value: 8 },
 ];
 
-const pieData = [
-  { name: "Minor", value: 45 },
-  { name: "Major", value: 35 },
-  { name: "Critical", value: 20 },
+// Added type annotation
+const co2EmissionsData: CO2Data[] = [
+  { name: "May", CO2: 4000 },
+  { name: "Jun", CO2: 3000 },
+  { name: "Jul", CO2: 2000 },
+  { name: "Aug", CO2: 2780 },
+  { name: "Sep", CO2: 1890 },
+  { name: "Oct", CO2: 2390 },
 ];
 
-const COLORS = ["#2B6CB0", "#F6A623", "#E04B4B"];
-
-/* Framer variants for smooth, accessible motion */
-const containerVariants = {
-  hidden: { opacity: 0, y: 6 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { staggerChildren: 0.08, when: "beforeChildren" },
+const aiInsightsData: AiInsight[] = [
+  {
+    id: "1",
+    icon: LineChartIcon,
+    text: "Energy usage is 15% higher than Apr 2024",
+    linkText: "See meter log",
+    linkHref: "#",
   },
-};
-const cardVariants = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: "easeOut" } },
-};
+  {
+    id: "2",
+    icon: FileText,
+    text: "2 PTWs overdue in Unit B",
+    linkText: "Assign owner",
+    linkHref: "#",
+  },
+  {
+    id: "3",
+    icon: HardHat,
+    text: "PPE non-compliance up 8% in Night Shift",
+    linkText: "View reports",
+    linkHref: "#",
+  },
+];
 
-function StatCard({ card }: { card: any }) {
+// --- UPDATED: Added 'href' for navigation ---
+const moduleGridData = [
+  {
+    name: "Incidents & Near-Misses",
+    href: "/incidents",
+    icon: ShieldAlert,
+    kpi: "3 open ↑20%",
+    status: "2 Overdue",
+    isAlert: true,
+  },
+  {
+    name: "Permit-to-Work (PTW)",
+    href: "/ptw",
+    icon: FileText,
+    kpi: "22 active, 5 expiring",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Training & Competency",
+    href: "/training",
+    icon: Users,
+    kpi: "8 due this month",
+    status: "1 Overdue",
+    isAlert: true,
+  },
+  {
+    name: "Inspections & Audits",
+    href: "/audits",
+    icon: CheckSquare,
+    kpi: "Avg score 88%",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Medical & First-Aid",
+    href: "/medical",
+    icon: HeartPulse,
+    kpi: "2 cases reported",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Assets & PPE Management",
+    href: "/ppe",
+    icon: HardHat,
+    kpi: "13 PPE expiring",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Corrective Actions & RCA",
+    href: "/rca",
+    icon: Target,
+    kpi: "7 open ↓30%",
+    status: "3 Overdue",
+    isAlert: true,
+  },
+  {
+    name: "Environmental & Resource",
+    href: "/environmental", // Corrected path
+    icon: Leaf,
+    kpi: "CO₂/unit 0.92",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Social & Governance",
+    href: "/governance",
+    icon: Building,
+    kpi: "Turnover 5.1%",
+    status: "",
+    isAlert: false,
+  },
+  {
+    name: "Recent Activity",
+    href: undefined, // No link
+    icon: History,
+    kpi: "View latest uploads",
+    status: "",
+    isAlert: false,
+  },
+];
+
+const topRisksData: TopRisk[] = [
+  {
+    id: "r1",
+    priority: "High",
+    description: "Forklift collision risk in Warehouse A",
+    owner: "S. Gupta",
+  },
+  {
+    id: "r2",
+    priority: "High",
+    description: "Hot work permit non-compliance",
+    owner: "R. Singh",
+  },
+  {
+    id: "r3",
+    priority: "Medium",
+    description: "Chemical spill containment",
+    owner: "V. Patel",
+  },
+  {
+    id: "r4",
+    priority: "Medium",
+    description: "Working at height (Scaffolding)",
+    owner: "S. Gupta",
+  },
+  {
+    id: "r5",
+    priority: "Low",
+    description: "Training records for new hires",
+    owner: "A. Khan",
+  },
+];
+
+// --- Main Dashboard Component ---
+
+export const Dashboard: React.FC = () => {
   return (
-    <motion.div
-      variants={cardVariants}
-      initial="hidden"
-      animate="show"
-      whileHover={{ scale: 1.02, translateY: -4 }}
-      whileTap={{ scale: 0.995 }}
-      transition={{ type: "spring", stiffness: 260, damping: 24 }}
-      className="rounded-2xl p-5 shadow-md focus:outline-none focus:ring-2 focus:ring-[#2B6CB0]/30"
-      style={{
-        backgroundColor: card.bg,
-        boxShadow:
-          "0 6px 18px rgba(16,36,58,0.06), inset 0 -6px 12px rgba(0,0,0,0.03)",
-      }}
-      role="region"
-      aria-labelledby={`stat-${card.id}-title`}
-      tabIndex={0}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <div
-            id={`stat-${card.id}-title`}
-            className="text-sm font-medium"
-            style={{ color: card.text }}
-          >
-            {card.title}
-          </div>
-          <div
-            className="mt-3 text-3xl font-bold"
-            style={{ color: card.text }}
-            aria-hidden
-          >
-            {card.value}
-          </div>
-          <div className="mt-1 text-xs" style={{ color: card.text }}>
-            {card.subtitle}
-          </div>
-        </div>
+    <TooltipProvider>
+      <div className="flex min-h-full gap-6">
+        {/* Main Canvas (Center) */}
+        <div className="flex-1 space-y-6">
+          <h1 className="text-2xl font-semibold text-gray-800">
+            Executive Dashboard
+          </h1>
 
-        <div
-          className="rounded-xl p-2 flex items-center justify-center"
-          style={{
-            backgroundColor: "rgba(255,255,255,0.06)",
-            minWidth: 40,
-            minHeight: 40,
-          }}
-          aria-hidden
-        >
-          {card.icon}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-export default function DashboardPage() {
-  return (
-    <div className="w-full bg-[#F6F8FB] text-[#10243A] p-4 md:p-8">
-      {/* Header + quick stats */}
-      <section className="mt-4">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold leading-tight">
-              Dashboard Overview
-            </h1>
-            <p className="text-sm text-[#10243A]/70 mt-1 max-w-2xl">
-              At-a-glance safety insights — incident trends, compliance, and
-              actionables.
-            </p>
+          {/* Row A: KPI Card Ribbon */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {kpiData.map((kpi) => (
+              <KpiCard key={kpi.title} {...kpi} />
+            ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <a href="/unsafety">
-              <motion.button
-                whileHover={{
-                  y: -2,
-                  boxShadow: "0 10px 20px rgba(246,166,35,0.08)",
-                }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 260, damping: 22 }}
-                className="px-4 py-2 rounded-lg shadow-sm bg-[#2B6CB0] text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#F6A623]/30"
-                aria-label="Create new report"
-              >
-                New Report
-              </motion.button>
-            </a>
-          </div>
-        </div>
-
-        {/* Animated stat cards container */}
-        <motion.div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6"
-          initial="hidden"
-          animate="show"
-          variants={containerVariants}
-        >
-          {STAT_CARDS.map((c) => (
-            <StatCard key={c.id} card={c} />
-          ))}
-        </motion.div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-          {/* Large area chart */}
-          <div className="col-span-2 rounded-2xl bg-white p-4 shadow-md">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-sm font-medium">Incident Trend</div>
-                <div className="text-xs text-[#10243A]/60">Last 6 weeks</div>
-              </div>
-              <div className="text-sm text-[#10243A]/60">Filter: All sites</div>
-            </div>
-
-            <div style={{ width: "100%", height: 260 }}>
-              <ResponsiveContainer>
-                <AreaChart
-                  data={areaData}
-                  margin={{ top: 10, right: 18, left: -8, bottom: 10 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="colorComply"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="0%" stopColor="#1E9A61" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#1E9A61" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor="#E04B4B"
-                        stopOpacity={0.28}
-                      />
-                      <stop offset="100%" stopColor="#E04B4B" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis
-                    yAxisId="left"
-                    orientation="left"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis
-                    yAxisId="right"
-                    orientation="right"
-                    tick={{ fontSize: 12 }}
-                  />
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E6EDF5" />
-                  <Tooltip />
-                  <Area
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="compliance"
-                    stroke="#1E9A61"
-                    fillOpacity={1}
-                    fill="url(#colorComply)"
-                  />
-                  <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="incidents"
-                    stroke="#E04B4B"
-                    fillOpacity={1}
-                    fill="url(#colorInc)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="flex items-center gap-4 mt-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: "#1E9A61" }}
-                />
-                <div>Compliance</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: "#E04B4B" }}
-                />
-                <div>Incidents</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right column: pie + bar */}
-          <div className="rounded-2xl bg-white p-4 shadow-md">
-            <div className="text-sm font-medium">Incident Breakdown</div>
-            <div className="text-xs text-[#10243A]/60 mb-4">By severity</div>
-
-            <div style={{ width: "100%", height: 180 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    innerRadius={36}
-                    outerRadius={60}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
-            <div className="mt-4">
-              {pieData.map((p, i) => (
-                <div
-                  key={p.name}
-                  className="flex items-center justify-between text-sm my-1"
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: COLORS[i] }}
-                    />
-                    <div>{p.name}</div>
+          {/* Row B: Three Primary Panels */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Left Panel: Safety Snapshot */}
+            <Card className="col-span-1 shadow-sm lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Safety Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-gray-600">
+                    Unsafe Act Types
+                  </h3>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={unsafeActData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {unsafeActData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="text-sm">{p.value}%</div>
+                </div>
+                <div>
+                  <h3 className="mb-2 text-sm font-medium text-gray-600">
+                    Open Actions by Priority
+                  </h3>
+                  <div className="h-[200px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={openActionData} layout="vertical">
+                        <XAxis type="number" hide />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <RechartsTooltip />
+                        <Bar dataKey="value" barSize={20}>
+                          {openActionData.map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={
+                                entry.name === "High"
+                                  ? "#E53935"
+                                  : entry.name === "Medium"
+                                  ? "#FFC107"
+                                  : "#00A79D"
+                              }
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </CardContent>
+              <div className="border-t p-4">
+                <Button className="bg-[#0B3D91] hover:bg-[#082f70]">
+                  Report Near Miss
+                </Button>
+                <Button variant="outline" className="ml-2">
+                  Create Action
+                </Button>
+              </div>
+            </Card>
+
+            {/* Center Panel: ESG Snapshot */}
+            <Card className="col-span-1 flex flex-col shadow-sm">
+              <CardHeader>
+                <CardTitle>ESG Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-1">
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500">
+                    CO₂ per unit vs last month
+                  </p>
+                  <p className="text-3xl font-bold text-[#E53935]">8.5%</p>
+                </div>
+                <div className="h-[150px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={co2EmissionsData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis dataKey="name" fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <RechartsTooltip />
+                      <Line
+                        type="monotone"
+                        dataKey="CO2"
+                        stroke="#0B3D91"
+                        strokeWidth={2}
+                        dot={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+              <div className="border-t p-4">
+                <Button variant="link" className="p-0">
+                  View full ESG Report
+                  <ChevronsRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Row C: Module Grid */}
+          <div>
+            <h2 className="mb-4 text-xl font-semibold text-gray-800">
+              All Modules
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {moduleGridData.map((mod) => (
+                <ModuleTile key={mod.name} {...mod} />
+              ))}
+              {/* Generate Report Tile (as a CTA) */}
+              <Card className="group flex h-full flex-col items-center justify-center gap-2 bg-[#0B3D91] p-4 text-white shadow-sm transition-all hover:bg-[#082f70] hover:shadow-lg">
+                <Download className="h-8 w-8" />
+                <span className="text-center text-sm font-semibold">
+                  Generate Monthly Report
+                </span>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Insights Rail */}
+        <aside className="hidden w-[300px] flex-shrink-0 space-y-6 lg:block">
+          {/* AI Insights Card */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertOctagon className="h-5 w-5 text-[#0B3D91]" />
+                AI Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {aiInsightsData.map((insight) => (
+                <div key={insight.id} className="flex gap-3">
+                  <insight.icon className="mt-1 h-5 w-5 flex-shrink-0 text-[#00A79D]" />
+                  <div>
+                    <p className="text-sm">{insight.text}</p>
+                    <a
+                      href={insight.linkHref}
+                      className="text-sm font-medium text-[#0B3D91] hover:underline"
+                    >
+                      {insight.linkText}
+                    </a>
+                  </div>
                 </div>
               ))}
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="mt-6">
-              <div className="text-sm font-medium">Incidents by Site</div>
-              <div style={{ width: "100%", height: 120 }}>
-                <ResponsiveContainer>
-                  <BarChart
-                    data={barData}
-                    margin={{ top: 8, right: 8, left: -12, bottom: 0 }}
-                  >
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Bar
-                      dataKey="incidents"
-                      fill="#E04B4B"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent incidents table + actions */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
-          <motion.div
-  className="col-span-2 rounded-2xl bg-white p-4 shadow-md"
-  initial={{ opacity: 0, y: 8 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.5 }}
->
-  {/* Header */}
-  <div className="flex items-center justify-between mb-4">
-    <div>
-      <div className="text-sm font-semibold text-[#10243A]">
-        Recent Incidents
-      </div>
-      <div className="text-xs text-[#10243A]/60">Latest 10 reports logged</div>
-    </div>
-    <div className="text-sm text-[#2B6CB0] font-medium cursor-pointer hover:underline">
-      View all →
-    </div>
-  </div>
-
-  {/* Table */}
-  <div className="overflow-x-auto rounded-lg border border-[#E6EDF5]">
-    <table className="w-full text-sm">
-      <thead className="bg-[#F6F8FB] text-[#10243A]/70 text-xs uppercase">
-        <tr>
-          <th className="py-3 px-2 text-left">Time</th>
-          <th className="py-3 px-2 text-left">Site</th>
-          <th className="py-3 px-2 text-left">Type</th>
-          <th className="py-3 px-2 text-left">Severity</th>
-          <th className="py-3 px-2 text-left">Status</th>
-          <th className="py-3 px-2 text-left">Owner</th>
-          <th className="py-3 px-2 text-left">Location</th>
-          <th className="py-3 px-2 text-left">Action Required</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {[
-          {
-            time: "2025-10-31 09:12",
-            site: "Site A",
-            type: "Slip",
-            severity: "Minor",
-            status: "Open",
-            owner: "Ravi",
-            location: "North Zone",
-            action: "Inspection pending",
-          },
-          {
-            time: "2025-10-30 17:03",
-            site: "Site B",
-            type: "Equipment Failure",
-            severity: "Major",
-            status: "Investigating",
-            owner: "Priya",
-            location: "South Zone",
-            action: "Awaiting vendor feedback",
-          },
-          {
-            time: "2025-10-29 11:20",
-            site: "Site C",
-            type: "Near-miss",
-            severity: "Minor",
-            status: "Resolved",
-            owner: "Amit",
-            location: "Warehouse",
-            action: "Documentation review",
-          },
-          {
-            time: "2025-10-27 08:45",
-            site: "Site D",
-            type: "Fall from Height",
-            severity: "Critical",
-            status: "Open",
-            owner: "Sana",
-            location: "Maintenance Area",
-            action: "PPE audit required",
-          },
-          {
-            time: "2025-10-25 14:10",
-            site: "Site E",
-            type: "Fire",
-            severity: "Major",
-            status: "Closed",
-            owner: "Rohit",
-            location: "Control Room",
-            action: "Training follow-up",
-          },
-        ].map((incident, index) => (
-          <motion.tr
-            key={index}
-            className="border-t hover:bg-[#F6F8FB] transition-all duration-200 cursor-pointer"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05 }}
-          >
-            <td className="py-3 px-2 text-xs text-[#10243A]/80">
-              {incident.time}
-            </td>
-            <td className="py-3 px-2 font-medium">{incident.site}</td>
-            <td className="py-3 px-2 text-[#10243A]/80">{incident.type}</td>
-            <td className="py-3 px-2">
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  incident.severity === "Critical"
-                    ? "bg-[#E04B4B]/10 text-[#E04B4B]"
-                    : incident.severity === "Major"
-                    ? "bg-[#F6A623]/10 text-[#F6A623]"
-                    : "bg-[#1E9A61]/10 text-[#1E9A61]"
-                }`}
-              >
-                {incident.severity}
-              </span>
-            </td>
-            <td className="py-3 px-2">
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  incident.status === "Open"
-                    ? "bg-[#2B6CB0]/10 text-[#2B6CB0]"
-                    : incident.status === "Investigating"
-                    ? "bg-[#F6A623]/10 text-[#F6A623]"
-                    : incident.status === "Resolved"
-                    ? "bg-[#1E9A61]/10 text-[#1E9A61]"
-                    : "bg-[#10243A]/10 text-[#10243A]"
-                }`}
-              >
-                {incident.status}
-              </span>
-            </td>
-            <td className="py-3 px-2">
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 rounded-full bg-[#2B6CB0]/10 flex items-center justify-center text-xs font-semibold text-[#2B6CB0]">
-                  {incident.owner.charAt(0)}
+          {/* Top 5 Risks Card */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Top 5 Risks</CardTitle>
+              <CardDescription>
+                <Select defaultValue="30d">
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30d">Last 30 days</SelectItem>
+                    <SelectItem value="mtd">Month-to-Date</SelectItem>
+                    <SelectItem value="ytd">Year-to-Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {topRisksData.map((risk) => (
+                <div key={risk.id} className="flex items-start gap-2">
+                  <span
+                    className={cn(
+                      "mt-1 h-2 w-2 flex-shrink-0 rounded-full",
+                      risk.priority === "High" && "bg-[#E53935]",
+                      risk.priority === "Medium" && "bg-[#FFC107]",
+                      risk.priority === "Low" && "bg-[#00A79D]"
+                    )}
+                  />
+                  <div>
+                    <p className="text-sm font-medium">{risk.description}</p>
+                    <p className="text-xs text-gray-500">Owner: {risk.owner}</p>
+                  </div>
                 </div>
-                <span>{incident.owner}</span>
-              </div>
-            </td>
-            <td className="py-3 px-2 text-xs text-[#10243A]/80">
-              {incident.location}
-            </td>
-            <td
-              className="py-3 px-2 text-xs text-[#10243A]/70"
-              title={incident.action}
-            >
-              {incident.action}
-            </td>
-          </motion.tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
+              ))}
+            </CardContent>
+          </Card>
 
-  {/* Small Summary Below */}
-  <div className="mt-4 text-xs text-[#10243A]/70 flex flex-wrap gap-3">
-    <div>🟢 <span className="font-semibold">2 Resolved</span></div>
-    <div>🟠 <span className="font-semibold">1 Investigating</span></div>
-    <div>🔴 <span className="font-semibold">2 Open/Critical</span></div>
-    <div>📍 Highlighted zones: Maintenance, South, Control Room</div>
-  </div>
-</motion.div>
-
-          <div className="rounded-2xl bg-white p-4 shadow-md">
-            <div className="text-sm font-medium">Quick Actions</div>
-            <div className="text-xs text-[#10243A]/60 mb-3">
-              Create report, assign owner or escalate
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <a
-                href="/create-incident"
-                className="w-full py-2 rounded-lg bg-[#2B6CB0] text-[#F6F8FB] text-center block shadow-sm hover:scale-[1.01] transition-transform focus:outline-none focus:ring-2 focus:ring-[#2B6CB0]/30"
-              >
-                ChatBot
-              </a>
-
-              <a
-                href="/Unsafety"
-                className="w-full py-2 rounded-lg bg-[#F6A623] text-[#10243A] text-center block shadow-sm hover:scale-[1.01] transition-transform focus:outline-none focus:ring-2 focus:ring-[#F6A623]/30"
-              >
-                Generate Report
-              </a>
-
-              <a
-                href="/escalate"
-                className="w-full py-2 rounded-lg bg-[#E04B4B] text-[#F6F8FB] text-center block shadow-sm hover:scale-[1.01] transition-transform focus:outline-none focus:ring-2 focus:ring-[#E04B4B]/30"
-              >
-                Module 3
-              </a>
-
-              <a
-                href="/assign-owner"
-                className="w-full py-2 rounded-lg border border-[#E6EDF5] text-center block text-[#10243A] shadow-sm hover:scale-[1.01] transition-transform focus:outline-none focus:ring-2 focus:ring-[#10243A]/10"
-              >
-                Module 4
-              </a>
-            </div>
-
-            <div className="mt-4 text-xs text-[#10243A]/70">
-              Tip: Click a row in Recent Incidents to open the detail drawer for
-              recommended next-steps.
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 text-xs text-[#10243A]/60">
-          © {new Date().getFullYear()} DATTU — Safety AI insights
-        </div>
-      </section>
-    </div>
+          {/* Quick Export Card */}
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle>Quick Export</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              <Button variant="outline" className="justify-start gap-2">
+                <FileDown className="h-4 w-4" /> Export Executive PDF
+              </Button>
+              <Button variant="outline" className="justify-start gap-2">
+                <FileDown className="h-4 w-4" /> Export Full CSV
+              </Button>
+              <Button variant="outline" className="justify-start gap-2">
+                <Mail className="h-4 w-4" /> Email Summary
+              </Button>
+            </CardContent>
+          </Card>
+        </aside>
+      </div>
+    </TooltipProvider>
   );
+};
+
+// --- Sub-components for Dashboard ---
+
+/**
+ * KPI Card Component
+ */
+const KpiCard: React.FC<KpiData> = ({
+  title,
+  value,
+  comparison,
+  isPositive,
+}) => (
+  <Card className="shadow-sm">
+    <CardHeader className="pb-2">
+      <CardDescription>{title}</CardDescription>
+      <CardTitle className="text-3xl">{value}</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="flex items-center gap-1 text-xs">
+        {isPositive ? (
+          <ArrowUpRight className="h-4 w-4 text-green-600" />
+        ) : (
+          <ArrowDownRight className="h-4 w-4 text-red-600" />
+        )}
+        <span className={cn(isPositive ? "text-green-600" : "text-red-600")}>
+          {comparison}
+        </span>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+/**
+ * Module Tile Component
+ */
+// UPDATED interface to accept 'href'
+interface ModuleTileProps {
+  name: string;
+  icon: React.ElementType;
+  kpi: string;
+  status: string;
+  isAlert: boolean;
+  href?: string; // href is optional
 }
+
+// UPDATED the ModuleTile component to be a clickable link
+const ModuleTile: React.FC<ModuleTileProps> = ({
+  name,
+  icon: Icon,
+  kpi,
+  status,
+  isAlert,
+  href,
+}) => {
+  // Define the content of the card
+  const cardContent = (
+    <motion.div
+      whileHover={{ scale: 1.03 }} // Add hover animation
+      className="h-full"
+    >
+      <Card className="group flex h-full flex-col justify-between p-4 shadow-sm transition-all hover:shadow-md">
+        <div>
+          <div className="flex items-center justify-between">
+            <Icon className="h-6 w-6 text-gray-500 group-hover:text-[#0B3D91]" />
+            {isAlert && (
+              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-600">
+                {status}
+              </span>
+            )}
+          </div>
+          <p className="mt-4 text-sm font-semibold text-gray-800">{name}</p>
+        </div>
+        <p className="text-lg font-bold text-gray-900">{kpi}</p>
+      </Card>
+    </motion.div>
+  );
+
+  // If href is provided, wrap in a Link
+  if (href) {
+    return (
+      <Link to={href} className="no-underline">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  // Otherwise, just render the (non-clickable) card (e.g., for "Recent Activity")
+  return cardContent;
+};

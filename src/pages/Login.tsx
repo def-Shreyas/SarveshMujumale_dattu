@@ -5,22 +5,28 @@ import { useNavigate } from "react-router-dom";
 import { validateCredentials } from "@/lib/auth";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react"; // 👈 added
+import { Eye, EyeOff, Zap } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Image import
+import DattuImage from "/hii dattu.png";
 
 export default function Login() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // 👈 toggle state
-  const [showConfirm, setShowConfirm] = useState(false); // 👈 for confirm field too
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const navigate = useNavigate();
 
-  const login = () => {
+  const { login } = useAuth();
+
+  const handleLogin = () => {
     if (validateCredentials(username, password)) {
-      localStorage.setItem("auth", "true");
+      login();
       toast.success("✅ Welcome back, Safety Manager!");
-      navigate("/dashboard");
+      navigate("/");
     } else {
       toast.error("❌ Invalid credentials. Please try again.");
     }
@@ -41,203 +47,212 @@ export default function Login() {
   };
 
   const formVariant = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { opacity: 1, y: 0, scale: 1 },
-    exit: { opacity: 0, y: -20, scale: 0.95 },
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
   };
+
+  const primaryNavy = "#0B3D91";
+  const accentTeal = "#00A79D";
 
   return (
     <div
-      className="h-screen flex justify-center items-center"
+      className="h-screen flex justify-center items-center p-4 md:p-8"
       style={{
-        background:
-          "linear-gradient(135deg, rgba(43,108,176,0.15) 0%, rgba(44,163,163,0.15) 100%)",
+        background: `linear-gradient(135deg, ${primaryNavy}1A 0%, ${accentTeal}1A 100%)`,
       }}
     >
       <motion.div
-        className="bg-white/90 backdrop-blur-lg p-10 rounded-2xl shadow-2xl w-full max-w-md border border-[#E6EDF5]"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 overflow-hidden"
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, type: "spring", stiffness: 100 }}
       >
-        {/* DATTU header */}
+        {/* ==================================================== 
+             LEFT COLUMN: DATTU IMAGE + HELLO TEXT
+           ==================================================== */}
         <motion.div
-          className="text-center mb-6"
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          className="flex flex-col justify-center items-center text-center p-8"
+          style={{
+            background: `linear-gradient(180deg, ${primaryNavy} 0%, ${accentTeal} 100%)`,
+          }}
+          initial={{ x: -50, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
         >
-          <div className="flex justify-center items-center gap-3 mb-2">
-            <div
-              className="flex h-10 w-10 items-center justify-center rounded-lg shadow-md"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(44,163,163,1) 0%, rgba(43,108,176,1) 100%)",
-              }}
-            >
-              <span className="text-lg font-bold text-white">D</span>
-            </div>
-            <h1 className="text-2xl font-bold text-[#10243A] tracking-wide">
-              DATTU
-            </h1>
+          {/* DATTU IMAGE */}
+          <motion.img
+            src={DattuImage}
+            alt="Dattu AI welcomes you"
+            className="w-1/2 max-w-[180px] h-auto mb-4 drop-shadow-xl rounded-lg"
+            initial={{ scale: 0.9, y: 30 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 100, delay: 0.4 }}
+          />
+
+          {/* Text Below */}
+          <div className="text-white">
+            <h1 className="text-2xl font-bold tracking-tight">Hello, I’m Dattu 👋</h1>
+            <p className="text-sm mt-2 opacity-90 font-medium">
+              Your Expertise Matters
+            </p>
           </div>
-          <p className="text-sm text-[#10243A]/70">
-            Your Safety AI — always ready to assist
-          </p>
         </motion.div>
 
-        {/* Login / Register form */}
-        <AnimatePresence mode="wait">
-          {mode === "login" ? (
-            <motion.div
-              key="login"
-              variants={formVariant}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.4 }}
-            >
-              <h2 className="text-xl font-semibold text-center text-[#10243A] mb-4">
-                Welcome Back 👋
-              </h2>
-
-              <Input
-                placeholder="Username"
-                className="mb-3"
-                onChange={(e) => setUsername(e.target.value)}
-              />
-
-              {/* Password with eye icon */}
-              <div className="relative mb-4">
-                <Input
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#2B6CB0] transition"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 250, damping: 20 }}
-                className="w-full bg-[#2B6CB0] text-white py-2 rounded-lg shadow-md"
-                onClick={login}
+        {/* ==================================================== 
+             RIGHT COLUMN: LOGIN FORM 
+           ==================================================== */}
+        <div className="p-8 lg:p-10 flex flex-col justify-center">
+          <AnimatePresence mode="wait">
+            {mode === "login" ? (
+              <motion.div
+                key="login"
+                variants={formVariant}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                transition={{ duration: 0.3 }}
               >
-                Login
-              </motion.button>
+                <h2 className="text-2xl font-extrabold text-[#10243A] mb-2">
+                  Sign In to Co-Pilot
+                </h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Access your Executive Safety Dashboard.
+                </p>
 
-              <p className="text-sm text-center text-[#10243A]/60 mt-4">
-                DATTU remembers your last session — stay safe, stay smart.
-              </p>
-
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setMode("register")}
-                  className="text-[#2B6CB0] text-sm hover:underline"
-                >
-                  Don’t have an account? Register
-                </button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="register"
-              variants={formVariant}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              transition={{ duration: 0.4 }}
-            >
-              <h2 className="text-xl font-semibold text-center text-[#10243A] mb-4">
-                Create Your Account 🛡️
-              </h2>
-
-              <Input
-                placeholder="Username"
-                className="mb-3"
-                onChange={(e) => setUsername(e.target.value)}
-              />
-
-              {/* Password with eye icon */}
-              <div className="relative mb-3">
                 <Input
-                  placeholder="Password"
-                  type={showPassword ? "text" : "password"}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  placeholder="Username"
+                  className="mb-4 h-10 text-base"
+                  onChange={(e) => setUsername(e.target.value)}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#2CA3A3] transition"
+
+                {/* Password with eye icon */}
+                <div className="relative mb-5">
+                  <Input
+                    placeholder="Password"
+                    type={showPassword ? "text" : "password"}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10 h-10 text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+
+                <motion.button
+                  whileHover={{
+                    scale: 1.01,
+                    boxShadow: "0 4px 15px rgba(11, 61, 145, 0.4)",
+                  }}
+                  whileTap={{ scale: 0.99 }}
+                  className="w-full bg-[#0B3D91] text-white py-2.5 rounded-xl text-base font-semibold transition-colors duration-300 shadow-lg"
+                  onClick={handleLogin}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+                  <Zap className="inline mr-2 h-4 w-4" /> Access Dashboard
+                </motion.button>
 
-              {/* Confirm Password with eye icon */}
-              <div className="relative mb-4">
-                <Input
-                  placeholder="Confirm Password"
-                  type={showConfirm ? "text" : "password"}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#2CA3A3] transition"
-                >
-                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+                <div className="text-center mt-5">
+                  <button
+                    onClick={() => setMode("register")}
+                    className="text-sm hover:underline text-gray-600"
+                  >
+                    Don’t have an account? Register
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
+// --- Register Form ---
+<motion.div
+  key="register"
+  variants={formVariant}
+  initial="hidden"
+  animate="visible"
+  exit="exit"
+  transition={{ duration: 0.3 }}
+>
+  <h2 className="text-2xl font-extrabold text-[#10243A] mb-2">
+    Create Account 🛡️
+  </h2>
+  <p className="text-sm text-gray-500 mb-6">
+    Registration is typically handled by HR/IT.
+  </p>
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 250, damping: 20 }}
-                className="w-full bg-[#2CA3A3] text-white py-2 rounded-lg shadow-md"
-                onClick={register}
-              >
-                Register
-              </motion.button>
+  {/* New Name Input */}
+  <Input
+    placeholder="Full Name"
+    className="mb-3 h-10 text-base"
+    onChange={(e) => console.log("Name:", e.target.value)} // replace with state if needed
+  />
 
-              <p className="text-sm text-center text-[#10243A]/60 mt-4">
-                DATTU ensures your data remains secure and private 🔒
-              </p>
+  <Input
+    placeholder="Username"
+    className="mb-3 h-10 text-base"
+    onChange={(e) => setUsername(e.target.value)}
+  />
 
-              <div className="text-center mt-6">
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-[#2B6CB0] text-sm hover:underline"
-                >
-                  Already registered? Login
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+  <div className="relative mb-3">
+    <Input
+      placeholder="Password"
+      type={showPassword ? "text" : "password"}
+      onChange={(e) => setPassword(e.target.value)}
+      className="pr-10 h-10 text-base"
+    />
+    <button
+      type="button"
+      onClick={() => setShowPassword(!showPassword)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+    >
+      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
+  </div>
+
+  <div className="relative mb-5">
+    <Input
+      placeholder="Confirm Password"
+      type={showConfirm ? "text" : "password"}
+      onChange={(e) => setConfirm(e.target.value)}
+      className="pr-10 h-10 text-base"
+    />
+    <button
+      type="button"
+      onClick={() => setShowConfirm(!showConfirm)}
+      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition"
+    >
+      {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+    </button>
+  </div>
+
+  <motion.button
+    whileHover={{
+      scale: 1.01,
+      boxShadow: "0 4px 15px rgba(0, 167, 157, 0.4)",
+    }}
+    whileTap={{ scale: 0.99 }}
+    className="w-full bg-[#00A79D] text-white py-2.5 rounded-xl text-base font-semibold transition-colors duration-300 shadow-lg"
+    onClick={register}
+  >
+    Register (Mock)
+  </motion.button>
+
+  <div className="text-center mt-5">
+    <button
+      onClick={() => setMode("login")}
+      className="text-sm hover:underline"
+      style={{ color: primaryNavy }}
+    >
+      Already registered? Sign In
+    </button>
+  </div>
+</motion.div>
+
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
-
-      {/* Background motion accents */}
-      <motion.div
-        className="absolute top-20 left-10 w-24 h-24 rounded-full bg-[#2B6CB0]/10 blur-2xl"
-        animate={{ y: [0, 20, 0] }}
-        transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-20 right-10 w-32 h-32 rounded-full bg-[#2CA3A3]/10 blur-2xl"
-        animate={{ y: [0, -20, 0] }}
-        transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
-      />
     </div>
   );
 }

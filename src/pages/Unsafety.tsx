@@ -1,4 +1,6 @@
-import { useRef, useEffect, useState } from "react";
+// src/pages/Unsafety.tsx
+"use client";
+import React, { useRef, useEffect, useState } from "react"; // Added React
 import {
   BarChart,
   Bar,
@@ -16,7 +18,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,31 +30,11 @@ import {
   FileText,
   Loader2,
   Sparkles,
+  Eye,
 } from "lucide-react";
+import { toast } from "sonner";
 
-// Dummy chart data
-const unsafetyData = [
-  { type: "No PPE", count: 35 },
-  { type: "Unsafe Machine Use", count: 22 },
-  { type: "Slip/Trip Hazards", count: 18 },
-  { type: "Fire Safety Issues", count: 12 },
-  { type: "Chemical Misuse", count: 9 },
-];
-const pieData = unsafetyData.map((item) => ({
-  name: item.type,
-  value: item.count,
-}));
-const areaData = [
-  { month: "Jan", incidents: 12 },
-  { month: "Feb", incidents: 18 },
-  { month: "Mar", incidents: 22 },
-  { month: "Apr", incidents: 25 },
-  { month: "May", incidents: 30 },
-];
-// New palette applied to pie/chart slices: Soft Blue, Slate, Teal, Amber, Soft Red
-const COLORS = ["#2B6CB0", "#10243A", "#2CA3A3", "#F6A623", "#E04B4B"];
-
-// AI Motivational Quotes
+// --- AI Motivational Quotes ---
 const aiQuotes = [
   "AI is transforming the way we analyze safety data...",
   "Machine learning helps us identify patterns we couldn't see before...",
@@ -60,50 +42,54 @@ const aiQuotes = [
   "Intelligent systems are making workplaces safer...",
   "AI doesn't replace human insight, it amplifies it...",
   "Data-driven decisions powered by AI are the future of safety...",
-  "Artificial Intelligence is unlocking new possibilities in safety analytics...",
-  "Let AI handle the data crunching while you focus on insights...",
-  "Smart algorithms are processing your data to reveal hidden patterns...",
-  "AI-powered analytics: turning raw data into actionable safety intelligence...",
 ];
 
-// Report data
-const reportData = [
-  {
-    act: "No PPE",
-    description: "Workers not wearing Personal Protective Equipment.",
-    prevention: "Ensure PPE is mandatory and provide training.",
-  },
-  {
-    act: "Unsafe Machine Use",
-    description: "Machines operated without proper guarding.",
-    prevention: "Install safety guards and conduct regular inspections.",
-  },
-  {
-    act: "Slip/Trip Hazards",
-    description: "Wet floors or obstructed walkways.",
-    prevention: "Maintain clean floors, proper signage and lighting.",
-  },
-  {
-    act: "Fire Safety Issues",
-    description: "Fire extinguishers missing or blocked exits.",
-    prevention: "Regular fire drills and equipment checks.",
-  },
-  {
-    act: "Chemical Misuse",
-    description: "Improper storage/handling of chemicals.",
-    prevention: "Provide MSDS sheets and training on handling chemicals.",
-  },
-];
+// --- Color Palette ---
+const COLORS = ["#0B3D91", "#00A79D", "#FFC107", "#E53935", "#64748b"];
 
-export default function UnsafetyDashboard() {
+// --- Type Definitions for Backend Data ---
+interface UnsafetyCount {
+  type: string;
+  count: number;
+}
+interface AreaTrend {
+  month: string;
+  incidents: number;
+}
+interface ReportDetail {
+  act: string;
+  description: string;
+  prevention: string;
+}
+interface BackendReportData {
+  unsafetyData: UnsafetyCount[];
+  areaData: AreaTrend[];
+  reportData: ReportDetail[];
+}
+
+export const Unsafety: React.FC = () => {
   const reportRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [windowWidth, setWindowWidth] = useState(1024);
+  const [windowWidth, setWindowWidth] = useState(1024); // RESTORED
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
 
+  // --- STATE TO HOLD BACKEND DATA ---
+  const [unsafetyData, setUnsafetyData] = useState<UnsafetyCount[]>([]);
+  const [areaData, setAreaData] = useState<AreaTrend[]>([]);
+  const [reportData, setReportData] = useState<ReportDetail[]>([]);
+
+  // Memoize chart data
+  const pieData = React.useMemo(() => {
+    return unsafetyData.map((item) => ({
+      name: item.type,
+      value: item.count,
+    }));
+  }, [unsafetyData]);
+
+  // RESTORED: Effect to track window width for responsive charts
   useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
@@ -118,7 +104,7 @@ export default function UnsafetyDashboard() {
     if (isGenerating) {
       const quoteInterval = setInterval(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
-      }, 3000); // Change quote every 3 seconds
+      }, 3000);
       return () => clearInterval(quoteInterval);
     }
   }, [isGenerating]);
@@ -133,8 +119,11 @@ export default function UnsafetyDashboard() {
 
       if (validExtensions.includes(fileExtension)) {
         setSelectedFile(file);
+        setShowDashboard(false);
       } else {
-        alert("Please upload a valid Excel (.xlsx, .xls) or CSV file.");
+        toast.error("Invalid File Type", {
+          description: "Please upload a valid Excel (.xlsx, .xls) or CSV file.",
+        });
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -142,50 +131,102 @@ export default function UnsafetyDashboard() {
     }
   };
 
+  // --- 🚀 BACKEND LOGIC INTEGRATION 🚀 ---
   const handleGenerate = async () => {
     if (!selectedFile) {
-      alert("Please select a file first.");
+      toast.error("No File Selected", {
+        description: "Please select a file first.",
+      });
       return;
     }
 
+    setIsGenerating(true);
+    setShowDashboard(false);
+    setCurrentQuoteIndex(0);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
     try {
-      setIsGenerating(true);
-      setShowDashboard(false);
+      // TODO: Replace this with your real backend endpoint
+      // const response = await fetch("https://your-backend.api/upload-unsafety-report", { ... });
+      // const data: BackendReportData = await response.json();
+      
+      // --- MOCKUP: Simulating backend response ---
+      await new Promise((resolve) => setTimeout(resolve, 4000));
+      const mockData: BackendReportData = {
+        unsafetyData: [
+          { type: "No PPE", count: 35 },
+          { type: "Unsafe Machine Use", count: 22 },
+          { type: "Slip/Trip Hazards", count: 18 },
+          { type: "Fire Safety Issues", count: 12 },
+          { type: "Chemical Misuse", count: 9 },
+        ],
+        areaData: [
+          { month: "Jan", incidents: 12 },
+          { month: "Feb", incidents: 18 },
+          { month: "Mar", incidents: 22 },
+          { month: "Apr", incidents: 25 },
+          { month: "May", incidents: 30 },
+        ],
+        reportData: [
+          {
+            act: "No PPE",
+            description: "Workers not wearing Personal Protective Equipment.",
+            prevention: "Ensure PPE is mandatory and provide training.",
+          },
+          {
+            act: "Unsafe Machine Use",
+            description: "Machines operated without proper guarding.",
+            prevention: "Install safety guards and conduct regular inspections.",
+          },
+          {
+            act: "Slip/Trip Hazards",
+            description: "Wet floors or obstructed walkways.",
+            prevention: "Maintain clean floors, proper signage and lighting.",
+          },
+        ],
+      };
+      // --- End of Mockup ---
 
-      // Simulate processing time (3-5 seconds)
-      const processingTime = 3000 + Math.random() * 2000;
-      await new Promise((resolve) => setTimeout(resolve, processingTime));
+      setUnsafetyData(mockData.unsafetyData);
+      setAreaData(mockData.areaData);
+      setReportData(mockData.reportData);
 
-      // Here you would normally process the file
-      // For now, we'll just show the dashboard
       setIsGenerating(false);
       setShowDashboard(true);
+      toast.success("Report Generated", {
+        description: "Your safety dashboard is ready.",
+      });
+
     } catch (error) {
       console.error("Error generating dashboard:", error);
-      // Reset states on error
       setIsGenerating(false);
       setShowDashboard(false);
-      alert("Failed to generate dashboard. Please try again.");
+      toast.error("Generation Failed", {
+        description: "Could not process the file. Please try again.",
+      });
     }
   };
 
+  // --- RESTORED: Full PDF Download Logic ---
   const downloadPDF = async () => {
     try {
       if (!reportRef.current) {
-        console.error("Report ref is not available");
-        alert("Unable to generate PDF. The report section is not available.");
+        toast.error("Error", { description: "Report ref is not available" });
         return;
       }
 
-      // Show a loading message
+      toast.info("Generating PDF", { description: "Please wait..." });
+
+      // Use the button that was clicked
       const button = document.activeElement as HTMLElement;
-      const originalText = button?.textContent || "";
+      const originalText = button?.textContent || "Download Report";
       if (button) {
-        button.textContent = "Generating PDF...";
+        button.textContent = "Generating...";
         button.setAttribute("disabled", "true");
       }
 
-      // Wait a bit to ensure DOM is ready
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       const canvas = await html2canvas(reportRef.current, {
@@ -193,7 +234,7 @@ export default function UnsafetyDashboard() {
         useCORS: true,
         allowTaint: true,
         logging: false,
-        backgroundColor: "#F6F8FB", // Off-White background for PDF capture
+        backgroundColor: "#F7F9FB", // Your app's BG color
         width: reportRef.current.scrollWidth,
         height: reportRef.current.scrollHeight,
         windowWidth: reportRef.current.scrollWidth,
@@ -203,53 +244,22 @@ export default function UnsafetyDashboard() {
       if (!canvas) {
         throw new Error("Failed to capture screenshot");
       }
-
-      // Convert canvas to RGB format to avoid OKLCH color issues
-      // Use getImageData/putImageData to force RGB conversion
+      
+      // --- RGB Canvas Fix (from your original code) ---
       const rgbCanvas = document.createElement("canvas");
       rgbCanvas.width = canvas.width;
       rgbCanvas.height = canvas.height;
-      const ctx = rgbCanvas.getContext("2d", {
-        colorSpace: "srgb",
-        willReadFrequently: false,
-      });
+      const ctx = rgbCanvas.getContext("2d", { colorSpace: "srgb" });
 
       if (!ctx) {
         throw new Error("Failed to create RGB canvas context");
       }
-
-      // Fill with background color first
-      ctx.fillStyle = "#F6F8FB"; // Off-White
+      ctx.fillStyle = "#F7F9FB";
       ctx.fillRect(0, 0, rgbCanvas.width, rgbCanvas.height);
-
-      // Draw the original canvas onto RGB canvas
-      // Drawing forces color space conversion from OKLCH to sRGB
       ctx.drawImage(canvas, 0, 0);
-
-      // Create a clean image data URL that's guaranteed to be RGB
-      // Convert canvas to blob first, then to data URL to ensure RGB format
-      // Using blob ensures complete color space conversion
-      const blob = await new Promise<Blob | null>((resolve) => {
-        rgbCanvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
-      });
-
-      if (!blob) {
-        throw new Error("Failed to convert canvas to blob");
-      }
-
-      // Convert blob to base64 data URL
-      const reader = new FileReader();
-      const cleanImgData = await new Promise<string>((resolve, reject) => {
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            resolve(reader.result);
-          } else {
-            reject(new Error("Failed to read blob as data URL"));
-          }
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      
+      const cleanImgData = rgbCanvas.toDataURL("image/png", 1.0);
+      // --- End of RGB Fix ---
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -259,130 +269,47 @@ export default function UnsafetyDashboard() {
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // Calculate image dimensions from RGB canvas
+      
       const imgWidth = rgbCanvas.width;
       const imgHeight = rgbCanvas.height;
       const ratio = imgWidth / imgHeight;
 
-      const finalWidth = pdfWidth - 20; // 10mm margin on each side
+      const finalWidth = pdfWidth - 20; // 10mm margin
       const finalHeight = finalWidth / ratio;
 
-      // If content fits on one page, center it
       if (finalHeight <= pdfHeight - 20) {
+        // Single page
         const yOffset = (pdfHeight - finalHeight) / 2;
-        pdf.addImage(
-          cleanImgData,
-          "PNG",
-          10,
-          yOffset,
-          finalWidth,
-          finalHeight,
-          undefined,
-          "FAST"
-        );
+        pdf.addImage(cleanImgData, "PNG", 10, yOffset, finalWidth, finalHeight, undefined, "FAST");
       } else {
-        // Multiple pages - simpler approach
-        const pageHeight = pdfHeight - 20; // With margins
-        let yPosition = 10;
-        let sourceY = 0;
-
-        while (sourceY < imgHeight) {
-          if (yPosition > 10) {
-            pdf.addPage();
-            yPosition = 10;
-          }
-
-          const remainingHeight = imgHeight - sourceY;
-          const heightOnPage = Math.min(
-            (remainingHeight * finalWidth) / imgWidth,
-            pageHeight
-          );
-
-          // Create a temporary canvas for this page with RGB context
-          const pageCanvas = document.createElement("canvas");
-          pageCanvas.width = imgWidth;
-          pageCanvas.height = Math.min(
-            remainingHeight,
-            (pageHeight * imgWidth) / finalWidth
-          );
-          const ctx = pageCanvas.getContext("2d", {
-            colorSpace: "srgb",
-            willReadFrequently: false,
-          });
-
-          if (ctx) {
-            // Fill with background
-            ctx.fillStyle = "#F6F8FB"; // Off-White
-            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-
-            ctx.drawImage(
-              rgbCanvas,
-              0,
-              sourceY,
-              imgWidth,
-              pageCanvas.height,
-              0,
-              0,
-              imgWidth,
-              pageCanvas.height
-            );
-
-            // Convert to blob for RGB safety
-            const pageBlob = await new Promise<Blob | null>((resolve) => {
-              pageCanvas.toBlob((blob) => resolve(blob), "image/png", 1.0);
-            });
-
-            if (pageBlob) {
-              const pageReader = new FileReader();
-              const pageImgData = await new Promise<string>(
-                (resolve, reject) => {
-                  pageReader.onloadend = () => {
-                    if (typeof pageReader.result === "string") {
-                      resolve(pageReader.result);
-                    } else {
-                      reject(new Error("Failed to read page blob"));
-                    }
-                  };
-                  pageReader.onerror = reject;
-                  pageReader.readAsDataURL(pageBlob);
-                }
-              );
-
-              pdf.addImage(
-                pageImgData,
-                "PNG",
-                10,
-                yPosition,
-                finalWidth,
-                heightOnPage,
-                undefined,
-                "FAST"
-              );
-            }
-          }
-
-          sourceY += pageCanvas.height;
-          yPosition += heightOnPage;
+        // Multi-page logic (simplified from your original)
+        let position = 10;
+        let pageHeight = (pdfWidth / ratio) - 20; // height of content on one page
+        if(pageHeight <= 0) pageHeight = pdfHeight - 20;
+        
+        pdf.addImage(cleanImgData, "PNG", 10, position, finalWidth, finalHeight, undefined, "FAST");
+        let heightLeft = finalHeight - pageHeight;
+        
+        while (heightLeft > 0) {
+          position = -pageHeight + 10; // Move position up
+          pdf.addPage();
+          pdf.addImage(cleanImgData, "PNG", 10, position, finalWidth, finalHeight, undefined, "FAST");
+          heightLeft -= pageHeight;
         }
       }
 
-      pdf.save("Factory_Unsafety_Report.pdf");
+      pdf.save("Dattu_Unsafety_Report.pdf");
 
-      // Restore button
       if (button) {
         button.textContent = originalText;
         button.removeAttribute("disabled");
       }
     } catch (error) {
       console.error("Error generating PDF:", error);
-      alert(
-        `Failed to generate PDF: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }. Please try again.`
-      );
+      toast.error("Failed to generate PDF", {
+        description: `${error instanceof Error ? error.message : "Unknown error"}`,
+      });
 
-      // Restore button on error
       const button = document.activeElement as HTMLElement;
       if (button) {
         button.removeAttribute("disabled");
@@ -390,17 +317,19 @@ export default function UnsafetyDashboard() {
     }
   };
 
-  // Show file upload if dashboard is not shown
+  // --- RENDER LOGIC ---
+
+  // 1. UPLOAD SCREEN
   if (!showDashboard && !isGenerating) {
     return (
-      <div className="w-full min-h-screen bg-[#F6F8FB] text-[#10243A] flex items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full flex items-center justify-center py-10">
         <motion.div
           className="w-full max-w-2xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 shadow-xl">
+          <Card className="shadow-xl border-t-4 border-[#0B3D91]">
             <CardHeader className="text-center pb-6">
               <motion.div
                 className="flex justify-center mb-4"
@@ -408,92 +337,73 @@ export default function UnsafetyDashboard() {
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
               >
-                <div className="p-4 rounded-full bg-gradient-to-br from-[#2B6CB0]/20 to-[#2CA3A3]/20 border border-[#2B6CB0]/30">
-                  <Upload className="w-12 h-12 text-[#2B6CB0]" />
+                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
+                  <Upload className="w-12 h-12 text-[#0B3D91]" />
                 </div>
               </motion.div>
-              <CardTitle className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
-                Upload Your Data File
+              <CardTitle className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                Upload Unsafe Acts Report
               </CardTitle>
-              <p className="text-[#10243A] text-sm sm:text-base lg:text-lg mt-2">
-                Upload an Excel (.xlsx, .xls) or CSV file to generate your
-                safety dashboard
+              <p className="text-gray-600 text-lg">
+                Upload an Excel or CSV file to generate your AI-powered
+                dashboard.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-[#10243A]/40 rounded-lg cursor-pointer hover:border-[#2B6CB0]/50 transition-colors duration-300 bg-[#F6F8FB]/50"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      {selectedFile ? (
-                        <>
-                          {selectedFile.name.endsWith(".csv") ? (
-                            <FileText className="w-16 h-16 text-[#1E9A61] mb-3" />
-                          ) : (
-                            <FileSpreadsheet className="w-16 h-16 text-[#2B6CB0] mb-3" />
-                          )}
-                          <p className="mb-2 text-sm sm:text-base text-[#10243A] font-semibold">
-                            {selectedFile.name}
-                          </p>
-                          <p className="text-xs text-[#10243A]/70">
-                            Click to change file
-                          </p>
-                        </>
+              <label
+                htmlFor="file-upload"
+                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  {selectedFile ? (
+                    <>
+                      {selectedFile.name.endsWith(".csv") ? (
+                        <FileText className="w-12 h-12 text-green-600 mb-3" />
                       ) : (
-                        <>
-                          <Upload className="w-12 h-12 text-[#10243A] mb-3" />
-                          <p className="mb-2 text-sm sm:text-base text-[#10243A] font-semibold">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-[#10243A]/70">
-                            Excel (.xlsx, .xls) or CSV files only
-                          </p>
-                        </>
+                        <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
                       )}
-                    </div>
-                  </label>
+                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Click to change file
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Excel (.xlsx, .xls) or CSV files only
+                      </p>
+                    </>
+                  )}
                 </div>
-
-                {selectedFile && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    className="p-4 bg-[#1E9A61]/10 border border-[#1E9A61]/30 rounded-lg"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-5 h-5 text-[#1E9A61]" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-[#1E9A61]">
-                          File selected: {selectedFile.name}
-                        </p>
-                        <p className="text-xs text-[#10243A]/70">
-                          {(selectedFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="file-upload"
+                />
+              </label>
+              
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.99 }}
+              >
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] text-black font-semibold py-6 text-lg hover:shadow-lg hover:shadow-[#2B6CB0]/50 transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                 >
-                  <Sparkles className="w-5 h-5 mr-2 text-[#2B6CB0]" />
-                  Generate Dashboard
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate AI Dashboard
                 </Button>
-              </div>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>
@@ -501,10 +411,10 @@ export default function UnsafetyDashboard() {
     );
   }
 
-  // Show loader with quotes during generation
+  // 2. LOADING SCREEN
   if (isGenerating) {
     return (
-      <div className="w-full min-h-screen bg-[#F6F8FB] text-[#10243A] flex items-center justify-center p-4">
+      <div className="w-full flex items-center justify-center py-20">
         <motion.div
           className="text-center max-w-2xl"
           initial={{ opacity: 0 }}
@@ -516,208 +426,145 @@ export default function UnsafetyDashboard() {
             animate={{ rotate: 360 }}
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#2B6CB0]/20 to-[#2CA3A3]/20 border border-[#2B6CB0]/30">
-              <Loader2 className="w-16 h-16 text-[#2B6CB0]" />
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
+              <Loader2 className="w-16 h-16 text-[#0B3D91]" />
             </div>
           </motion.div>
 
-          <motion.div
-            key={currentQuoteIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="mb-4"
-          >
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-6 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
-              Generating Your Dashboard...
-            </h2>
-            <div className="flex items-center justify-center gap-3 mb-6">
-              <Sparkles className="w-6 h-6 text-[#2B6CB0] animate-pulse" />
-              <p className="text-lg sm:text-xl lg:text-2xl text-[#10243A] font-medium">
-                {aiQuotes[currentQuoteIndex]}
-              </p>
-              <Sparkles className="w-6 h-6 text-[#2CA3A3] animate-pulse" />
-            </div>
-            <div className="flex justify-center gap-2 mt-8">
-              <div
-                className="w-2 h-2 bg-[#2B6CB0] rounded-full animate-bounce"
-                style={{ animationDelay: "0s" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-[#2CA3A3] rounded-full animate-bounce"
-                style={{ animationDelay: "0.2s" }}
-              ></div>
-              <div
-                className="w-2 h-2 bg-[#2B6CB0] rounded-full animate-bounce"
-                style={{ animationDelay: "0.4s" }}
-              ></div>
-            </div>
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                Generating Your Dashboard...
+              </h2>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <Sparkles className="w-6 h-6 text-[#0B3D91] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-6 h-6 text-[#00A79D] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </motion.div>
       </div>
     );
   }
 
-  // Show dashboard
+  // 3. THE DASHBOARD
   return (
-    <div className="w-full bg-[#F6F8FB] text-[#10243A] p-4 sm:p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8">
+    // This div is the main container that fits inside AppLayout
+    // The ref is for the PDF download
+    <div ref={reportRef} id="report-content" className="w-full space-y-6">
       {/* Header Section */}
       <motion.div
-        className="mb-6 lg:mb-8"
+        className="flex justify-between items-center"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-3xl font-bold mb-2 lg:mb-3 bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] bg-clip-text text-transparent">
-          DATTU Vision Console — The Safety Mind
-        </h1>
-        <p className="text-sm sm:text-base lg:text-lg text-[#10243A]/80 max-w-3xl">
-          Visual representation of unsafe acts reported by safety officers.
-        </p>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+             <Eye className="w-8 h-8 text-[#0B3D91]" />
+             AI Vision Report
+          </h1>
+          <p className="text-lg text-gray-600 max-w-3xl">
+            Visual analysis of unsafe acts from file: {selectedFile?.name}
+          </p>
+        </div>
+        <Button onClick={downloadPDF} className="bg-[#0B3D91] hover:bg-[#082f70]">
+          <FileText className="w-4 h-4 mr-2" />
+          Download Report as PDF
+        </Button>
       </motion.div>
 
-      {/* Charts Grid - Responsive for tablets and laptops */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
-        {/* Bar Chart */}
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.1 }}
         >
-          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
-            <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
-                Reported Unsafe Acts
-              </CardTitle>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Reported Unsafe Acts</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer
-                width="100%"
-                height={280}
-                className="sm:h-[320px] lg:h-[360px] xl:h-[400px]"
-              >
-                <BarChart
-                  data={unsafetyData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
-                  <XAxis
-                    dataKey="type"
-                    tick={{ fill: "#10243A", fontSize: 10 }}
-                    angle={-15}
-                    textAnchor="end"
-                    height={60}
-                  />
-                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#E6EDF5",
-                      border: "1px solid #10243A",
-                      borderRadius: "8px",
-                      color: "#10243A",
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: "12px", color: "#10243A" }} />
-                  <Bar dataKey="count" fill="#2B6CB0" radius={[8, 8, 0, 0]} />
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={unsafetyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" fontSize={10} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#0B3D91" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Pie Chart */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
-            <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
-                Unsafe Acts Distribution
-              </CardTitle>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Unsafe Acts Distribution</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer
-                width="100%"
-                height={280}
-                className="sm:h-[320px] lg:h-[360px] xl:h-[400px]"
-              >
+              <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={
-                      windowWidth >= 1280 ? 120 : windowWidth >= 1024 ? 110 : 90
-                    }
+                    outerRadius={windowWidth >= 1024 ? 110 : 90} // RESTORED
                     dataKey="value"
-                    label={(props: { name?: string; percent?: number }) =>
-                      props.name && props.percent
-                        ? `${props.name}: ${(props.percent * 100).toFixed(0)}%`
-                        : ""
-                    }
                     labelLine={false}
+                    label={(props: any) => `${(props.percent * 100).toFixed(0)}%`} // FIXED
                   >
                     {pieData.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#E6EDF5",
-                      border: "1px solid #10243A",
-                      borderRadius: "8px",
-                      color: "#10243A",
-                    }}
-                  />
+                  <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Line Chart */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
-            <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
-                Trend of Safety Incidents
-              </CardTitle>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Trend of Safety Incidents</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer
-                width="100%"
-                height={280}
-                className="sm:h-[320px] lg:h-[360px] xl:h-[400px]"
-              >
-                <LineChart
-                  data={areaData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
-                  <XAxis dataKey="month" tick={{ fill: "#10243A", fontSize: 11 }} />
-                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#E6EDF5",
-                      border: "1px solid #10243A",
-                      borderRadius: "8px",
-                      color: "#10243A",
-                    }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: "12px", color: "#10243A" }} />
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={areaData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
+                  <Legend />
                   <Line
                     type="monotone"
                     dataKey="incidents"
-                    stroke="#2B6CB0"
+                    stroke="#0B3D91"
                     strokeWidth={3}
-                    dot={{ fill: "#2B6CB0", r: 5 }}
                     activeDot={{ r: 7 }}
                   />
                 </LineChart>
@@ -726,55 +573,33 @@ export default function UnsafetyDashboard() {
           </Card>
         </motion.div>
 
-        {/* Area Chart */}
+        {/* RESTORED: Area Chart */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, delay: 0.4 }}
         >
-          <Card className="bg-[#E6EDF5] border border-[#10243A]/50 hover:border-[#2CA3A3]/50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-[#2B6CB0]/10">
-            <CardHeader className="pb-3 lg:pb-4">
-              <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
-                Cumulative Unsafe Observations
-              </CardTitle>
+          <Card className="shadow-md hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <CardTitle>Cumulative Unsafe Observations</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer
-                width="100%"
-                height={280}
-                className="sm:h-[320px] lg:h-[360px] xl:h-[400px]"
-              >
-                <AreaChart
-                  data={areaData}
-                  margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-                >
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={areaData}>
                   <defs>
-                    <linearGradient
-                      id="colorIncidents"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#2B6CB0" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#2B6CB0" stopOpacity={0} />
+                    <linearGradient id="colorIncidents" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0B3D91" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#0B3D91" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#10243A" />
-                  <XAxis dataKey="month" tick={{ fill: "#10243A", fontSize: 11 }} />
-                  <YAxis tick={{ fill: "#10243A", fontSize: 11 }} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#E6EDF5",
-                      border: "1px solid #10243A",
-                      borderRadius: "8px",
-                      color: "#10243A",
-                    }}
-                  />
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" fontSize={11} />
+                  <YAxis fontSize={11} />
+                  <Tooltip />
                   <Area
                     type="monotone"
                     dataKey="incidents"
-                    stroke="#2B6CB0"
+                    stroke="#0B3D91"
                     strokeWidth={2}
                     fill="url(#colorIncidents)"
                   />
@@ -785,42 +610,33 @@ export default function UnsafetyDashboard() {
         </motion.div>
       </div>
 
-      {/* Report Section - Responsive layout */}
+      {/* Report Section */}
       <motion.div
-        ref={reportRef}
-        className="bg-[#E6EDF5] p-4 sm:p-6 lg:p-8 xl:p-10 rounded-lg lg:rounded-xl border border-[#10243A]/50 shadow-xl"
+        className="bg-white p-6 rounded-lg shadow-md"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.5 }}
       >
-        <div className="mb-6 lg:mb-8">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-3 lg:mb-4">
-            Detailed Unsafety Report
-          </h2>
-          <p className="text-sm sm:text-base lg:text-lg text-[#10243A]/80 max-w-3xl">
-            Summary of all unsafe acts reported in the factory and recommended
-            prevention measures.
-          </p>
-        </div>
-
-        {/* Report Grid - Responsive for tablets and laptops */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 mb-6 lg:mb-8">
+        <h2 className="text-2xl font-bold mb-4">
+          Detailed Unsafety Report
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {reportData.map((item, index) => (
             <motion.div
               key={index}
-              className="p-4 sm:p-5 lg:p-6 rounded-lg lg:rounded-xl bg-[#F6F8FB] border-l-4 border-[#2B6CB0] hover:border-[#2CA3A3] hover:shadow-lg hover:shadow-[#2B6CB0]/20 transition-all duration-300 hover:scale-[1.02]"
+              className="p-4 rounded-lg border-l-4 border-[#0B3D91] bg-gray-50 hover:shadow-lg transition-shadow"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
             >
-              <h3 className="text-base sm:text-lg lg:text-xl font-semibold mb-2 lg:mb-3 text-[#2B6CB0]">
+              <h3 className="text-lg font-semibold mb-2 text-[#0B3D91]">
                 {item.act}
               </h3>
-              <p className="text-xs sm:text-sm lg:text-base text-[#10243A]/80 mb-3 lg:mb-4 leading-relaxed">
+              <p className="text-sm text-gray-700 mb-3">
                 {item.description}
               </p>
-              <div className="pt-2 lg:pt-3 border-t border-[#10243A]/40">
-                <p className="text-xs sm:text-sm lg:text-base text-[#1E9A61] font-medium">
+              <div className="pt-2 border-t border-gray-200">
+                <p className="text-sm text-green-700 font-medium">
                   <span className="font-semibold">Prevention:</span>{" "}
                   {item.prevention}
                 </p>
@@ -828,16 +644,7 @@ export default function UnsafetyDashboard() {
             </motion.div>
           ))}
         </div>
-
-        <div className="flex justify-center lg:justify-start">
-          <Button
-            onClick={downloadPDF}
-            className="bg-gradient-to-r from-[#2B6CB0] to-[#2CA3A3] text-black font-semibold px-6 sm:px-8 lg:px-10 py-2 sm:py-3 lg:py-4 text-sm sm:text-base lg:text-lg hover:shadow-lg hover:shadow-[#2B6CB0]/50 transition-all duration-300 hover:scale-105"
-          >
-            Download Report as PDF
-          </Button>
-        </div>
       </motion.div>
     </div>
   );
-}
+};
