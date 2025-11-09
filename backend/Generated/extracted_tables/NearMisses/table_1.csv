@@ -1,0 +1,81 @@
+NearMissID,ObservationID,Description,ImmediateAction,CorrectiveAction,ActionOwner,ClosedDate
+NM0001,OBS00089,Conveyor jam created sudden movement risk.,Machine paused and blockage cleared.,Implement pedestrian–forklift separation lines.,EMP0153,2024-09-12 00:00:00
+NM0002,OBS00119,Worker nearly slipped due to oil droplet.,Tool retrieved and platform secured.,Schedule preventive maintenance.,EMP0154,2024-08-07 00:00:00
+NM0003,OBS00407,Hot work sparks spread near flammable area.,Supervisor alerted and worker repositioned.,Schedule preventive maintenance.,EMP0069,2024-04-20 00:00:00
+NM0004,OBS00032,Hot work sparks spread near flammable area.,Supervisor alerted and worker repositioned.,Training on material stacking provided.,EMP0160,2024-11-22 00:00:00
+NM0005,OBS00229,Conveyor jam created sudden movement risk.,Boxes restacked and aisle cleared.,Training on material stacking provided.,EMP0053,2024-04-29 00:00:00
+NM0006,OBS00305,Conveyor jam created sudden movement risk.,Tool retrieved and platform secured.,Install tool tethering system.,EMP0185,2024-05-05 00:00:00
+NM0007,OBS00234,Conveyor jam created sudden movement risk.,Boxes restacked and aisle cleared.,Training on material stacking provided.,EMP0192,2024-09-12 00:00:00
+NM0008,OBS00205,Conveyor jam created sudden movement risk.,Machine paused and blockage cleared.,Implement pedestrian–forklift separation lines.,EMP0121,2024-06-26 00:00:00
+NM0009,OBS00487,Loose material on platform nearly caused trip.,Supervisor alerted and worker repositioned.,Install tool tethering system.,EMP0009,2024-04-11 00:00:00
+NM0010,OBS00282,Improper PPE observed during grinding task.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0140,2024-04-07 00:00:00
+NM0011,OBS00138,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Implement pedestrian–forklift separation lines.,EMP0123,2024-03-02 00:00:00
+NM0012,OBS00073,Improper PPE observed during grinding task.,Machine paused and blockage cleared.,Schedule preventive maintenance.,EMP0028,2024-11-30 00:00:00
+NM0013,OBS00440,Hot work sparks spread near flammable area.,Machine paused and blockage cleared.,Install tool tethering system.,EMP0091,2024-01-01 00:00:00
+NM0014,OBS00007,Forklift passed close to worker in aisle.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0059,2024-04-19 00:00:00
+NM0015,OBS00365,Loose material on platform nearly caused trip.,Machine paused and blockage cleared.,Update SOP and conduct toolbox talk.,EMP0014,2024-01-31 00:00:00
+NM0016,OBS00332,Stacked boxes leaned dangerously.,Area cordoned off immediately.,Update SOP and conduct toolbox talk.,EMP0118,2024-11-21 00:00:00
+NM0017,OBS00471,Forklift passed close to worker in aisle.,Area cordoned off immediately.,Schedule preventive maintenance.,EMP0088,2024-11-25 00:00:00
+NM0018,OBS00198,Unsecured tool almost dropped from height.,Machine paused and blockage cleared.,Implement pedestrian–forklift separation lines.,EMP0119,2024-02-03 00:00:00
+NM0019,OBS00291,Stacked boxes leaned dangerously.,Machine paused and blockage cleared.,Implement pedestrian–forklift separation lines.,EMP0067,2024-02-16 00:00:00
+NM0020,OBS00124,Unsecured tool almost dropped from height.,Supervisor alerted and worker repositioned.,Training on material stacking provided.,EMP0179,2024-12-27 00:00:00
+NM0021,OBS00201,Forklift passed close to worker in aisle.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0124,2024-12-19 00:00:00
+NM0022,OBS00436,Loose material on platform nearly caused trip.,Supervisor alerted and worker repositioned.,Schedule preventive maintenance.,EMP0105,2024-08-03 00:00:00
+NM0023,OBS00404,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Schedule preventive maintenance.,EMP0093,2024-07-12 00:00:00
+NM0024,OBS00280,Improper PPE observed during grinding task.,Supervisor alerted and worker repositioned.,Implement pedestrian–forklift separation lines.,EMP0024,2024-10-14 00:00:00
+NM0025,OBS00475,Worker nearly slipped due to oil droplet.,Boxes restacked and aisle cleared.,Implement pedestrian–forklift separation lines.,EMP0029,2024-09-04 00:00:00
+NM0026,OBS00184,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Install tool tethering system.,EMP0020,2024-01-26 00:00:00
+NM0027,OBS00190,Loose material on platform nearly caused trip.,Machine paused and blockage cleared.,Training on material stacking provided.,EMP0117,2024-01-27 00:00:00
+NM0028,OBS00013,Loose material on platform nearly caused trip.,Tool retrieved and platform secured.,Install tool tethering system.,EMP0042,2024-08-20 00:00:00
+NM0029,OBS00053,Unsecured tool almost dropped from height.,Supervisor alerted and worker repositioned.,Schedule preventive maintenance.,EMP0180,2024-06-01 00:00:00
+NM0030,OBS00106,Loose material on platform nearly caused trip.,Supervisor alerted and worker repositioned.,Update SOP and conduct toolbox talk.,EMP0026,2024-12-23 00:00:00
+NM0031,OBS00297,Loose material on platform nearly caused trip.,Machine paused and blockage cleared.,Install tool tethering system.,EMP0060,2024-05-11 00:00:00
+NM0032,OBS00252,Loose material on platform nearly caused trip.,Area cordoned off immediately.,Training on material stacking provided.,EMP0120,2024-11-02 00:00:00
+NM0033,OBS00132,Hot work sparks spread near flammable area.,Tool retrieved and platform secured.,Install tool tethering system.,EMP0136,2024-05-29 00:00:00
+NM0034,OBS00314,Improper PPE observed during grinding task.,Supervisor alerted and worker repositioned.,Update SOP and conduct toolbox talk.,EMP0077,2024-11-29 00:00:00
+NM0035,OBS00290,Unsecured tool almost dropped from height.,Supervisor alerted and worker repositioned.,Install tool tethering system.,EMP0142,2024-02-20 00:00:00
+NM0036,OBS00500,Stacked boxes leaned dangerously.,Supervisor alerted and worker repositioned.,Update SOP and conduct toolbox talk.,EMP0026,2024-08-16 00:00:00
+NM0037,OBS00470,Stacked boxes leaned dangerously.,Boxes restacked and aisle cleared.,Schedule preventive maintenance.,EMP0037,2024-04-08 00:00:00
+NM0038,OBS00033,Hot work sparks spread near flammable area.,Tool retrieved and platform secured.,Update SOP and conduct toolbox talk.,EMP0121,2024-11-09 00:00:00
+NM0039,OBS00296,Loose material on platform nearly caused trip.,Area cordoned off immediately.,Schedule preventive maintenance.,EMP0109,2024-02-12 00:00:00
+NM0040,OBS00196,Conveyor jam created sudden movement risk.,Boxes restacked and aisle cleared.,Update SOP and conduct toolbox talk.,EMP0127,2024-01-29 00:00:00
+NM0041,OBS00319,Hot work sparks spread near flammable area.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0085,2024-12-15 00:00:00
+NM0042,OBS00437,Hot work sparks spread near flammable area.,Machine paused and blockage cleared.,Training on material stacking provided.,EMP0043,2024-11-21 00:00:00
+NM0043,OBS00283,Hot work sparks spread near flammable area.,Machine paused and blockage cleared.,Implement pedestrian–forklift separation lines.,EMP0044,2024-08-21 00:00:00
+NM0044,OBS00373,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Training on material stacking provided.,EMP0067,2024-08-07 00:00:00
+NM0045,OBS00148,Conveyor jam created sudden movement risk.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0030,2024-03-13 00:00:00
+NM0046,OBS00267,Conveyor jam created sudden movement risk.,Tool retrieved and platform secured.,Update SOP and conduct toolbox talk.,EMP0109,2024-08-16 00:00:00
+NM0047,OBS00061,Unsecured tool almost dropped from height.,Area cordoned off immediately.,Training on material stacking provided.,EMP0015,2024-10-26 00:00:00
+NM0048,OBS00080,Worker nearly slipped due to oil droplet.,Machine paused and blockage cleared.,Install tool tethering system.,EMP0153,2024-05-07 00:00:00
+NM0049,OBS00462,Worker nearly slipped due to oil droplet.,Supervisor alerted and worker repositioned.,Install tool tethering system.,EMP0154,2024-05-30 00:00:00
+NM0050,OBS00288,Unsecured tool almost dropped from height.,Area cordoned off immediately.,Schedule preventive maintenance.,EMP0088,2024-09-17 00:00:00
+NM0051,OBS00130,Loose material on platform nearly caused trip.,Machine paused and blockage cleared.,Update SOP and conduct toolbox talk.,EMP0006,2024-04-26 00:00:00
+NM0052,OBS00257,Improper PPE observed during grinding task.,Machine paused and blockage cleared.,Training on material stacking provided.,EMP0097,2024-08-13 00:00:00
+NM0053,OBS00093,Worker nearly slipped due to oil droplet.,Supervisor alerted and worker repositioned.,Implement pedestrian–forklift separation lines.,EMP0177,2024-06-09 00:00:00
+NM0054,OBS00062,Hot work sparks spread near flammable area.,Area cordoned off immediately.,Training on material stacking provided.,EMP0167,2024-05-01 00:00:00
+NM0055,OBS00427,Forklift passed close to worker in aisle.,Boxes restacked and aisle cleared.,Schedule preventive maintenance.,EMP0180,2024-07-04 00:00:00
+NM0056,OBS00077,Unsecured tool almost dropped from height.,Tool retrieved and platform secured.,Install tool tethering system.,EMP0022,2024-10-07 00:00:00
+NM0057,OBS00254,Forklift passed close to worker in aisle.,Machine paused and blockage cleared.,Schedule preventive maintenance.,EMP0173,2024-02-14 00:00:00
+NM0058,OBS00281,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Training on material stacking provided.,EMP0010,2024-03-18 00:00:00
+NM0059,OBS00014,Forklift passed close to worker in aisle.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0140,2024-10-15 00:00:00
+NM0060,OBS00012,Unsecured tool almost dropped from height.,Supervisor alerted and worker repositioned.,Update SOP and conduct toolbox talk.,EMP0075,2024-01-26 00:00:00
+NM0061,OBS00426,Unsecured tool almost dropped from height.,Machine paused and blockage cleared.,Update SOP and conduct toolbox talk.,EMP0011,2024-12-11 00:00:00
+NM0062,OBS00441,Improper PPE observed during grinding task.,Tool retrieved and platform secured.,Training on material stacking provided.,EMP0009,2024-12-30 00:00:00
+NM0063,OBS00395,Loose material on platform nearly caused trip.,Tool retrieved and platform secured.,Update SOP and conduct toolbox talk.,EMP0017,2024-09-28 00:00:00
+NM0064,OBS00372,Conveyor jam created sudden movement risk.,Area cordoned off immediately.,Update SOP and conduct toolbox talk.,EMP0156,2024-07-29 00:00:00
+NM0065,OBS00309,Conveyor jam created sudden movement risk.,Machine paused and blockage cleared.,Schedule preventive maintenance.,EMP0061,2024-11-18 00:00:00
+NM0066,OBS00218,Loose material on platform nearly caused trip.,Area cordoned off immediately.,Update SOP and conduct toolbox talk.,EMP0026,2024-07-19 00:00:00
+NM0067,OBS00159,Conveyor jam created sudden movement risk.,Boxes restacked and aisle cleared.,Implement pedestrian–forklift separation lines.,EMP0069,2024-09-24 00:00:00
+NM0068,OBS00333,Loose material on platform nearly caused trip.,Tool retrieved and platform secured.,Install tool tethering system.,EMP0132,2024-04-29 00:00:00
+NM0069,OBS00324,Loose material on platform nearly caused trip.,Boxes restacked and aisle cleared.,Schedule preventive maintenance.,EMP0003,2024-02-17 00:00:00
+NM0070,OBS00056,Conveyor jam created sudden movement risk.,Boxes restacked and aisle cleared.,Schedule preventive maintenance.,EMP0186,2024-01-01 00:00:00
+NM0071,OBS00228,Forklift passed close to worker in aisle.,Machine paused and blockage cleared.,Update SOP and conduct toolbox talk.,EMP0122,2024-08-06 00:00:00
+NM0072,OBS00246,Hot work sparks spread near flammable area.,Tool retrieved and platform secured.,Implement pedestrian–forklift separation lines.,EMP0200,2024-08-11 00:00:00
+NM0073,OBS00377,Worker nearly slipped due to oil droplet.,Supervisor alerted and worker repositioned.,Training on material stacking provided.,EMP0020,2024-08-24 00:00:00
+NM0074,OBS00352,Worker nearly slipped due to oil droplet.,Area cordoned off immediately.,Implement pedestrian–forklift separation lines.,EMP0142,2024-01-04 00:00:00
+NM0075,OBS00083,Stacked boxes leaned dangerously.,Supervisor alerted and worker repositioned.,Install tool tethering system.,EMP0068,2024-11-20 00:00:00
+NM0076,OBS00269,Loose material on platform nearly caused trip.,Area cordoned off immediately.,Install tool tethering system.,EMP0024,2024-04-24 00:00:00
+NM0077,OBS00036,Loose material on platform nearly caused trip.,Boxes restacked and aisle cleared.,Update SOP and conduct toolbox talk.,EMP0150,2024-02-11 00:00:00
+NM0078,OBS00047,Worker nearly slipped due to oil droplet.,Machine paused and blockage cleared.,Update SOP and conduct toolbox talk.,EMP0034,2024-09-10 00:00:00
+NM0079,OBS00112,Hot work sparks spread near flammable area.,Tool retrieved and platform secured.,Schedule preventive maintenance.,EMP0184,2024-12-04 00:00:00
+NM0080,OBS00336,Stacked boxes leaned dangerously.,Supervisor alerted and worker repositioned.,Schedule preventive maintenance.,EMP0134,2024-10-26 00:00:00
