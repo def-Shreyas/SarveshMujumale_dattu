@@ -15,6 +15,8 @@ security = HTTPBearer()
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
+    # print("🔍 AUTH HEADER:", credentials.credentials[:40] if credentials else "No credentials")
+    print("🔍 TOKEN RECEIVED:", credentials.credentials[:40] if credentials else "No credentials")
     """Get current authenticated user from JWT token"""
     token = credentials.credentials
     payload = decode_access_token(token)

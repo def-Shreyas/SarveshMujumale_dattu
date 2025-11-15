@@ -1,29 +1,42 @@
-// src/types/index.ts
+// This is the complete and final types file.
+// It includes all interfaces for all 9 modules plus the dashboard.
 
-/**
- * Represents a single Key Performance Indicator.
- */
+import type { ReactNode, ReactElement } from "react";
+
+// --- For AuthContext & Settings ---
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: "admin" | "user" | "CEO" | "CFO" | "CHRO" | "COO" | "SafetyManager";
+  company_name?: string;
+  subscription_tier: string;
+  status: string; 
+}
+
+export interface ApiUsage {
+  daily_limit: number;
+  monthly_limit: number;
+  api_calls_today: number;
+  api_calls_month: number;
+}
+
+// --- For Dashboard.tsx ---
 export interface KpiData {
   title: string;
   value: string;
   comparison: string;
-  isPositive: boolean; // true for green (good), false for red (bad)
+  isPositive: boolean;
 }
 
-/**
- * Represents a single AI-driven insight.
- */
 export interface AiInsight {
   id: string;
-  icon: React.ElementType; // e.g., Lucide icon component
+  icon: React.ElementType;
   text: string;
   linkText: string;
   linkHref: string;
 }
 
-/**
- * Represents a top identified risk.
- */
 export interface TopRisk {
   id: string;
   priority: "High" | "Medium" | "Low";
@@ -31,33 +44,26 @@ export interface TopRisk {
   owner: string;
 }
 
-/**
- * Data for the Safety Snapshot donut chart (Unsafe Act Types).
- */
 export interface UnsafeActData {
   name: string;
   value: number;
   fill: string;
-  [key: string]: any;
+  [key: string]: any; // For recharts
 }
 
-/**
- * Data for the Safety Snapshot bar chart (Open Actions by Priority).
- */
 export interface OpenActionData {
   name: "High" | "Medium" | "Low";
   value: number;
-  [key: string]: any;
+  [key: string]: any; // For recharts
 }
 
-// Add this to src/types/index.ts
 export interface CO2Data {
   name: string;
   CO2: number;
-  [key: string]: any;
+  [key: string]: any; // For recharts
 }
-// Add these new types to src/types/index.ts
 
+// --- For Incidents.tsx (Module 1) ---
 export interface Incident {
   id: string;
   date: Date;
@@ -78,7 +84,6 @@ export interface IncidentKpi {
   formula: string;
 }
 
-// For the analytics charts
 export interface IncidentSummaryData {
   name: string;
   LTI: number;
@@ -93,8 +98,8 @@ export interface InjuryTypeData {
   fill: string;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For PTW.tsx (Module 2) ---
 export type PtwStatus = "Open" | "Closed" | "Overdue";
 export type PtwWorkType = 
   | "Hot Work" 
@@ -108,14 +113,14 @@ export interface Ptw {
   id: string;
   department: string;
   workType: PtwWorkType;
-  hazards: string; // Storing as a comma-separated string for simplicity
-  controls: string[]; // Storing as an array of checked control IDs
+  hazards: string;
+  controls: string[];
   requestedBy: string;
   approvedBy: string;
   issueDate: Date;
   closeDate?: Date;
   status: PtwStatus;
-  [key: string]: any; // For recharts
+  [key: string]: any;
 }
 
 export interface PtwKpi {
@@ -136,55 +141,55 @@ export interface PtwComplianceData {
   compliance: number;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For Training.tsx (Module 3) ---
 export interface TrainingRecord {
   id: string;
   employeeId: string;
-  employeeName: string; // Added for clarity in the table/AI panel
+  employeeName: string;
   course: string;
   date: Date;
   trainer: string;
-  preTest: number; // Stored as percentage (0-100)
-  postTest: number; // Stored as percentage (0-100)
+  preTest: number;
+  postTest: number;
   certificateExpiry?: Date;
   status: "Completed" | "Expired" | "Pending";
-  [key: string]: any; // For recharts
+  [key: string]: any;
 }
 
 export interface TrainingKpi {
   title: string;
   value: string;
   formula: string;
-  progress?: number; // Optional progress value for progress bar
+  progress?: number;
 }
 
 export interface TrainingEffectivenessData {
-  name: string; // Department name
-  effectiveness: number; // Avg (Post - Pre)
+  name: string;
+  effectiveness: number;
   [key: string]: any;
 }
 
 export interface TrainingCompletionData {
-  name: string; // Course name
+  name: string;
   completed: number;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For Audits.tsx (Module 4) ---
 export type AuditStatus = "Pass" | "Fail (NCR)" | "In Progress";
 export type RiskCategory = "High" | "Medium" | "Low";
 
 export interface AuditRecord {
   id: string;
   area: string;
-  checklist: string; // e.g., "Monthly Fire Safety", "5S Audit"
+  checklist: string;
   status: AuditStatus;
-  riskCategory: RiskCategory | null; // Null if 'Pass' or 'In Progress'
-  actionOwner: string | null; // Null if 'Pass' or 'In Progress'
+  riskCategory: RiskCategory | null;
+  actionOwner: string | null;
   auditDate: Date;
-  ncrId: string | null; // Non-Compliance Report ID
-  [key: string]: any; // For recharts
+  ncrId: string | null;
+  [key: string]: any;
 }
 
 export interface AuditKpi {
@@ -192,82 +197,77 @@ export interface AuditKpi {
   value: string;
   formula: string;
   progress?: number;
-  // For inverting progress bar color (e.g., lower is better)
   invertProgressColor?: boolean; 
 }
 
 export interface ComplianceByAreaData {
   area: string;
-  compliance: number; // 0-100
+  compliance: number;
   fullMark: 100;
   [key: string]: any;
 }
 
 export interface NcrSummaryData {
-  name: RiskCategory; // "High", "Medium", "Low"
+  name: RiskCategory;
   count: number;
   fill: string;
   [key: string]: any;
 }
 
-// Add these new types to src/types/index.ts
-
+// --- For Medical.tsx (Module 5) ---
 export type InjuryType = "Cut" | "Burn" | "Sprain" | "Fall" | "Chemical" | "Other";
 
 export interface MedicalCase {
-  id: string; // Case ID
+  id: string;
   date: Date;
   department: string;
   injuryType: InjuryType;
-  firstAidGiven: string; // Text description
-  hospitalization: boolean; // Yes/No
+  firstAidGiven: string;
+  hospitalization: boolean;
   daysLost: number;
-  [key: string]: any; // For recharts
+  [key: string]: any;
 }
 
 export interface MedicalKpi {
   title: string;
   value: string;
   formula: string;
-  trend?: string; // e.g., "vs last month"
-  isPositive?: boolean; // For trend color
+  trend?: string;
+  isPositive?: boolean;
 }
 
-// First-aid vs LTI summary
 export interface InjurySummaryData {
-  name: string; // Department
+  name: string;
   "First Aid": number;
   LTI: number;
   [key: string]: any;
 }
 
-// Response time analytics
 export interface ResponseTimeData {
-  name: string; // Month
+  name: string;
   "Avg. Time (min)": number;
   [key: string]: any;
 }
 
-// Drill compliance report
 export interface DrillComplianceData {
-  name: string; // e.g., "Fire Drill", "Spill Drill"
+  name: string;
   compliance: number;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For PPE.tsx (Module 6) ---
 export type PpeStatus = "In Stock" | "Low Stock" | "Out of Stock" | "Expired";
 
 export interface PpeItem {
-  id: string; // PPE ID
-  name: string; // Item Name
+  id: string;
+  name: string;
   supplier: string;
   totalPurchased: number;
   totalIssued: number;
-  balance: number; // totalPurchased - totalIssued
+  balance: number;
   expiryDate: Date;
   status: PpeStatus;
-  [key: string]: any; // For recharts
+  [key: string]: any;
 }
 
 export interface PpeKpi {
@@ -278,7 +278,6 @@ export interface PpeKpi {
   invertProgressColor?: boolean;
 }
 
-// For Usage vs. Purchase chart
 export interface PpeUsageData {
   month: string;
   Purchased: number;
@@ -286,35 +285,33 @@ export interface PpeUsageData {
   [key: string]: any;
 }
 
-// For Stock Summary by Type chart
 export interface PpeStockData {
-  name: string; // PPE Type
-  value: number; // Balance
+  name: string;
+  value: number;
   fill: string;
   [key: string]: any;
 }
 
-// For AI modal (reorder list)
 export interface ReorderItem {
   id: string;
   name: string;
   supplier: string;
   currentStock: number;
-  predictedStockOut: string; // e.g., "In 5 days"
+  predictedStockOut: string;
   suggestedQuantity: number;
 }
-// Add these new types to src/types/index.ts
 
+// --- For RCA.tsx (Module 7) ---
 export type RcaStatus = "Open" | "In Progress" | "Closed" | "Overdue";
 
 export interface RcaAction {
-  id: string; // Action ID
-  relatedIncident: string; // e.g., "INC-1023" or "A-102"
+  id: string;
+  relatedIncident: string;
   rootCause: string;
-  assignedTo: string; // Action Owner
+  assignedTo: string;
   dueDate: Date;
   status: RcaStatus;
-  [key: string]: any; // For recharts
+  [key: string]: any;
 }
 
 export interface RcaKpi {
@@ -325,7 +322,6 @@ export interface RcaKpi {
   invertProgressColor?: boolean;
 }
 
-// For Open vs Closed chart
 export interface RcaStatusData {
   name: string;
   value: number;
@@ -333,15 +329,14 @@ export interface RcaStatusData {
   [key: string]: any;
 }
 
-// For SLA tracking chart
 export interface RcaSlaData {
   name: "On Time" | "Overdue";
   value: number;
   fill: string;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For Environmental.tsx (Module 8) ---
 export interface EnvironmentalRecord {
   id: string;
   plant: string;
@@ -352,8 +347,8 @@ export interface EnvironmentalRecord {
   wasteRecycledT: number;
   co2T: number;
   renewablePercent: number;
-  unitsProduced: number; // Essential for intensity KPIs
-  [key: string]: any; // For recharts
+  unitsProduced: number;
+  [key: string]: any;
 }
 
 export interface EnvironmentalKpi {
@@ -364,7 +359,6 @@ export interface EnvironmentalKpi {
   invertProgressColor?: boolean;
 }
 
-// For Energy/Water Trend
 export interface ResourceTrendData {
   month: string;
   "Energy (kWh)": number;
@@ -372,15 +366,14 @@ export interface ResourceTrendData {
   [key:string]: any;
 }
 
-// For Waste Summary
 export interface WasteSummaryData {
   name: "Recycled" | "Landfill";
-  value: number; // in Tons
+  value: number;
   fill: string;
   [key: string]: any;
 }
-// Add these new types to src/types/index.ts
 
+// --- For Governance.tsx (Module 9) ---
 export type PolicyStatus = "Reviewed" | "Pending" | "Overdue";
 
 export interface GovernanceRecord {
@@ -393,8 +386,8 @@ export interface GovernanceRecord {
   maleCount: number;
   femaleCount: number;
   policyReviewStatus: PolicyStatus;
-  avgSupplierScore: number; // 0-100
-  [key: string]: any; // For recharts
+  avgSupplierScore: number;
+  [key: string]: any;
 }
 
 export interface GovernanceKpi {
@@ -405,7 +398,6 @@ export interface GovernanceKpi {
   invertProgressColor?: boolean;
 }
 
-// For Diversity Chart
 export interface DiversityData {
   name: "Male" | "Female" | "Other";
   value: number;
@@ -413,7 +405,6 @@ export interface DiversityData {
   [key: string]: any;
 }
 
-// For ESG Scorecard
 export interface EsgScorecardData {
   metric: "Social" | "Governance" | "Environment" | "Safety" | "Suppliers";
   score: number;
@@ -421,9 +412,8 @@ export interface EsgScorecardData {
   [key: string]: any;
 }
 
-// For Attrition Risk
 export interface AttritionRiskData {
-  name: string; // Department
+  name: string;
   riskPercent: number;
   [key: string]: any;
 }

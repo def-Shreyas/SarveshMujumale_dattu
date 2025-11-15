@@ -13,7 +13,7 @@ import { PPE } from "./pages/PPE";
 import { RCA } from "./pages/RCA";
 import { Environmental } from "./pages/Environmental";
 import { Governance } from "./pages/Governance";
-import { SettingsPage } from "./pages/Settings";
+import { Settings } from "./pages/Settings";
 import { Unsafety } from './pages/Unsafety';
 
 // Import other pages
@@ -40,7 +40,7 @@ function App() {
             <Route path="/rca" element={<RCA />} />
             <Route path="/environmental" element={<Environmental />} />
             <Route path="/governance" element={<Governance />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
 

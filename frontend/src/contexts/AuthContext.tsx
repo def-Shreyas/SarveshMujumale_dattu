@@ -1,37 +1,61 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
-// 1. REMOVED useNavigate from here
+
+// This User interface must match all roles
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: "admin" | "user" | "CEO" | "CFO" | "CHRO" | "COO" | "SafetyManager";
+  company_name?: string;
+  subscription_tier: string;
+  status: string;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: () => void;
+  user: User | null;
+  token: string | null;
+  login: (user: User, token: string) => void; 
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('dattu-auth') === 'true';
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem('dattu-user');
+    try {
+      return storedUser ? JSON.parse(storedUser) : null;
+    } catch (e) {
+      console.error("Failed to parse stored user:", e);
+      return null;
+    }
   });
   
-  // 2. REMOVED const navigate = useNavigate();
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('dattu-token');
+  });
 
-  const login = () => {
-    setIsAuthenticated(true);
-    localStorage.setItem('dattu-auth', 'true');
+  const isAuthenticated = !!token && !!user;
+
+  const login = (user: User, token: string) => {
+    setUser(user);
+    setToken(token);
+    localStorage.setItem('dattu-user', JSON.stringify(user));
+    localStorage.setItem('dattu-token', token);
   };
 
   const logout = () => {
-    // 3. SIMPLIFIED: Just update state and localStorage.
-    // The component calling logout() will handle the redirect.
-    setIsAuthenticated(false);
-    localStorage.removeItem('dattu-auth');
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem('dattu-user');
+    localStorage.removeItem('dattu-token');
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
       {children}
-    </AuthContext.Provider>
+    </AuthContext.Provider> 
   );
 };
 

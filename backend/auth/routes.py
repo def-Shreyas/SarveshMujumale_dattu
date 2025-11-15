@@ -405,7 +405,7 @@ async def upgrade_user_subscription(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
-            )
+            ) 
         
         return {
             "success": True,

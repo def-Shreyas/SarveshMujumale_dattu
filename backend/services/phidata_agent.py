@@ -144,6 +144,200 @@ Please provide a comprehensive, detailed report similar to an executive safety a
     return prompt
 
 
+def create_ptw_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for PTW/KPI analysis."""
+    prompt = f"""
+You are a Permit to Work (PTW) and KPI Analysis Assistant.
+Analyze the provided PTW records and KPI data tables.
+
+Goals:
+1. Analyze PTW status (Open/Closed/Overdue) and provide summary statistics.
+2. Analyze PTW type distribution and identify patterns.
+3. Calculate and analyze safety checklist compliance rates.
+4. Calculate and interpret key KPIs:
+   - PTW Closure Efficiency = (Closed / Total) × 100
+   - Avg. Closure Time = Mean(Close Time – Issue Time)
+   - Overdue % = (Overdue / Total) × 100
+5. Verify missing controls automatically and identify compliance issues.
+6. Predict permit load per shift based on historical patterns.
+7. Alert for overdue PTWs and identify areas of concern.
+8. Provide actionable recommendations for improving PTW management.
+
+Please provide a comprehensive, detailed report similar to an executive PTW analysis report. Include:
+- Executive Summary
+- PTW Status Summary (Open/Closed/Overdue breakdown)
+- PTW Type Distribution Analysis
+- Safety Checklist Compliance Rate Analysis
+- Key Performance Indicators (KPIs) with calculations and interpretations
+- AI Functions Results:
+  * Missing Controls Verification (identify permits with missing controls)
+  * Permit Load Prediction per Shift (based on historical data)
+  * Overdue PTW Alerts (list overdue permits with details)
+- Dashboard Insights (interpretation of key metrics)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_ptw_report_with_gemini(prompt: str) -> str:
+    """Generate PTW/KPI analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating PTW/KPI report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_ptw_report(report_content: str, report_path: Path) -> None:
+    """Save the generated PTW report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# PTW/KPI Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] PTW/KPI Report generated: {report_path}")
+
+
+def create_inspections_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Inspections/Audit analysis."""
+    prompt = f"""
+You are an Inspections and Audit Analysis Assistant.
+Analyze the provided inspection records and recurring failures data.
+
+Goals:
+1. Analyze NCR (Non-Conformance Report) summary and provide statistics.
+2. Calculate and analyze audit compliance percentage.
+3. Identify and analyze recurring non-compliance items.
+4. Create audit scorecards by area and inspector.
+5. Calculate and interpret key KPIs:
+   - Compliance % = Pass / Total × 100
+   - Recurrence % = Repeat NCR / Total NCR × 100
+   - Avg. Closure Days (if closure date data available)
+6. AI Functions:
+   - Identify repeating NCRs automatically
+   - Suggest preventive actions based on recurring failures
+   - Predict audit failure risk by area based on historical patterns
+7. Provide actionable recommendations for improving audit compliance.
+
+Please provide a comprehensive, detailed report similar to an executive audit analysis report. Include:
+- Executive Summary
+- NCR Summary (Pass/Fail/NA breakdown with statistics)
+- Audit Compliance Percentage Analysis
+- Recurring Non-Compliance List (top recurring items with details)
+- Audit Scorecards:
+  * Compliance by Area
+  * Compliance by Inspector
+  * Total Inspections by Area
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Compliance Percentage
+  * Recurrence Percentage
+  * Average Closure Days (if available)
+- AI Functions Results:
+  * Repeating NCRs Identification (list of items that fail repeatedly)
+  * Preventive Actions Suggestions (specific actions to prevent recurring failures)
+  * Audit Failure Risk Prediction by Area (risk levels for each area)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_inspections_report_with_gemini(prompt: str) -> str:
+    """Generate Inspections/Audit analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Inspections/Audit report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_inspections_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Inspections/Audit report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Inspections/Audit Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Inspections/Audit Report generated: {report_path}")
+
+
+def create_medical_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Medical Records analysis."""
+    prompt = f"""
+You are a Medical Records and Health & Safety Analysis Assistant.
+Analyze the provided medical records and KPI data.
+
+Goals:
+1. Analyze First-aid vs LTI (Lost Time Injury) summary and provide statistics.
+2. Create drill compliance report (analyze emergency preparedness).
+3. Analyze response time analytics and identify patterns.
+4. Calculate and interpret key KPIs:
+   - FA Cases / Month = Average first-aid cases per month
+   - Avg. Response Time = Average time from incident to first aid
+   - Drill Compliance % = Percentage of drills completed successfully
+5. AI Functions:
+   - Predict repetitive injury patterns based on historical data
+   - Suggest wellness interventions to prevent common injuries
+   - Identify high-risk departments and areas
+6. Provide actionable recommendations for improving workplace health and safety.
+
+Please provide a comprehensive, detailed report similar to an executive medical records analysis report. Include:
+- Executive Summary
+- First-aid vs LTI Summary (breakdown with statistics and trends)
+- Drill Compliance Report (analysis of emergency preparedness drills)
+- Response Time Analytics (time to first aid, patterns by department/time)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * FA Cases per Month
+  * Average Response Time
+  * Drill Compliance Percentage
+- AI Functions Results:
+  * Repetitive Injury Pattern Predictions (identify patterns in injury types, departments, times)
+  * Wellness Intervention Suggestions (specific recommendations to prevent common injuries)
+  * High-Risk Area Identification (departments/areas with elevated injury rates)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Injury Type Analysis (distribution and trends)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_medical_report_with_gemini(prompt: str) -> str:
+    """Generate Medical Records analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Medical Records report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_medical_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Medical Records report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Medical Records Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Medical Records Report generated: {report_path}")
+
+
 def generate_report_with_gemini(prompt: str) -> str:
     """Generate safety analysis report using Gemini via Phidata."""
     gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
