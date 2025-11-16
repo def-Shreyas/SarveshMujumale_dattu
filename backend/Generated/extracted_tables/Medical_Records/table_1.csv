@@ -1,0 +1,131 @@
+case_id,date,time,patient_id,patient_name,department,injury,first_aid_given,transported,hospital_name,days_lost,severity,ambulance_used,month
+CASE-12000,2025-09-22,12:15,EMP1117,Vijay Kale,Battery Area,Chemical splash - eye,Irrigation - eye wash,Yes,"Sahyadri Hospital, Pune",5,High,Yes,2025-09
+CASE-12001,2025-10-27,17:00,EMP1102,Shubham More,HVAC,Puncture wound - foot,CPR performed and ambulance called,No,,0,Low,No,2025-10
+CASE-12002,2025-09-17,19:45,EMP1077,Shruti Bendre,Stores,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12003,2025-09-13,07:00,EMP1161,Rahul Jadhav,Paint,Puncture wound - foot,Wound cleaning & dressing,No,,0,Low,No,2025-09
+CASE-12004,2025-09-16,20:00,EMP1265,Bhakti More,Stamping,No injury - medical check,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12005,2025-09-15,08:15,EMP1382,Manisha Patwardhan,Testing,Sprain - ankle,Antihistamine given,No,,3,Medium,No,2025-09
+CASE-12006,2025-10-24,08:00,EMP1011,Kiran Jadhav,Maintenance,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-10
+CASE-12007,2025-08-11,20:45,EMP1073,Nilesh Chavan,Testing,Musculoskeletal strain - back,Splint applied,Yes,"Ruby Hall Clinic, Pune",3,High,Yes,2025-08
+CASE-12008,2025-08-08,16:15,EMP1131,Mangesh Shinde,Body Shop,Nose bleed,Sling & immobilization,No,,0,Low,No,2025-08
+CASE-12009,2025-09-15,17:45,EMP1067,Anita Bhosale,HVAC,Allergic reaction - unknown,Splint applied,No,,0,Low,No,2025-09
+CASE-12010,2025-08-20,15:45,EMP1049,Swapnil Gawade,Body Shop,Crush injury - finger,Ice pack & elevation,No,,0,Low,No,2025-08
+CASE-12011,2025-09-22,08:15,EMP1394,Swapna Nimbalkar,Assembly,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12012,2025-08-16,19:30,EMP1347,Arun Desai,Stores,Crush injury - finger,Sling & immobilization,No,,0,Low,No,2025-08
+CASE-12013,2025-08-07,11:15,EMP1204,Kishor More,Quality,Electric shock - minor,CPR performed and ambulance called,No,,0,Low,No,2025-08
+CASE-12014,2025-10-08,07:15,EMP1190,Meena Pawar,Logistics,Allergic reaction - unknown,Splint applied,No,,0,Low,No,2025-10
+CASE-12015,2025-08-30,10:15,EMP1054,Siddhesh Gawade,HVAC,Contusion - thigh,CPR performed and ambulance called,No,,0,Low,No,2025-08
+CASE-12016,2025-10-31,16:15,EMP1151,Rekha Gawas,Welding,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12017,2025-09-26,12:30,EMP1257,Deepak Raut,Testing,Musculoskeletal strain - back,Splint applied,No,,2,Medium,No,2025-09
+CASE-12018,2025-08-18,20:30,EMP1148,Ritu Patil,Maintenance,Puncture wound - foot,Observation & vitals recorded,No,,0,Low,No,2025-08
+CASE-12019,2025-10-27,16:45,EMP1194,Bhushan Khot,Electrical,Electric shock - minor,Observation & vitals recorded,No,,0,Low,No,2025-10
+CASE-12020,2025-09-15,17:30,EMP1340,Bhushan Khot,Electrical,Heat exhaustion,Burn cooling (water) & dressing,No,,1,Medium,No,2025-09
+CASE-12021,2025-09-23,17:15,EMP1176,Hemant Bhosale,Paint,Heat exhaustion,Sling & immobilization,Yes,"District Hospital, Nashik",9,High,No,2025-09
+CASE-12022,2025-09-09,16:15,EMP1227,Zoya Sheikh,Battery Area,No injury - medical check,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12023,2025-09-23,13:30,EMP1378,Leena Thorat,Welding,Laceration - hand,Wound cleaning & dressing,No,,0,Low,No,2025-09
+CASE-12024,2025-10-14,06:00,EMP1153,Gauri Kale,Battery Area,Electric shock - minor,Oral analgesic & rest,No,,0,Low,No,2025-10
+CASE-12025,2025-10-15,15:30,EMP1387,Bhushan Khot,Body Shop,Crush injury - finger,Observation & vitals recorded,No,,0,Low,No,2025-10
+CASE-12026,2025-09-03,13:30,EMP1066,Rutuja Kale,Battery Area,No injury - medical check,Antihistamine given,No,,0,Low,No,2025-09
+CASE-12027,2025-10-29,12:45,EMP1184,Vijay Kale,Battery Area,Musculoskeletal strain - back,Sling & immobilization,No,,1,Medium,No,2025-10
+CASE-12028,2025-09-18,08:45,EMP1340,Rahul Jadhav,Testing,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-09
+CASE-12029,2025-09-01,13:00,EMP1168,Kiran Jadhav,Stamping,Sprain - ankle,Antihistamine given,Yes,"SRV Hospital, Pune",12,High,Yes,2025-09
+CASE-12030,2025-10-08,10:00,EMP1211,Swapna Nimbalkar,Stamping,Musculoskeletal strain - back,Sling & immobilization,Yes,"KEM Hospital, Pune",7,High,No,2025-10
+CASE-12031,2025-10-06,09:30,EMP1224,Manisha Patwardhan,Paint,Laceration - hand,Pressure dressing applied,No,,0,Low,No,2025-10
+CASE-12032,2025-08-25,07:45,EMP1139,Kajal Gokhale,Paint,Musculoskeletal strain - back,Splint applied,No,,1,Medium,No,2025-08
+CASE-12033,2025-10-11,08:30,EMP1380,Ajay Kadam,Body Shop,Heat exhaustion,Ice pack & elevation,No,,0,Low,No,2025-10
+CASE-12034,2025-10-09,07:00,EMP1331,Zoya Sheikh,Paint,Puncture wound - foot,Burn cooling (water) & dressing,No,,2,Medium,No,2025-10
+CASE-12035,2025-10-18,15:15,EMP1395,Smita Jadhav,Maintenance,Laceration - hand,Suture referral,No,,0,High,No,2025-10
+CASE-12036,2025-08-25,10:15,EMP1075,Kiran Jadhav,Testing,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-08
+CASE-12037,2025-08-02,09:45,EMP1400,Sanjay Mahajan,Stores,Sprain - ankle,Irrigation - eye wash,No,,2,Medium,No,2025-08
+CASE-12038,2025-08-11,20:15,EMP1396,Kajal Gokhale,Quality,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-08
+CASE-12039,2025-10-15,06:45,EMP1153,Asha Kulkarni,HVAC,Minor burn - forearm,Burn cooling (water) & dressing,Yes,"KEM Hospital, Pune",5,High,Yes,2025-10
+CASE-12040,2025-09-08,07:45,EMP1037,Sachin Ghodke,Quality,Laceration - hand,Suture referral,Yes,"SRV Hospital, Pune",6,High,Yes,2025-09
+CASE-12041,2025-08-05,12:30,EMP1280,Rohit Pawar,Stamping,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-08
+CASE-12042,2025-09-06,17:45,EMP1262,Gauri Kale,Body Shop,Allergic reaction - unknown,No treatment - advised rest,No,,0,Low,No,2025-09
+CASE-12043,2025-10-07,12:00,EMP1123,Shruti Bendre,Maintenance,Heat exhaustion,Oral analgesic & rest,Yes,"Narayana Multispeciality Hospital, Pune",2,High,No,2025-10
+CASE-12044,2025-08-04,19:15,EMP1092,Rutuja Kale,Stores,Heat exhaustion,Oral analgesic & rest,Yes,"Kokilaben Dhirubhai Ambani Hospital, Mumbai",3,High,Yes,2025-08
+CASE-12045,2025-08-20,06:00,EMP1202,Irfan Shaikh,Quality,No injury - medical check,Antihistamine given,Yes,"Narayana Multispeciality Hospital, Pune",4,High,Yes,2025-08
+CASE-12046,2025-10-01,20:00,EMP1257,Amit Pawar,Stores,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-10
+CASE-12047,2025-10-02,09:00,EMP1313,Ritu Patil,Body Shop,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12048,2025-08-18,13:15,EMP1351,Vijay Kale,Testing,Musculoskeletal strain - back,Sling & immobilization,No,,1,Medium,No,2025-08
+CASE-12049,2025-10-09,07:15,EMP1268,Yogesh Jadhav,Maintenance,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12050,2025-09-20,14:00,EMP1128,Yogesh Jadhav,Paint,Electric shock - minor,Oral analgesic & rest,No,,0,Low,No,2025-09
+CASE-12051,2025-08-13,18:00,EMP1223,Meena Pawar,Stamping,Laceration - hand,Suture referral,No,,0,High,No,2025-08
+CASE-12052,2025-10-24,10:15,EMP1343,Ganesh Shinde,Battery Area,Musculoskeletal strain - back,Sling & immobilization,No,,0,Low,No,2025-10
+CASE-12053,2025-09-16,07:15,EMP1199,Kunal Deshmukh,Testing,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-09
+CASE-12054,2025-09-03,09:45,EMP1013,Anita Bhosale,Maintenance,Electric shock - minor,Observation & vitals recorded,Yes,"Sahyadri Hospital, Pune",14,High,No,2025-09
+CASE-12055,2025-09-10,20:45,EMP1275,Isha More,Stamping,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-09
+CASE-12056,2025-08-04,08:15,EMP1175,Harish Kulkarni,Welding,Head bump - helmet saved,Oral analgesic & rest,No,,0,Low,No,2025-08
+CASE-12057,2025-10-22,06:45,EMP1336,Kiran Jadhav,Quality,Puncture wound - foot,Ice pack & elevation,No,,3,Medium,No,2025-10
+CASE-12058,2025-10-03,12:45,EMP1167,Uday Patil,Assembly,Allergic reaction - unknown,Tetanus prophylaxis given,No,,0,Low,No,2025-10
+CASE-12059,2025-10-07,09:00,EMP1112,Meena Pawar,Assembly,Musculoskeletal strain - back,Oral analgesic & rest,No,,0,Low,No,2025-10
+CASE-12060,2025-10-20,15:15,EMP1226,Shruti Bendre,Battery Area,Heat exhaustion,Antihistamine given,No,,2,Medium,No,2025-10
+CASE-12061,2025-09-03,07:45,EMP1377,Swapnil Gawade,HVAC,Laceration - hand,Suture referral,No,,0,High,No,2025-09
+CASE-12062,2025-10-30,13:45,EMP1260,Omkar Kalyani,Testing,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12063,2025-08-14,20:30,EMP1396,Dilip Thorat,Battery Area,Chemical splash - eye,Irrigation - eye wash,Yes,"Kokilaben Dhirubhai Ambani Hospital, Mumbai",8,High,Yes,2025-08
+CASE-12064,2025-10-16,07:00,EMP1288,Priya Joshi,Maintenance,Crush injury - finger,Sling & immobilization,Yes,"Yashwantrao Chavan Memorial Hospital, Pune",4,High,Yes,2025-10
+CASE-12065,2025-10-24,15:00,EMP1062,Asha Kulkarni,Welding,Sprain - ankle,Tetanus prophylaxis given,No,,1,Medium,No,2025-10
+CASE-12066,2025-08-02,12:30,EMP1069,Arun Desai,Battery Area,Contusion - thigh,Steri-strips applied,No,,3,Medium,No,2025-08
+CASE-12067,2025-09-23,07:30,EMP1384,Arun Desai,Testing,Puncture wound - foot,Sling & immobilization,No,,0,Low,No,2025-09
+CASE-12068,2025-09-08,10:15,EMP1372,Vilas Dighe,Welding,Crush injury - finger,Ice pack & elevation,No,,0,Low,No,2025-09
+CASE-12069,2025-09-02,13:45,EMP1148,Rutuja Kale,HVAC,Head bump - helmet saved,Antihistamine given,No,,0,Low,No,2025-09
+CASE-12070,2025-10-04,10:45,EMP1256,Tarun Rane,Paint,Musculoskeletal strain - back,Splint applied,No,,0,Low,No,2025-10
+CASE-12071,2025-09-12,14:15,EMP1117,Irfan Shaikh,Welding,Head bump - helmet saved,Tetanus prophylaxis given,No,,0,Low,No,2025-09
+CASE-12072,2025-08-30,14:45,EMP1293,Mohan Dighe,Battery Area,Laceration - hand,Suture referral,No,,0,High,No,2025-08
+CASE-12073,2025-09-22,15:00,EMP1216,Rahul Deshmukh,Welding,Crush injury - finger,Observation & vitals recorded,No,,0,Low,No,2025-09
+CASE-12074,2025-08-01,09:00,EMP1152,Yogesh Jadhav,Battery Area,Chemical splash - eye,Irrigation - eye wash,Yes,"ESI Hospital, Bhosari",5,High,Yes,2025-08
+CASE-12075,2025-10-11,16:15,EMP1315,Nilesh Chavan,Maintenance,Crush injury - finger,Observation & vitals recorded,Yes,"Apollo Hospital, Navi Mumbai",5,High,Yes,2025-10
+CASE-12076,2025-08-06,13:30,EMP1277,Vandana Patil,Body Shop,Head bump - helmet saved,Tetanus prophylaxis given,No,,0,Low,No,2025-08
+CASE-12077,2025-08-06,17:30,EMP1106,Rohit Pawar,Battery Area,Sprain - ankle,Steri-strips applied,No,,1,Medium,No,2025-08
+CASE-12078,2025-09-30,08:30,EMP1372,Vijay Kale,Assembly,Nose bleed,Splint applied,No,,0,Low,No,2025-09
+CASE-12079,2025-08-04,06:30,EMP1065,Ramesh Bhosale,Testing,Puncture wound - foot,Wound cleaning & dressing,Yes,"Ruby Hall Clinic, Pune",11,High,Yes,2025-08
+CASE-12080,2025-09-16,08:30,EMP1372,Sanjay Mahajan,Paint,Nose bleed,Oral analgesic & rest,Yes,"Ruby Hall Clinic, Pune",7,High,Yes,2025-09
+CASE-12081,2025-08-06,08:00,EMP1200,Rahul Jadhav,Stores,Puncture wound - foot,Splint applied,No,,0,Low,No,2025-08
+CASE-12082,2025-10-22,19:45,EMP1053,Uday Patil,Quality,No injury - medical check,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12083,2025-08-18,07:30,EMP1002,Sanjay Mahajan,Paint,Electric shock - minor,CPR performed and ambulance called,No,,0,Low,No,2025-08
+CASE-12084,2025-10-15,07:30,EMP1208,Vilas Dighe,Battery Area,No injury - medical check,Burn cooling (water) & dressing,Yes,"Jupiter Hospital, Pune",5,High,Yes,2025-10
+CASE-12085,2025-08-04,14:30,EMP1126,Mohan Dighe,Maintenance,Puncture wound - foot,Suture referral,No,,0,High,No,2025-08
+CASE-12086,2025-09-19,07:30,EMP1251,Vikram Shinde,Welding,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12087,2025-10-03,20:30,EMP1399,Yogesh Jadhav,Testing,Nose bleed,Wound cleaning & dressing,Yes,"Sahyadri Hospital, Pune",6,High,Yes,2025-10
+CASE-12088,2025-10-22,20:30,EMP1033,Rakesh More,Stamping,Laceration - hand,Wound cleaning & dressing,No,,0,Low,No,2025-10
+CASE-12089,2025-09-27,09:45,EMP1325,Prerna Kulkarni,Stamping,Allergic reaction - unknown,Wound cleaning & dressing,No,,0,Low,No,2025-09
+CASE-12090,2025-10-17,09:15,EMP1094,Ritu Patil,HVAC,No injury - medical check,Burn cooling (water) & dressing,No,,0,Low,No,2025-10
+CASE-12091,2025-10-10,13:30,EMP1394,Asha Kulkarni,Electrical,Contusion - thigh,CPR performed and ambulance called,No,,0,Low,No,2025-10
+CASE-12092,2025-08-05,16:15,EMP1190,Dilip Thorat,Quality,Sprain - ankle,Antihistamine given,No,,0,Low,No,2025-08
+CASE-12093,2025-10-29,20:15,EMP1168,Meena Pawar,Paint,Head bump - helmet saved,Splint applied,No,,0,Low,No,2025-10
+CASE-12094,2025-10-25,12:30,EMP1262,Vijay Kale,Maintenance,Musculoskeletal strain - back,Oral analgesic & rest,No,,0,Low,No,2025-10
+CASE-12095,2025-09-03,15:30,EMP1000,Vandana Patil,Stamping,Nose bleed,Burn cooling (water) & dressing,No,,0,Low,No,2025-09
+CASE-12096,2025-10-29,10:15,EMP1345,Vijay Kale,Body Shop,No injury - medical check,CPR performed and ambulance called,No,,0,Low,No,2025-10
+CASE-12097,2025-10-07,19:15,EMP1130,Geeta Gadgil,Body Shop,Electric shock - minor,CPR performed and ambulance called,No,,0,Low,No,2025-10
+CASE-12098,2025-09-03,11:15,EMP1079,Suresh Patil,Battery Area,Nose bleed,Antihistamine given,No,,0,Low,No,2025-09
+CASE-12099,2025-10-01,16:30,EMP1167,Vijay Kale,Stamping,Head bump - helmet saved,Burn cooling (water) & dressing,No,,0,Low,No,2025-10
+CASE-12100,2025-10-04,12:15,EMP1108,Bhakti More,Maintenance,Nose bleed,Ice pack & elevation,No,,0,Low,No,2025-10
+CASE-12101,2025-09-12,18:45,EMP1168,Swapna Nimbalkar,Welding,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12102,2025-08-29,16:15,EMP1080,Rekha Gawas,Paint,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-08
+CASE-12103,2025-09-13,07:15,EMP1371,Anita Bhosale,Maintenance,Laceration - hand,Wound cleaning & dressing,No,,0,Low,No,2025-09
+CASE-12104,2025-08-28,17:30,EMP1173,Mangesh Shinde,Electrical,Nose bleed,Wound cleaning & dressing,No,,0,Low,No,2025-08
+CASE-12105,2025-10-11,16:45,EMP1163,Ritu Patil,Body Shop,Musculoskeletal strain - back,Splint applied,No,,1,Medium,No,2025-10
+CASE-12106,2025-10-01,15:30,EMP1247,Mahesh Londhe,Logistics,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12107,2025-10-27,14:45,EMP1274,Geeta Gadgil,HVAC,Eye irritation - dust,Irrigation - eye wash,No,,0,Low,No,2025-10
+CASE-12108,2025-08-13,13:00,EMP1098,Ketan Desai,Maintenance,Crush injury - finger,Observation & vitals recorded,No,,0,Low,No,2025-08
+CASE-12109,2025-09-25,20:30,EMP1373,Anita Bhosale,Maintenance,Chemical splash - eye,Irrigation - eye wash,Yes,"Sahyadri Hospital, Pune",9,High,Yes,2025-09
+CASE-12110,2025-08-01,07:15,EMP1068,Bhushan Khot,Assembly,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-08
+CASE-12111,2025-08-04,11:00,EMP1392,Rakesh More,Paint,Chemical splash - eye,Irrigation - eye wash,Yes,"Apollo Hospital, Navi Mumbai",10,High,Yes,2025-08
+CASE-12112,2025-08-01,08:45,EMP1243,Uday Patil,Quality,Electric shock - minor,CPR performed and ambulance called,No,,0,Low,No,2025-08
+CASE-12113,2025-09-01,10:00,EMP1053,Bhavna Joshi,Stamping,Minor burn - forearm,Burn cooling (water) & dressing,No,,0,Low,No,2025-09
+CASE-12114,2025-08-28,18:45,EMP1395,Neha Salunkhe,Electrical,Contusion - thigh,Splint applied,No,,0,Low,No,2025-08
+CASE-12115,2025-09-30,11:30,EMP1331,Vandana Patil,Testing,Eye irritation - dust,Irrigation - eye wash,Yes,"KEM Hospital, Pune",5,High,Yes,2025-09
+CASE-12116,2025-09-12,07:00,EMP1364,Sachin Ghodke,Battery Area,No injury - medical check,No treatment - advised rest,No,,0,Low,No,2025-09
+CASE-12117,2025-08-01,08:30,EMP1187,Varsha Pawar,Quality,Head bump - helmet saved,Tetanus prophylaxis given,No,,0,Low,No,2025-08
+CASE-12118,2025-09-03,12:15,EMP1340,Rohit Pawar,Welding,Musculoskeletal strain - back,Splint applied,Yes,"SRV Hospital, Pune",8,High,Yes,2025-09
+CASE-12119,2025-10-27,09:00,EMP1199,Kunal Deshmukh,Stamping,Contusion - thigh,Tetanus prophylaxis given,No,,2,Medium,No,2025-10
+CASE-12120,2025-08-18,14:30,EMP1085,Dilip Thorat,Paint,Contusion - thigh,Observation & vitals recorded,Yes,"Ruby Hall Clinic, Pune",6,High,Yes,2025-08
+CASE-12121,2025-10-03,17:15,EMP1363,Kajal Gokhale,Stamping,Head bump - helmet saved,Steri-strips applied,No,,0,Low,No,2025-10
+CASE-12122,2025-10-24,06:15,EMP1156,Meena Pawar,Electrical,Electric shock - minor,CPR performed and ambulance called,Yes,"Jupiter Hospital, Pune",5,High,Yes,2025-10
+CASE-12123,2025-09-03,09:30,EMP1031,Yogesh Jadhav,Welding,Chemical splash - eye,Irrigation - eye wash,No,,0,Low,No,2025-09
+CASE-12124,2025-10-16,07:15,EMP1326,Suresh Patil,Logistics,Head bump - helmet saved,Observation & vitals recorded,No,,0,Low,No,2025-10
+CASE-12125,2025-09-19,11:15,EMP1109,Rohit Pawar,Logistics,No injury - medical check,Sling & immobilization,No,,0,Low,No,2025-09
+CASE-12126,2025-09-05,12:15,EMP1116,Bhavna Joshi,Stamping,No injury - medical check,Steri-strips applied,No,,0,Low,No,2025-09
+CASE-12127,2025-10-31,09:30,EMP1377,Bhakti More,Stamping,Chemical splash - eye,Irrigation - eye wash,Yes,"ESI Hospital, Bhosari",12,High,No,2025-10
+CASE-12128,2025-08-26,10:45,EMP1036,Rahul Deshmukh,Welding,Crush injury - finger,Ice pack & elevation,Yes,"Sahyadri Hospital, Pune",2,High,No,2025-08
+CASE-12129,2025-08-04,17:30,EMP1398,Amit Pawar,Stores,Electric shock - minor,Observation & vitals recorded,No,,0,Low,No,2025-08

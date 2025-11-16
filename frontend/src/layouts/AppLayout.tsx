@@ -1,14 +1,20 @@
-// src/layouts/AppLayout.tsx
-import React, { useState } from "react"; // 1. Import useState
+import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
-import { Header } from "@/components/header";
+import { Header } from "@/components/header"; // Corrected import path
 import { Sidebar } from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
-import { Toaster } from "@/components/ui/sonner"; // Import your cn utility
+import { Toaster } from "@/components/ui/sonner";
+import { motion } from "framer-motion"; // <-- 1. Import motion
 
 export const AppLayout: React.FC = () => {
-  // 2. Add state for the sidebar
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // 2. Define the animation variants for the main content
+  // This will smoothly animate the 'paddingLeft' property
+  const mainVariants = {
+    collapsed: { paddingLeft: "80px" },
+    expanded: { paddingLeft: "260px" },
+  };
 
   return (
     <div className="relative min-h-screen w-full bg-[#F7F9FB]">
@@ -21,17 +27,26 @@ export const AppLayout: React.FC = () => {
       {/* 4. Pass state to Sidebar */}
       <Sidebar isCollapsed={isCollapsed} />
 
-      {/* 5. Main Content Area adjusts its padding */}
-      <main
-        className={cn(
-          "pt-16 transition-all duration-300 ease-in-out", // Base classes
-          isCollapsed ? "pl-[80px]" : "pl-[260px]"     // Dynamic padding
-        )}
+      {/* 5. Replaced <main> with <motion.main> */}
+      <motion.main
+        className="pt-16" // Base class (padding-top)
+        variants={mainVariants}
+        // Animate to the 'collapsed' or 'expanded' variant
+        animate={isCollapsed ? "collapsed" : "expanded"} 
+        transition={{ 
+          // Use a 'spring' animation for a natural, smooth feel
+          type: "spring", 
+          stiffness: 400, 
+          damping: 40 
+        }} 
       >
+        {/* p-6 adds the internal padding for your pages */}
         <div className="p-6">
           <Outlet /> {/* Your pages (e.g., Dashboard) will render here */}
         </div>
-      </main>
+      </motion.main>
+      
+      {/* Toaster for notifications */}
       <Toaster richColors />
     </div>
   );

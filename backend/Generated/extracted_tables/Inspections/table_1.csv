@@ -1,0 +1,361 @@
+inspection_id,date,area,inspector,checklist_item,status,remarks
+INS-8000,2025-09-23,Stamping - Bay 1,Prakash Yadav,Battery storage ventilation,Fail,Loose cable across walkway
+INS-8001,2025-09-25,Paint - Prep Area,Nilesh Chavan,Cables/trip hazards managed,Fail,Extinguisher pressure low
+INS-8002,2025-08-23,Office Premises,Mahesh Londhe,Hydraulic leak check,Pass,OK
+INS-8003,2025-09-22,Rooftop Solar Area,Rutuja Kale,Lubrication points greased,Pass,OK
+INS-8004,2025-09-13,Testing - Dyno Bay,Suresh Patil,Torque tool calibration sticker present,Pass,Good
+INS-8005,2025-10-24,Paint - Prep Area,Jyoti Rane,Hydraulic leak check,Pass,Good
+INS-8006,2025-10-27,Rooftop Solar Area,Rakesh More,First aid kit stocked,Pass,Compliant
+INS-8007,2025-08-30,Welding - Line 3,Swapnil Gawade,Lighting levels adequate,Pass,No issues observed
+INS-8008,2025-09-25,HVAC Plant,Meena Pawar,PPE usage by operators,,N/A - area closed
+INS-8009,2025-08-02,Body Shop - Booth A,Anita Bhosale,Scaffold inspection up-to-date,Pass,No issues observed
+INS-8010,2025-08-02,Stamping - Bay 2,Rahul Deshmukh,Paint booth filters clean,Pass,No issues observed
+INS-8011,2025-10-31,Maintenance Workshop,Priya Joshi,Cables/trip hazards managed,Pass,OK
+INS-8012,2025-10-02,Testing - Dyno Bay,Jyoti Rane,Waste segregation bins present,Fail,Emergency exit partially blocked
+INS-8013,2025-10-24,Welding - Line 3,Mahesh Londhe,Compressed air hoses in good condition,Pass,No issues observed
+INS-8014,2025-09-12,Assembly - Line 5,Priya Joshi,Lubrication points greased,Pass,No issues observed
+INS-8015,2025-10-06,Stamping - Bay 1,Meena Pawar,Housekeeping - Floors clean and dry,Pass,No issues observed
+INS-8016,2025-08-13,Assembly - Line 6,Rutuja Kale,Emergency eyewash functional,Pass,Good
+INS-8017,2025-09-01,Paint - Prep Area,Suresh Patil,Fall protection available at height works,Pass,Good
+INS-8018,2025-10-13,HVAC Plant,Anita Bhosale,Waste segregation bins present,Pass,Good
+INS-8019,2025-08-09,Quality Lab,Manoj Desai,Toolbox condition,Pass,No issues observed
+INS-8020,2025-10-07,Assembly - Line 5,Ajay Kadam,Material storage stacked safely,Pass,OK
+INS-8021,2025-09-24,Stamping - Bay 2,Nilesh Chavan,Electrical panels closed and labeled,Pass,OK
+INS-8022,2025-10-30,Stamping - Bay 2,Deepak Raut,Paint booth filters clean,Pass,Good
+INS-8023,2025-10-18,Assembly - Line 6,Sunita Gaikwad,Visitor access control,Pass,Compliant
+INS-8024,2025-08-29,Maintenance Workshop,Meena Pawar,Housekeeping - Floors clean and dry,Pass,OK
+INS-8025,2025-10-17,Paint - Oven Area,Sanjay Mahajan,Visitor access control,Pass,Compliant
+INS-8026,2025-09-08,Testing - Dyno Bay,Sanjay Mahajan,Fire extinguisher pressure OK,Pass,Compliant
+INS-8027,2025-08-06,Stores - Chemical Storage,Priya Joshi,Lubrication points greased,Pass,Compliant
+INS-8028,2025-09-24,Paint - Oven Area,Suresh Patil,Compressed air hoses in good condition,Pass,OK
+INS-8029,2025-09-13,Logistics Yard,Ajay Kadam,PPE usage by operators,Pass,Good
+INS-8030,2025-08-27,Assembly - Line 6,Kunal Deshmukh,Scaffold inspection up-to-date,Pass,Compliant
+INS-8031,2025-08-12,Welding - Line 3,Rutuja Kale,Lighting levels adequate,Pass,Good
+INS-8032,2025-08-02,HVAC Plant,Meena Pawar,Chemical containers labeled,Pass,No issues observed
+INS-8033,2025-09-26,Stamping - Bay 1,Nilesh Chavan,Emergency exit unobstructed,Fail,Oil leak at hydraulic unit
+INS-8034,2025-10-09,Office Premises,Suresh Patil,Chemical containers labeled,Pass,OK
+INS-8035,2025-09-19,Battery Area,Meena Pawar,First aid kit stocked,Pass,OK
+INS-8036,2025-10-02,Welding - Line 3,Vikram Shinde,Hydraulic leak check,Pass,OK
+INS-8037,2025-08-28,HVAC Plant,Vikram Shinde,Torque tool calibration sticker present,Pass,OK
+INS-8038,2025-08-29,Testing - Dyno Bay,Manoj Desai,Lubrication points greased,Pass,No issues observed
+INS-8039,2025-10-27,Electrical Room,Rakesh More,Lighting levels adequate,Pass,No issues observed
+INS-8040,2025-09-29,Stamping - Bay 1,Sagar Dani,Toolbox condition,Pass,OK
+INS-8041,2025-08-16,Welding - Line 3,Deepak Raut,Safety signage visible and legible,Pass,Compliant
+INS-8042,2025-09-17,Quality Lab,Ramesh Patil,Emergency eyewash functional,Pass,Good
+INS-8043,2025-10-04,Welding - Line 3,Rutuja Kale,Emergency exit unobstructed,Pass,Compliant
+INS-8044,2025-10-03,Welding - Line 1,Pooja Nimbalkar,Torque tool calibration sticker present,Pass,No issues observed
+INS-8045,2025-09-24,Rooftop Solar Area,Vikram Shinde,Lubrication points greased,Pass,Good
+INS-8046,2025-10-21,Paint - Prep Area,Sagar Dani,Housekeeping - Floors clean and dry,Pass,Compliant
+INS-8047,2025-10-01,Testing - Dyno Bay,Neeta Kulkarni,Toolbox condition,Fail,Extinguisher pressure low
+INS-8048,2025-09-20,Maintenance Workshop,Priya Joshi,Hot work permits displayed,Pass,No issues observed
+INS-8049,2025-10-11,Stamping - Bay 1,Suresh Patil,Compressed air hoses in good condition,Pass,No issues observed
+INS-8050,2025-08-18,Office Premises,Varsha Pawar,Battery storage ventilation,Pass,OK
+INS-8051,2025-09-20,Rooftop Solar Area,Sanjay Mahajan,Paint booth filters clean,Pass,Compliant
+INS-8052,2025-10-08,Welding - Line 1,Ramesh Patil,Forklift parked and keys removed,,Not relevant
+INS-8053,2025-10-01,Paint - Prep Area,Pooja Nimbalkar,Machine guarding intact,Pass,OK
+INS-8054,2025-09-10,Stores - Chemical Storage,Manoj Desai,Emergency eyewash functional,Pass,Good
+INS-8055,2025-08-16,Stores - Chemical Storage,Anita Bhosale,Housekeeping - Floors clean and dry,Fail,PPE missing on operator
+INS-8056,2025-09-15,Paint - Prep Area,Ramesh Patil,Lockout-tagout in place where work ongoing,Fail,SDS missing for chemical drum
+INS-8057,2025-09-11,Office Premises,Ajay Kadam,Housekeeping - near ovens,Pass,No issues observed
+INS-8058,2025-09-29,Stamping - Bay 1,Nilesh Chavan,Emergency eyewash functional,Pass,Compliant
+INS-8059,2025-10-13,Battery Area,Prakash Yadav,Ventilation functioning,Pass,OK
+INS-8060,2025-09-17,Assembly - Line 5,Pooja Nimbalkar,Forklift parked and keys removed,Pass,Compliant
+INS-8061,2025-10-16,Assembly - Line 5,Pooja Nimbalkar,Chemical containers labeled,Fail,PPE missing on operator
+INS-8062,2025-08-06,Welding - Line 3,Jyoti Rane,First aid kit stocked,Pass,OK
+INS-8063,2025-08-28,Stamping - Bay 1,Vikram Shinde,SDS available near chemicals,Pass,No issues observed
+INS-8064,2025-10-18,Assembly - Line 6,Varsha Pawar,Battery storage ventilation,Pass,Good
+INS-8065,2025-08-16,Rooftop Solar Area,Kiran Jadhav,Paint booth filters clean,Pass,No issues observed
+INS-8066,2025-08-22,Battery Area,Ramesh Patil,Machine guarding intact,Pass,No issues observed
+INS-8067,2025-10-29,Assembly - Line 6,Priya Joshi,Hot work permits displayed,Fail,Spill observed near machine
+INS-8068,2025-10-29,Body Shop - Booth A,Prakash Yadav,Noise levels within limits,Pass,OK
+INS-8069,2025-08-18,Stamping - Bay 1,Rahul Deshmukh,Compressed air hoses in good condition,Pass,Good
+INS-8070,2025-08-20,HVAC Plant,Rutuja Kale,Compressed air hoses in good condition,Pass,OK
+INS-8071,2025-08-11,Body Shop - Booth A,Suresh Patil,Fire extinguisher pressure OK,Fail,Oil leak at hydraulic unit
+INS-8072,2025-09-16,Testing - Dyno Bay,Priya Joshi,Material storage stacked safely,Pass,Compliant
+INS-8073,2025-09-12,Paint - Prep Area,Deepak Raut,Forklift parked and keys removed,,Item not applicable today
+INS-8074,2025-10-11,Body Shop - Booth A,Sanjay Mahajan,Emergency exit unobstructed,Pass,Compliant
+INS-8075,2025-10-27,Body Shop - Booth A,Mahesh Londhe,Hot work permits displayed,,N/A - area closed
+INS-8076,2025-09-08,Stamping - Bay 1,Rutuja Kale,Fall protection available at height works,Pass,No issues observed
+INS-8077,2025-08-14,Underground Tank Area,Rakesh More,Torque tool calibration sticker present,Fail,PPE missing on operator
+INS-8078,2025-10-15,Welding - Line 3,Prakash Yadav,Electrical panels closed and labeled,Pass,OK
+INS-8079,2025-08-16,Logistics Yard,Deepak Raut,Material storage stacked safely,Pass,No issues observed
+INS-8080,2025-08-23,Welding - Line 3,Pooja Nimbalkar,Compressed air hoses in good condition,Pass,OK
+INS-8081,2025-10-24,Logistics Yard,Mahesh Londhe,Hot work permits displayed,Pass,Good
+INS-8082,2025-09-08,Office Premises,Pooja Nimbalkar,Paint booth filters clean,Pass,OK
+INS-8083,2025-08-29,Rooftop Solar Area,Rahul Deshmukh,Scaffold inspection up-to-date,Pass,No issues observed
+INS-8084,2025-08-11,Rooftop Solar Area,Prakash Yadav,Lighting levels adequate,Pass,No issues observed
+INS-8085,2025-08-14,Body Shop - Booth A,Suresh Patil,Machine guarding intact,Pass,Compliant
+INS-8086,2025-08-02,Electrical Room,Varsha Pawar,Noise levels within limits,Pass,OK
+INS-8087,2025-10-22,Stores - Chemical Storage,Vikram Shinde,Battery storage ventilation,Pass,OK
+INS-8088,2025-08-20,Quality Lab,Ajay Kadam,Forklift parked and keys removed,Pass,No issues observed
+INS-8089,2025-10-07,Logistics Yard,Anita Bhosale,Waste segregation bins present,Fail,SDS missing for chemical drum
+INS-8090,2025-09-15,Assembly - Line 5,Sanjay Mahajan,Housekeeping - Floors clean and dry,Pass,OK
+INS-8091,2025-10-01,Maintenance Workshop,Vikram Shinde,Lockout-tagout in place where work ongoing,Pass,No issues observed
+INS-8092,2025-09-22,Testing - Dyno Bay,Mahesh Londhe,Visitor access control,Pass,No issues observed
+INS-8093,2025-09-24,Stamping - Bay 1,Meena Pawar,Cables/trip hazards managed,Pass,No issues observed
+INS-8094,2025-08-25,Stores - Chemical Storage,Ramesh Patil,Housekeeping - Floors clean and dry,Pass,Good
+INS-8095,2025-09-12,Rooftop Solar Area,Sanjay Mahajan,Waste segregation bins present,Pass,Good
+INS-8096,2025-10-23,Welding - Line 3,Nilesh Chavan,Paint booth filters clean,Pass,OK
+INS-8097,2025-10-09,Welding - Line 3,Prakash Yadav,Paint booth filters clean,Pass,No issues observed
+INS-8098,2025-08-11,Paint - Prep Area,Prakash Yadav,Compressed air hoses in good condition,Pass,Good
+INS-8099,2025-09-10,Stores - Chemical Storage,Ajay Kadam,SDS available near chemicals,Pass,Good
+INS-8100,2025-09-11,Stores - Chemical Storage,Asha Kulkarni,Hydraulic leak check,Fail,Scaffold defect noted
+INS-8101,2025-10-13,Underground Tank Area,Asha Kulkarni,SDS available near chemicals,Pass,Compliant
+INS-8102,2025-10-01,Maintenance Workshop,Mahesh Londhe,Battery storage ventilation,Pass,Compliant
+INS-8103,2025-09-13,Welding - Line 1,Vikram Shinde,Torque tool calibration sticker present,Fail,Scaffold defect noted
+INS-8104,2025-09-27,Rooftop Solar Area,Priya Joshi,Housekeeping - near ovens,Pass,No issues observed
+INS-8105,2025-09-29,Testing - Dyno Bay,Pooja Nimbalkar,Waste segregation bins present,,Item not applicable today
+INS-8106,2025-08-04,Maintenance Workshop,Manoj Desai,Paint booth filters clean,Fail,Spill observed near machine
+INS-8107,2025-10-25,Assembly - Line 5,Ramesh Patil,PPE usage by operators,Pass,OK
+INS-8108,2025-08-04,Battery Area,Ramesh Patil,Emergency eyewash functional,,Not relevant
+INS-8109,2025-08-25,Paint - Oven Area,Neeta Kulkarni,SDS available near chemicals,Pass,Compliant
+INS-8110,2025-09-01,Paint - Oven Area,Kiran Jadhav,Housekeeping - Floors clean and dry,Pass,No issues observed
+INS-8111,2025-09-26,Paint - Prep Area,Jyoti Rane,PPE usage by operators,,Not relevant
+INS-8112,2025-09-29,Body Shop - Booth A,Meena Pawar,Torque tool calibration sticker present,Pass,Compliant
+INS-8113,2025-09-11,Stamping - Bay 1,Vikram Shinde,Lubrication points greased,Pass,OK
+INS-8114,2025-08-16,Testing - Dyno Bay,Varsha Pawar,Housekeeping - near ovens,Pass,Compliant
+INS-8115,2025-10-06,Maintenance Workshop,Priya Joshi,First aid kit stocked,Pass,No issues observed
+INS-8116,2025-08-15,Paint - Prep Area,Sagar Dani,Hydraulic leak check,Pass,OK
+INS-8117,2025-08-16,Assembly - Line 6,Meena Pawar,SDS available near chemicals,Fail,Loose cable across walkway
+INS-8118,2025-10-13,Electrical Room,Jyoti Rane,Emergency exit unobstructed,Pass,Good
+INS-8119,2025-08-01,Testing - Dyno Bay,Manoj Desai,Emergency exit unobstructed,Pass,No issues observed
+INS-8120,2025-10-30,Office Premises,Rakesh More,Noise levels within limits,,Not relevant
+INS-8121,2025-09-08,Quality Lab,Kiran Jadhav,PPE usage by operators,Pass,OK
+INS-8122,2025-08-12,Testing - Dyno Bay,Priya Joshi,Housekeeping - near ovens,Fail,Oil leak at hydraulic unit
+INS-8123,2025-08-04,Rooftop Solar Area,Vikram Shinde,Toolbox condition,Pass,Compliant
+INS-8124,2025-09-23,Rooftop Solar Area,Neeta Kulkarni,Toolbox condition,Fail,Scaffold defect noted
+INS-8125,2025-09-23,Maintenance Workshop,Jyoti Rane,Ventilation functioning,Pass,No issues observed
+INS-8126,2025-10-31,Stores - Chemical Storage,Manoj Desai,Visitor access control,Pass,Compliant
+INS-8127,2025-09-25,Welding - Line 1,Anita Bhosale,Waste segregation bins present,Fail,PPE missing on operator
+INS-8128,2025-10-22,HVAC Plant,Suresh Patil,SDS available near chemicals,Pass,Good
+INS-8129,2025-09-10,Stores - Chemical Storage,Deepak Raut,Forklift parked and keys removed,Pass,Compliant
+INS-8130,2025-08-28,Underground Tank Area,Neeta Kulkarni,Housekeeping - Floors clean and dry,,Item not applicable today
+INS-8131,2025-10-23,Maintenance Workshop,Meena Pawar,Lubrication points greased,Pass,Compliant
+INS-8132,2025-10-06,Welding - Line 1,Kiran Jadhav,Spill kit available,,N/A - area closed
+INS-8133,2025-10-31,Welding - Line 3,Kunal Deshmukh,Waste segregation bins present,Pass,OK
+INS-8134,2025-10-11,Paint - Prep Area,Rahul Deshmukh,Lubrication points greased,Pass,No issues observed
+INS-8135,2025-10-28,Office Premises,Manoj Desai,Lighting levels adequate,Pass,OK
+INS-8136,2025-09-22,Body Shop - Booth A,Ramesh Patil,Fall protection available at height works,Fail,SDS missing for chemical drum
+INS-8137,2025-10-27,Welding - Line 1,Suresh Patil,Chemical containers labeled,Pass,OK
+INS-8138,2025-08-26,Assembly - Line 6,Nilesh Chavan,Emergency exit unobstructed,Pass,OK
+INS-8139,2025-10-06,Electrical Room,Suresh Patil,Cables/trip hazards managed,,Not relevant
+INS-8140,2025-10-13,Welding - Line 3,Sanjay Mahajan,Material storage stacked safely,Fail,Oil leak at hydraulic unit
+INS-8141,2025-08-12,Rooftop Solar Area,Nilesh Chavan,Waste segregation bins present,Pass,Compliant
+INS-8142,2025-08-01,Office Premises,Rutuja Kale,SDS available near chemicals,Pass,No issues observed
+INS-8143,2025-10-24,Welding - Line 1,Ajay Kadam,Lockout-tagout in place where work ongoing,Fail,Oil leak at hydraulic unit
+INS-8144,2025-09-08,Stamping - Bay 1,Swapnil Gawade,Hydraulic leak check,Pass,Compliant
+INS-8145,2025-10-31,Paint - Prep Area,Varsha Pawar,Spill kit available,Fail,Guard removed for adjustment
+INS-8146,2025-10-06,Assembly - Line 6,Neeta Kulkarni,Emergency eyewash functional,Pass,Good
+INS-8147,2025-09-06,Welding - Line 1,Rahul Deshmukh,Electrical panels closed and labeled,,Not relevant
+INS-8148,2025-08-11,Assembly - Line 5,Jyoti Rane,Compressed air hoses in good condition,Pass,No issues observed
+INS-8149,2025-08-25,Maintenance Workshop,Sagar Dani,Chemical containers labeled,Pass,OK
+INS-8150,2025-09-15,Welding - Line 1,Kiran Jadhav,Toolbox condition,Pass,Good
+INS-8151,2025-08-27,Stores - Chemical Storage,Vikram Shinde,Toolbox condition,Fail,SDS missing for chemical drum
+INS-8152,2025-10-14,Battery Area,Kiran Jadhav,Safety signage visible and legible,Pass,Compliant
+INS-8153,2025-09-02,Office Premises,Sanjay Mahajan,Waste segregation bins present,Pass,OK
+INS-8154,2025-09-12,Welding - Line 3,Deepak Raut,Lockout-tagout in place where work ongoing,Pass,No issues observed
+INS-8155,2025-10-24,Stores - Chemical Storage,Prakash Yadav,Torque tool calibration sticker present,Pass,Compliant
+INS-8156,2025-09-19,Assembly - Line 6,Deepak Raut,Waste segregation bins present,Pass,Compliant
+INS-8157,2025-08-21,Testing - Dyno Bay,Kunal Deshmukh,Lubrication points greased,Pass,Compliant
+INS-8158,2025-09-16,Paint - Oven Area,Anita Bhosale,Waste segregation bins present,Pass,Compliant
+INS-8159,2025-09-26,Office Premises,Nilesh Chavan,Fire extinguisher pressure OK,Pass,OK
+INS-8160,2025-10-29,Electrical Room,Asha Kulkarni,Lubrication points greased,Fail,Lighting at 40% below limit
+INS-8161,2025-10-08,Battery Area,Anita Bhosale,Battery storage ventilation,Fail,Emergency exit partially blocked
+INS-8162,2025-08-20,Welding - Line 1,Nilesh Chavan,Fire extinguisher pressure OK,Fail,Spill observed near machine
+INS-8163,2025-10-13,Body Shop - Booth A,Rahul Deshmukh,Spill kit available,Pass,No issues observed
+INS-8164,2025-10-30,Office Premises,Ajay Kadam,Spill kit available,Fail,Guard removed for adjustment
+INS-8165,2025-09-08,Logistics Yard,Meena Pawar,Paint booth filters clean,Pass,Good
+INS-8166,2025-09-02,Electrical Room,Rakesh More,Ventilation functioning,,Item not applicable today
+INS-8167,2025-10-27,Logistics Yard,Mahesh Londhe,First aid kit stocked,Fail,SDS missing for chemical drum
+INS-8168,2025-08-08,Stamping - Bay 1,Neeta Kulkarni,Hot work permits displayed,Pass,Compliant
+INS-8169,2025-09-22,Stores - Chemical Storage,Prakash Yadav,Waste segregation bins present,Pass,OK
+INS-8170,2025-09-10,Underground Tank Area,Pooja Nimbalkar,Visitor access control,Fail,Loose cable across walkway
+INS-8171,2025-09-04,Office Premises,Sanjay Mahajan,Material storage stacked safely,Pass,Good
+INS-8172,2025-08-09,Testing - Dyno Bay,Jyoti Rane,Cables/trip hazards managed,Pass,No issues observed
+INS-8173,2025-09-20,Welding - Line 1,Deepak Raut,Ventilation functioning,,Item not applicable today
+INS-8174,2025-08-07,Underground Tank Area,Vikram Shinde,Battery storage ventilation,Pass,No issues observed
+INS-8175,2025-10-24,Rooftop Solar Area,Sagar Dani,Machine guarding intact,Fail,Extinguisher pressure low
+INS-8176,2025-08-22,Paint - Oven Area,Sunita Gaikwad,Forklift parked and keys removed,Pass,Compliant
+INS-8177,2025-10-10,HVAC Plant,Rahul Deshmukh,Housekeeping - near ovens,,Item not applicable today
+INS-8178,2025-10-09,Stamping - Bay 2,Rakesh More,Lockout-tagout in place where work ongoing,Fail,Extinguisher pressure low
+INS-8179,2025-09-09,Welding - Line 1,Swapnil Gawade,Emergency eyewash functional,,Item not applicable today
+INS-8180,2025-08-30,Paint - Prep Area,Deepak Raut,PPE usage by operators,Pass,No issues observed
+INS-8181,2025-10-21,Stores - Chemical Storage,Mahesh Londhe,Machine guarding intact,Pass,No issues observed
+INS-8182,2025-10-15,Office Premises,Rutuja Kale,Material storage stacked safely,Pass,OK
+INS-8183,2025-10-01,Stamping - Bay 2,Asha Kulkarni,Fire extinguisher pressure OK,Pass,OK
+INS-8184,2025-10-24,Assembly - Line 6,Ajay Kadam,Cables/trip hazards managed,Pass,OK
+INS-8185,2025-08-28,Stamping - Bay 2,Vikram Shinde,First aid kit stocked,Fail,SDS missing for chemical drum
+INS-8186,2025-10-25,Paint - Prep Area,Suresh Patil,Machine guarding intact,Fail,Emergency exit partially blocked
+INS-8187,2025-08-04,Quality Lab,Ajay Kadam,Chemical containers labeled,,Not relevant
+INS-8188,2025-08-25,Stamping - Bay 2,Swapnil Gawade,Material storage stacked safely,Pass,OK
+INS-8189,2025-08-13,HVAC Plant,Rutuja Kale,Hot work permits displayed,Pass,Compliant
+INS-8190,2025-09-20,Body Shop - Booth A,Asha Kulkarni,Visitor access control,,N/A - area closed
+INS-8191,2025-09-29,Office Premises,Swapnil Gawade,Material storage stacked safely,Pass,OK
+INS-8192,2025-09-05,Maintenance Workshop,Rahul Deshmukh,Compressed air hoses in good condition,Fail,Loose cable across walkway
+INS-8193,2025-10-29,Stores - Chemical Storage,Neeta Kulkarni,Ventilation functioning,Pass,OK
+INS-8194,2025-10-09,Office Premises,Ramesh Patil,Emergency exit unobstructed,Pass,Good
+INS-8195,2025-08-04,Stores - Chemical Storage,Neeta Kulkarni,Lockout-tagout in place where work ongoing,Pass,No issues observed
+INS-8196,2025-10-15,Office Premises,Manoj Desai,Cables/trip hazards managed,Pass,Good
+INS-8197,2025-09-12,Welding - Line 1,Suresh Patil,Battery storage ventilation,Pass,No issues observed
+INS-8198,2025-09-09,Assembly - Line 5,Sagar Dani,Paint booth filters clean,Pass,Good
+INS-8199,2025-08-21,Maintenance Workshop,Neeta Kulkarni,Housekeeping - Floors clean and dry,Fail,Lighting at 40% below limit
+INS-8200,2025-08-20,Paint - Oven Area,Ramesh Patil,Noise levels within limits,Pass,No issues observed
+INS-8201,2025-10-17,Stamping - Bay 2,Pooja Nimbalkar,Safety signage visible and legible,Pass,No issues observed
+INS-8202,2025-08-09,Welding - Line 1,Sanjay Mahajan,Material storage stacked safely,,Item not applicable today
+INS-8203,2025-08-25,Rooftop Solar Area,Priya Joshi,Paint booth filters clean,Pass,Good
+INS-8204,2025-08-05,Testing - Dyno Bay,Mahesh Londhe,Lockout-tagout in place where work ongoing,Pass,No issues observed
+INS-8205,2025-10-02,Paint - Oven Area,Kiran Jadhav,Electrical panels closed and labeled,Pass,No issues observed
+INS-8206,2025-10-22,Paint - Oven Area,Pooja Nimbalkar,PPE usage by operators,Pass,No issues observed
+INS-8207,2025-08-22,Logistics Yard,Sunita Gaikwad,Visitor access control,Pass,Good
+INS-8208,2025-09-23,Paint - Oven Area,Kiran Jadhav,Hot work permits displayed,Pass,OK
+INS-8209,2025-08-08,Welding - Line 1,Nilesh Chavan,Hydraulic leak check,Fail,Oil leak at hydraulic unit
+INS-8210,2025-10-16,Body Shop - Booth A,Suresh Patil,Cables/trip hazards managed,Pass,No issues observed
+INS-8211,2025-10-09,Paint - Prep Area,Meena Pawar,Lockout-tagout in place where work ongoing,Pass,OK
+INS-8212,2025-10-09,Assembly - Line 5,Neeta Kulkarni,Housekeeping - near ovens,Pass,No issues observed
+INS-8213,2025-08-28,Office Premises,Rahul Deshmukh,Torque tool calibration sticker present,Pass,No issues observed
+INS-8214,2025-09-08,Body Shop - Booth A,Meena Pawar,Waste segregation bins present,Pass,Good
+INS-8215,2025-09-03,HVAC Plant,Anita Bhosale,SDS available near chemicals,Pass,OK
+INS-8216,2025-08-27,Stamping - Bay 2,Vikram Shinde,Toolbox condition,Pass,Good
+INS-8217,2025-10-01,Welding - Line 1,Nilesh Chavan,Fire extinguisher pressure OK,Fail,Extinguisher pressure low
+INS-8218,2025-10-02,Body Shop - Booth A,Nilesh Chavan,Lockout-tagout in place where work ongoing,Pass,Good
+INS-8219,2025-10-14,Welding - Line 3,Neeta Kulkarni,Lockout-tagout in place where work ongoing,Pass,Good
+INS-8220,2025-10-07,Office Premises,Priya Joshi,Lockout-tagout in place where work ongoing,Pass,Compliant
+INS-8221,2025-09-08,Paint - Oven Area,Ajay Kadam,PPE usage by operators,Pass,OK
+INS-8222,2025-09-03,Electrical Room,Ajay Kadam,Housekeeping - Floors clean and dry,Pass,OK
+INS-8223,2025-09-29,Stamping - Bay 1,Mahesh Londhe,Machine guarding intact,,N/A - area closed
+INS-8224,2025-09-24,Testing - Dyno Bay,Neeta Kulkarni,Noise levels within limits,Pass,Good
+INS-8225,2025-10-15,Assembly - Line 5,Neeta Kulkarni,Forklift parked and keys removed,Fail,Emergency exit partially blocked
+INS-8226,2025-08-11,HVAC Plant,Ramesh Patil,Paint booth filters clean,Pass,Compliant
+INS-8227,2025-10-20,Welding - Line 3,Varsha Pawar,Spill kit available,Pass,No issues observed
+INS-8228,2025-08-15,Battery Area,Kiran Jadhav,Fire extinguisher pressure OK,Pass,Good
+INS-8229,2025-10-01,Rooftop Solar Area,Rutuja Kale,PPE usage by operators,Pass,OK
+INS-8230,2025-09-09,Paint - Oven Area,Rutuja Kale,Cables/trip hazards managed,Fail,Oil leak at hydraulic unit
+INS-8231,2025-09-26,Welding - Line 3,Swapnil Gawade,Visitor access control,Pass,Good
+INS-8232,2025-10-29,Stores - Chemical Storage,Anita Bhosale,Machine guarding intact,Pass,No issues observed
+INS-8233,2025-08-14,Testing - Dyno Bay,Kiran Jadhav,Spill kit available,Pass,OK
+INS-8234,2025-10-16,Testing - Dyno Bay,Sunita Gaikwad,PPE usage by operators,Pass,No issues observed
+INS-8235,2025-09-08,Office Premises,Sunita Gaikwad,Compressed air hoses in good condition,Pass,Compliant
+INS-8236,2025-10-02,Welding - Line 1,Ajay Kadam,Ventilation functioning,Fail,Emergency exit partially blocked
+INS-8237,2025-09-04,Body Shop - Booth A,Vikram Shinde,Fall protection available at height works,Fail,Emergency exit partially blocked
+INS-8238,2025-10-06,Testing - Dyno Bay,Anita Bhosale,PPE usage by operators,Pass,OK
+INS-8239,2025-08-25,HVAC Plant,Kunal Deshmukh,Spill kit available,Fail,Spill observed near machine
+INS-8240,2025-08-25,Electrical Room,Kiran Jadhav,Scaffold inspection up-to-date,Pass,Good
+INS-8241,2025-09-05,Stamping - Bay 1,Asha Kulkarni,Material storage stacked safely,,Not relevant
+INS-8242,2025-09-12,Paint - Oven Area,Swapnil Gawade,SDS available near chemicals,,Not relevant
+INS-8243,2025-10-06,Rooftop Solar Area,Ramesh Patil,Lighting levels adequate,Pass,No issues observed
+INS-8244,2025-08-30,Testing - Dyno Bay,Suresh Patil,Safety signage visible and legible,,Not relevant
+INS-8245,2025-09-05,Maintenance Workshop,Sunita Gaikwad,Chemical containers labeled,Fail,Emergency exit partially blocked
+INS-8246,2025-09-04,Logistics Yard,Neeta Kulkarni,SDS available near chemicals,,Not relevant
+INS-8247,2025-08-07,Stamping - Bay 1,Varsha Pawar,Torque tool calibration sticker present,Fail,Scaffold defect noted
+INS-8248,2025-09-02,Paint - Oven Area,Anita Bhosale,Material storage stacked safely,Pass,No issues observed
+INS-8249,2025-09-01,Paint - Prep Area,Mahesh Londhe,Paint booth filters clean,,Not relevant
+INS-8250,2025-09-23,Battery Area,Rutuja Kale,PPE usage by operators,Pass,No issues observed
+INS-8251,2025-08-06,Quality Lab,Ajay Kadam,Chemical containers labeled,Fail,SDS missing for chemical drum
+INS-8252,2025-10-29,Logistics Yard,Sanjay Mahajan,Ventilation functioning,Pass,OK
+INS-8253,2025-09-09,Stores - Chemical Storage,Neeta Kulkarni,Fall protection available at height works,Pass,No issues observed
+INS-8254,2025-08-27,Quality Lab,Deepak Raut,Housekeeping - Floors clean and dry,Pass,Good
+INS-8255,2025-09-20,Welding - Line 3,Sunita Gaikwad,Electrical panels closed and labeled,Fail,Scaffold defect noted
+INS-8256,2025-10-28,HVAC Plant,Asha Kulkarni,Housekeeping - Floors clean and dry,,Not relevant
+INS-8257,2025-09-22,Quality Lab,Sagar Dani,Emergency eyewash functional,Pass,No issues observed
+INS-8258,2025-10-23,Body Shop - Booth A,Ramesh Patil,Chemical containers labeled,Pass,Compliant
+INS-8259,2025-08-06,Welding - Line 1,Ramesh Patil,Compressed air hoses in good condition,Pass,OK
+INS-8260,2025-09-17,Office Premises,Ajay Kadam,Fire extinguisher pressure OK,,Item not applicable today
+INS-8261,2025-08-23,Battery Area,Kunal Deshmukh,Electrical panels closed and labeled,Pass,OK
+INS-8262,2025-08-13,Assembly - Line 6,Ramesh Patil,Machine guarding intact,Pass,OK
+INS-8263,2025-08-14,Battery Area,Sanjay Mahajan,Housekeeping - near ovens,,Item not applicable today
+INS-8264,2025-08-04,Stamping - Bay 2,Neeta Kulkarni,Paint booth filters clean,Fail,Extinguisher pressure low
+INS-8265,2025-10-24,Paint - Prep Area,Anita Bhosale,Material storage stacked safely,Fail,Lighting at 40% below limit
+INS-8266,2025-09-05,Paint - Oven Area,Rahul Deshmukh,SDS available near chemicals,Fail,Loose cable across walkway
+INS-8267,2025-10-18,Quality Lab,Asha Kulkarni,SDS available near chemicals,Fail,SDS missing for chemical drum
+INS-8268,2025-10-30,Electrical Room,Ajay Kadam,Chemical containers labeled,Pass,Compliant
+INS-8269,2025-09-11,Stamping - Bay 1,Ramesh Patil,Compressed air hoses in good condition,Pass,OK
+INS-8270,2025-08-23,Battery Area,Rakesh More,Housekeeping - near ovens,Pass,OK
+INS-8271,2025-10-10,Paint - Prep Area,Kunal Deshmukh,Visitor access control,Pass,OK
+INS-8272,2025-08-26,Stamping - Bay 1,Mahesh Londhe,Emergency eyewash functional,Pass,OK
+INS-8273,2025-09-29,Battery Area,Swapnil Gawade,Electrical panels closed and labeled,Pass,Compliant
+INS-8274,2025-09-15,Office Premises,Mahesh Londhe,Torque tool calibration sticker present,Pass,OK
+INS-8275,2025-08-18,Stamping - Bay 2,Varsha Pawar,Electrical panels closed and labeled,Pass,No issues observed
+INS-8276,2025-09-08,Assembly - Line 5,Suresh Patil,Lighting levels adequate,Fail,Guard removed for adjustment
+INS-8277,2025-08-25,Rooftop Solar Area,Rutuja Kale,Paint booth filters clean,,Not relevant
+INS-8278,2025-08-13,Rooftop Solar Area,Prakash Yadav,Fire extinguisher pressure OK,Fail,Lighting at 40% below limit
+INS-8279,2025-10-03,Electrical Room,Sagar Dani,Material storage stacked safely,Pass,OK
+INS-8280,2025-10-21,HVAC Plant,Manoj Desai,Toolbox condition,Pass,Good
+INS-8281,2025-09-29,Electrical Room,Rakesh More,Lubrication points greased,Fail,Extinguisher pressure low
+INS-8282,2025-09-15,Welding - Line 3,Rahul Deshmukh,SDS available near chemicals,Fail,Extinguisher pressure low
+INS-8283,2025-09-02,Welding - Line 1,Jyoti Rane,Material storage stacked safely,,Not relevant
+INS-8284,2025-10-31,Testing - Dyno Bay,Rakesh More,PPE usage by operators,Pass,No issues observed
+INS-8285,2025-10-06,Assembly - Line 5,Prakash Yadav,First aid kit stocked,Pass,OK
+INS-8286,2025-09-03,Maintenance Workshop,Priya Joshi,Emergency exit unobstructed,Pass,OK
+INS-8287,2025-10-02,HVAC Plant,Sunita Gaikwad,Waste segregation bins present,Pass,No issues observed
+INS-8288,2025-08-30,Logistics Yard,Ramesh Patil,Ventilation functioning,Pass,No issues observed
+INS-8289,2025-08-07,Quality Lab,Vikram Shinde,Fire extinguisher pressure OK,Pass,OK
+INS-8290,2025-08-08,Electrical Room,Priya Joshi,Forklift parked and keys removed,Fail,Loose cable across walkway
+INS-8291,2025-08-21,Electrical Room,Rakesh More,Forklift parked and keys removed,Pass,Compliant
+INS-8292,2025-10-20,Testing - Dyno Bay,Prakash Yadav,Material storage stacked safely,Pass,Good
+INS-8293,2025-08-23,Welding - Line 1,Vikram Shinde,Torque tool calibration sticker present,Pass,No issues observed
+INS-8294,2025-09-29,Stores - Chemical Storage,Ajay Kadam,Emergency eyewash functional,Pass,OK
+INS-8295,2025-10-04,Quality Lab,Rutuja Kale,PPE usage by operators,Pass,Compliant
+INS-8296,2025-10-20,Stamping - Bay 2,Prakash Yadav,Housekeeping - near ovens,Pass,No issues observed
+INS-8297,2025-10-29,Body Shop - Booth A,Kunal Deshmukh,Cables/trip hazards managed,Pass,Compliant
+INS-8298,2025-09-30,Stores - Chemical Storage,Varsha Pawar,Housekeeping - near ovens,Pass,Good
+INS-8299,2025-08-26,Underground Tank Area,Mahesh Londhe,Lighting levels adequate,Pass,Good
+INS-8300,2025-09-17,HVAC Plant,Anita Bhosale,Fire extinguisher pressure OK,Pass,No issues observed
+INS-8301,2025-08-06,Stamping - Bay 2,Ajay Kadam,Visitor access control,Fail,Oil leak at hydraulic unit
+INS-8302,2025-10-29,Body Shop - Booth A,Ramesh Patil,Visitor access control,Pass,OK
+INS-8303,2025-08-12,Paint - Prep Area,Sunita Gaikwad,Battery storage ventilation,Pass,Good
+INS-8304,2025-10-13,Paint - Oven Area,Mahesh Londhe,Fire extinguisher pressure OK,Fail,Lighting at 40% below limit
+INS-8305,2025-08-04,Assembly - Line 5,Rakesh More,Housekeeping - near ovens,Pass,OK
+INS-8306,2025-09-17,Rooftop Solar Area,Sanjay Mahajan,Forklift parked and keys removed,Pass,Good
+INS-8307,2025-08-13,Electrical Room,Ramesh Patil,Safety signage visible and legible,Pass,Compliant
+INS-8308,2025-10-29,Welding - Line 1,Sagar Dani,Machine guarding intact,Pass,Good
+INS-8309,2025-10-25,Paint - Oven Area,Kiran Jadhav,Housekeeping - near ovens,Pass,OK
+INS-8310,2025-10-28,Paint - Prep Area,Mahesh Londhe,Waste segregation bins present,Pass,Compliant
+INS-8311,2025-08-02,Electrical Room,Kunal Deshmukh,Fall protection available at height works,Pass,Good
+INS-8312,2025-08-18,Assembly - Line 5,Kunal Deshmukh,Hot work permits displayed,Pass,Good
+INS-8313,2025-09-27,Testing - Dyno Bay,Asha Kulkarni,Housekeeping - near ovens,Pass,Good
+INS-8314,2025-09-08,Paint - Oven Area,Deepak Raut,Electrical panels closed and labeled,Pass,Compliant
+INS-8315,2025-10-16,Assembly - Line 6,Sagar Dani,Emergency exit unobstructed,Pass,OK
+INS-8316,2025-09-30,Assembly - Line 6,Kunal Deshmukh,Machine guarding intact,Pass,Compliant
+INS-8317,2025-09-15,Stamping - Bay 1,Ajay Kadam,Safety signage visible and legible,Pass,Good
+INS-8318,2025-10-04,Testing - Dyno Bay,Varsha Pawar,Spill kit available,Pass,Compliant
+INS-8319,2025-10-08,Maintenance Workshop,Vikram Shinde,Compressed air hoses in good condition,Pass,No issues observed
+INS-8320,2025-09-02,Assembly - Line 6,Ajay Kadam,Cables/trip hazards managed,Pass,No issues observed
+INS-8321,2025-09-27,Battery Area,Ramesh Patil,Fire extinguisher pressure OK,,N/A - area closed
+INS-8322,2025-09-10,HVAC Plant,Kiran Jadhav,Safety signage visible and legible,Pass,No issues observed
+INS-8323,2025-10-10,Testing - Dyno Bay,Ramesh Patil,Waste segregation bins present,Pass,No issues observed
+INS-8324,2025-09-15,Electrical Room,Jyoti Rane,Cables/trip hazards managed,Pass,No issues observed
+INS-8325,2025-10-15,Battery Area,Manoj Desai,Ventilation functioning,Pass,No issues observed
+INS-8326,2025-09-06,Logistics Yard,Pooja Nimbalkar,Cables/trip hazards managed,Pass,Compliant
+INS-8327,2025-08-01,Quality Lab,Sunita Gaikwad,Torque tool calibration sticker present,Pass,No issues observed
+INS-8328,2025-09-08,Paint - Prep Area,Suresh Patil,Fire extinguisher pressure OK,Fail,Extinguisher pressure low
+INS-8329,2025-10-17,Welding - Line 1,Pooja Nimbalkar,Noise levels within limits,,Item not applicable today
+INS-8330,2025-08-27,Welding - Line 1,Manoj Desai,Hydraulic leak check,Pass,No issues observed
+INS-8331,2025-09-30,Logistics Yard,Vikram Shinde,Lubrication points greased,Pass,No issues observed
+INS-8332,2025-08-23,Assembly - Line 5,Mahesh Londhe,Cables/trip hazards managed,Pass,Good
+INS-8333,2025-09-30,Battery Area,Pooja Nimbalkar,Housekeeping - Floors clean and dry,,Not relevant
+INS-8334,2025-10-08,Underground Tank Area,Kiran Jadhav,Waste segregation bins present,Pass,OK
+INS-8335,2025-09-18,Stores - Chemical Storage,Manoj Desai,Lubrication points greased,Pass,Compliant
+INS-8336,2025-10-08,Logistics Yard,Varsha Pawar,SDS available near chemicals,,Item not applicable today
+INS-8337,2025-09-15,Paint - Oven Area,Meena Pawar,Torque tool calibration sticker present,Pass,No issues observed
+INS-8338,2025-08-08,Welding - Line 3,Jyoti Rane,Lockout-tagout in place where work ongoing,Fail,Spill observed near machine
+INS-8339,2025-08-11,Underground Tank Area,Jyoti Rane,Housekeeping - Floors clean and dry,Pass,No issues observed
+INS-8340,2025-09-26,Body Shop - Booth A,Nilesh Chavan,Scaffold inspection up-to-date,Pass,Good
+INS-8341,2025-09-18,Welding - Line 3,Rutuja Kale,Emergency eyewash functional,Pass,Good
+INS-8342,2025-10-29,Office Premises,Sanjay Mahajan,Fire extinguisher pressure OK,Pass,Compliant
+INS-8343,2025-10-25,Rooftop Solar Area,Meena Pawar,Torque tool calibration sticker present,Pass,OK
+INS-8344,2025-08-27,Welding - Line 1,Anita Bhosale,Hot work permits displayed,Fail,Oil leak at hydraulic unit
+INS-8345,2025-08-13,Assembly - Line 5,Neeta Kulkarni,Paint booth filters clean,Fail,Spill observed near machine
+INS-8346,2025-08-22,Welding - Line 3,Manoj Desai,Visitor access control,Pass,Good
+INS-8347,2025-09-24,Paint - Prep Area,Anita Bhosale,PPE usage by operators,Pass,No issues observed
+INS-8348,2025-08-05,Welding - Line 1,Sanjay Mahajan,Emergency exit unobstructed,Pass,Compliant
+INS-8349,2025-09-05,HVAC Plant,Sunita Gaikwad,Machine guarding intact,Pass,Compliant
+INS-8350,2025-09-04,Welding - Line 3,Ajay Kadam,Material storage stacked safely,Pass,No issues observed
+INS-8351,2025-08-23,Logistics Yard,Mahesh Londhe,Chemical containers labeled,Fail,Loose cable across walkway
+INS-8352,2025-10-03,Body Shop - Booth A,Vikram Shinde,Lubrication points greased,,Item not applicable today
+INS-8353,2025-09-11,Body Shop - Booth A,Nilesh Chavan,Toolbox condition,Pass,OK
+INS-8354,2025-10-13,Logistics Yard,Sagar Dani,Paint booth filters clean,Pass,Good
+INS-8355,2025-08-26,Stamping - Bay 2,Mahesh Londhe,Housekeeping - Floors clean and dry,Pass,No issues observed
+INS-8356,2025-09-27,Stores - Chemical Storage,Meena Pawar,Emergency eyewash functional,Pass,Compliant
+INS-8357,2025-10-31,Assembly - Line 6,Asha Kulkarni,Forklift parked and keys removed,Pass,Compliant
+INS-8358,2025-10-30,Electrical Room,Rutuja Kale,Emergency eyewash functional,Fail,Spill observed near machine
+INS-8359,2025-09-20,Stamping - Bay 1,Anita Bhosale,Housekeeping - near ovens,,N/A - area closed

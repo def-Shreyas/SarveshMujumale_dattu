@@ -23,12 +23,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -64,7 +59,11 @@ interface SafeMarkdownProps {
 const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   // Validate content is a string
   if (typeof content !== "string") {
-    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
+    console.error(
+      "❌ SafeMarkdown received non-string content:",
+      typeof content,
+      content
+    );
     return (
       <div className="text-red-500 p-4">
         <p>Invalid content type: {typeof content}</p>
@@ -84,22 +83,28 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       // First, protect existing HTML entities
       const entityPlaceholders: { [key: string]: string } = {};
       let placeholderIndex = 0;
-      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
-        const placeholder = `__ENTITY_${placeholderIndex++}__`;
-        entityPlaceholders[placeholder] = match;
-        return placeholder;
-      });
-      
+      let protectedStr = str.replace(
+        /&(?:#\d+|#x[\da-fA-F]+|\w+);/g,
+        (match) => {
+          const placeholder = `__ENTITY_${placeholderIndex++}__`;
+          entityPlaceholders[placeholder] = match;
+          return placeholder;
+        }
+      );
+
       // Now escape only <, >, and & (but not the ones we protected)
-      protectedStr = protectedStr.replace(/&/g, '&amp;');
-      protectedStr = protectedStr.replace(/</g, '&lt;');
-      protectedStr = protectedStr.replace(/>/g, '&gt;');
-      
+      protectedStr = protectedStr.replace(/&/g, "&amp;");
+      protectedStr = protectedStr.replace(/</g, "&lt;");
+      protectedStr = protectedStr.replace(/>/g, "&gt;");
+
       // Restore protected entities
-      Object.keys(entityPlaceholders).forEach(placeholder => {
-        protectedStr = protectedStr.replace(new RegExp(placeholder, 'g'), entityPlaceholders[placeholder]);
+      Object.keys(entityPlaceholders).forEach((placeholder) => {
+        protectedStr = protectedStr.replace(
+          new RegExp(placeholder, "g"),
+          entityPlaceholders[placeholder]
+        );
       });
-      
+
       return protectedStr;
     };
 
@@ -107,24 +112,30 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     // (in case the backend already escaped them)
     const decodeHtmlEntities = (str: string): string => {
       // Handle both named entities and numeric entities
-      return str
-        // Named entities
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&apos;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        // Numeric entities (decimal and hex)
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-        .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-        // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
-        // and we'll handle them in escapeHtml
+      return (
+        str
+          // Named entities
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&nbsp;/g, " ")
+          // Numeric entities (decimal and hex)
+          .replace(/&#(\d+);/g, (_, dec) =>
+            String.fromCharCode(parseInt(dec, 10))
+          )
+          .replace(/&#x([\da-fA-F]+);/g, (_, hex) =>
+            String.fromCharCode(parseInt(hex, 16))
+          )
+      );
+      // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
+      // and we'll handle them in escapeHtml
     };
 
     // Preserve safe HTML tags like <br>, <br/>, <br /> before escaping
     // Use placeholders that won't be escaped
-    const BR_PLACEHOLDER = '___BR_TAG_PLACEHOLDER___';
+    const BR_PLACEHOLDER = "___BR_TAG_PLACEHOLDER___";
     const safeHtmlTags = [
-      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER }
+      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER },
     ];
 
     // Step 1: Decode any existing HTML entities first
@@ -140,160 +151,216 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       // Match markdown tables: | Header | Header | followed by |---|---| followed by | Cell | Cell |
       // More flexible regex to handle various table formats
       const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
-      
+
       return str.replace(tableRegex, (match) => {
-        const lines = match.trim().split(/\r?\n/).filter(line => line.trim() && line.includes('|'));
+        const lines = match
+          .trim()
+          .split(/\r?\n/)
+          .filter((line) => line.trim() && line.includes("|"));
         if (lines.length < 2) return match; // Need at least header and separator
-        
+
         const headerLine = lines[0];
         const dataLines = lines.slice(2); // Skip header and separator
-        
+
         // Parse header - split by | and filter empty
-        const headers = headerLine.split('|').map(h => h.trim()).filter(h => h && !h.match(/^[-:|\s]+$/));
-        
+        const headers = headerLine
+          .split("|")
+          .map((h) => h.trim())
+          .filter((h) => h && !h.match(/^[-:|\s]+$/));
+
         if (headers.length === 0) return match; // No valid headers
-        
+
         // Build table HTML
-        let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
-        
+        let tableHtml =
+          '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+
         // Table header
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
-        headers.forEach(header => {
+        headers.forEach((header) => {
           // Escape header text (but restore BR placeholders)
           let escapedHeader = escapeHtml(header);
-          escapedHeader = escapedHeader.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+          escapedHeader = escapedHeader.replace(
+            new RegExp(BR_PLACEHOLDER, "g"),
+            "<br />"
+          );
           tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
         });
-        tableHtml += '</tr></thead>';
-        
+        tableHtml += "</tr></thead>";
+
         // Table body
-        tableHtml += '<tbody>';
+        tableHtml += "<tbody>";
         dataLines.forEach((line, idx) => {
-          const cells = line.split('|').map(c => c.trim()).filter(c => c && !c.match(/^[-:|\s]+$/));
+          const cells = line
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c && !c.match(/^[-:|\s]+$/));
           // Only process if we have the right number of cells
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100">`;
-            cells.forEach(cell => {
+            tableHtml += `<tr class="${
+              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } hover:bg-gray-100">`;
+            cells.forEach((cell) => {
               // Escape cell content first (but preserve BR placeholders)
               let cellContent = escapeHtml(cell);
               // Restore BR placeholders as actual <br /> tags
-              cellContent = cellContent.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+              cellContent = cellContent.replace(
+                new RegExp(BR_PLACEHOLDER, "g"),
+                "<br />"
+              );
               // Then process inline markdown in cells (bold, italic, etc.)
-              cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
-              cellContent = cellContent.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+              cellContent = cellContent.replace(
+                /\*\*(.*?)\*\*/g,
+                '<strong class="font-bold">$1</strong>'
+              );
+              cellContent = cellContent.replace(
+                /\*(.*?)\*/g,
+                '<em class="italic">$1</em>'
+              );
               // Handle line breaks in cells (convert newlines to <br />)
-              cellContent = cellContent.replace(/\n/g, '<br />');
+              cellContent = cellContent.replace(/\n/g, "<br />");
               tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
             });
-            tableHtml += '</tr>';
+            tableHtml += "</tr>";
           }
         });
-        tableHtml += '</tbody></table></div>';
-        
+        tableHtml += "</tbody></table></div>";
+
         return tableHtml;
       });
     };
 
     // Process tables first
     let html = processTables(processedText);
-    
+
     // Now escape HTML (but preserve already-generated table HTML and BR placeholders)
     // We need to escape only the parts that aren't already HTML
     const escapeNonHtml = (str: string): string => {
       // Split by HTML tags, escape non-HTML parts
       const parts = str.split(/(<[^>]+>)/);
-      return parts.map((part) => {
-        if (part.startsWith('<') && part.endsWith('>')) {
-          return part; // Already HTML, don't escape
-        }
-        return escapeHtml(part);
-      }).join('');
+      return parts
+        .map((part) => {
+          if (part.startsWith("<") && part.endsWith(">")) {
+            return part; // Already HTML, don't escape
+          }
+          return escapeHtml(part);
+        })
+        .join("");
     };
-    
+
     // Escape non-HTML parts
     html = escapeNonHtml(html);
-    
+
     // Headers (process from largest to smallest)
-    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
-    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
-    
+    html = html.replace(
+      /^#### (.*$)/gim,
+      '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
+    );
+    html = html.replace(
+      /^### (.*$)/gim,
+      '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>'
+    );
+    html = html.replace(
+      /^## (.*$)/gim,
+      '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>'
+    );
+    html = html.replace(
+      /^# (.*$)/gim,
+      '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>'
+    );
+
     // Code blocks (before inline code) - but skip if inside table
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
       // Check if this is inside a table
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
         return match; // Inside table, don't process
       }
       return `<pre class="bg-gray-100 p-4 rounded my-4 overflow-x-auto border"><code>${code}</code></pre>`;
     });
-    
+
     // Inline code (but not inside tables)
     html = html.replace(/`([^`]+)`/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
         return match; // Inside table, don't process
       }
       return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
     });
-    
+
     // Bold (but preserve what's already in tables)
     html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
       // Check if already inside a table cell
-      if (match.includes('<td') || match.includes('</td>')) {
+      if (match.includes("<td") || match.includes("</td>")) {
         return match; // Already processed in table
       }
       return `<strong class="font-bold text-gray-800">${text}</strong>`;
     });
-    
+
     // Italic
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
-      if (match.includes('<td') || match.includes('</td>') || match.includes('<strong>')) {
+      if (
+        match.includes("<td") ||
+        match.includes("</td>") ||
+        match.includes("<strong>")
+      ) {
         return match; // Already processed
       }
       return `<em class="italic">${text}</em>`;
     });
-    
+
     // Links
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
-    
+    html = html.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
+    );
+
     // Lists
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
-    
+
     // Wrap list items in ul
-    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
-    
+    html = html.replace(
+      /(<li.*<\/li>)/g,
+      '<ul class="list-disc ml-6 my-4">$1</ul>'
+    );
+
     // Line breaks - convert double newlines to paragraph breaks
     // But skip if inside table
-    html = html.split(/\n\n+/).map(para => {
-      if (para.trim()) {
-        // Don't wrap if already a header, list, code block, or table
-        if (para.trim().startsWith('<h') || 
-            para.trim().startsWith('<ul') || 
-            para.trim().startsWith('<pre') ||
-            para.trim().startsWith('<div') && para.includes('<table')) {
-          return para;
+    html = html
+      .split(/\n\n+/)
+      .map((para) => {
+        if (para.trim()) {
+          // Don't wrap if already a header, list, code block, or table
+          if (
+            para.trim().startsWith("<h") ||
+            para.trim().startsWith("<ul") ||
+            para.trim().startsWith("<pre") ||
+            (para.trim().startsWith("<div") && para.includes("<table"))
+          ) {
+            return para;
+          }
+          return `<p class="mb-4 leading-relaxed">${para.replace(
+            /\n/g,
+            "<br />"
+          )}</p>`;
         }
-        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
-      }
-      return '';
-    }).join('');
-    
+        return "";
+      })
+      .join("");
+
     // Restore BR placeholders as actual <br /> tags (at the very end, after all processing)
-    html = html.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
-    
+    html = html.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
+
     return html;
   };
 
   // Render as plain HTML - NO React elements, just HTML string
   return (
-    <div 
+    <div
       className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
       dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
     />
@@ -329,11 +396,22 @@ export const Unsafety: React.FC = () => {
   // ✅ DEBUG: Monitor aiReport changes to catch any type issues
   useEffect(() => {
     console.log("🔍 aiReport state changed - Type:", typeof aiReport);
-    console.log("🔍 aiReport state changed - Is string?", typeof aiReport === "string");
+    console.log(
+      "🔍 aiReport state changed - Is string?",
+      typeof aiReport === "string"
+    );
     if (typeof aiReport !== "string") {
-      console.error("❌ CRITICAL: aiReport state is NOT a string! Type:", typeof aiReport, "Value:", aiReport);
+      console.error(
+        "❌ CRITICAL: aiReport state is NOT a string! Type:",
+        typeof aiReport,
+        "Value:",
+        aiReport
+      );
     } else {
-      console.log("✅ aiReport state is valid string, length:", aiReport.length);
+      console.log(
+        "✅ aiReport state is valid string, length:",
+        aiReport.length
+      );
     }
   }, [aiReport]);
 
@@ -386,32 +464,31 @@ export const Unsafety: React.FC = () => {
   };
 
   // helper: trigger backend to build report.md and charts/*.html
-const triggerGeneration = async () => {
-  const token = getAuthToken();
-  if (!token) throw new Error("Authentication required");
+  const triggerGeneration = async () => {
+    const token = getAuthToken();
+    if (!token) throw new Error("Authentication required");
 
-  const r1 = await fetch(`${BACKEND_URL}/generate-report`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
-  });
+    const r1 = await fetch(`${BACKEND_URL}/generate-report`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
 
-  // 🔥 ADD THIS LINE — prevents race condition
-  await new Promise((res) => setTimeout(res, 1200));
+    // 🔥 ADD THIS LINE — prevents race condition
+    await new Promise((res) => setTimeout(res, 1200));
 
-  const r2 = await fetch(`${BACKEND_URL}/generate-charts`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-    },
-  });
+    const r2 = await fetch(`${BACKEND_URL}/generate-charts`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
-};
-
+    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+  };
 
   // helper: pull AI report text
   const fetchReportText = async (): Promise<string> => {
@@ -437,14 +514,18 @@ const triggerGeneration = async () => {
     // Log the raw response for debugging
     console.log("🔍 Raw response type:", typeof raw);
     console.log("🔍 Raw response length:", raw?.length || 0);
-    console.log("🔍 Raw response preview (first 200 chars):", raw?.substring(0, 200) || "EMPTY");
+    console.log(
+      "🔍 Raw response preview (first 200 chars):",
+      raw?.substring(0, 200) || "EMPTY"
+    );
 
     // If backend returned JSON (error) — parse and throw
     const trimmed = raw.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
         const parsed = JSON.parse(trimmed);
-        const detail = parsed.detail || parsed.message || JSON.stringify(parsed);
+        const detail =
+          parsed.detail || parsed.message || JSON.stringify(parsed);
         console.error("Report endpoint returned JSON error:", parsed);
         throw new Error(detail);
       } catch (e) {
@@ -465,7 +546,11 @@ const triggerGeneration = async () => {
     // ✅ ENFORCE: Always return a clean string
     // Remove any potential React elements or objects
     if (typeof raw !== "string") {
-      console.error("❌ CRITICAL: fetchReportText received non-string:", typeof raw, raw);
+      console.error(
+        "❌ CRITICAL: fetchReportText received non-string:",
+        typeof raw,
+        raw
+      );
       return "";
     }
 
@@ -564,23 +649,39 @@ const triggerGeneration = async () => {
 
       // ✅ ENFORCE: aiReport must ALWAYS be a string
       console.log("🔍 reportText type before setAiReport:", typeof reportText);
-      console.log("🔍 reportText value preview:", reportText?.substring?.(0, 100) || reportText);
+      console.log(
+        "🔍 reportText value preview:",
+        reportText?.substring?.(0, 100) || reportText
+      );
 
       // Double-check and sanitize before setting state
       let safeReport: string;
       if (typeof reportText === "string") {
         safeReport = reportText.trim();
       } else {
-        console.error("❌ CRITICAL: reportText is not a string! Type:", typeof reportText, "Value:", reportText);
+        console.error(
+          "❌ CRITICAL: reportText is not a string! Type:",
+          typeof reportText,
+          "Value:",
+          reportText
+        );
         safeReport = "";
       }
 
-      console.log("✅ Setting aiReport with type:", typeof safeReport, "length:", safeReport.length);
+      console.log(
+        "✅ Setting aiReport with type:",
+        typeof safeReport,
+        "length:",
+        safeReport.length
+      );
       // Use the safe setter to ensure type safety
       if (typeof safeReport === "string") {
         setAiReport(safeReport);
       } else {
-        console.error("❌ Final check failed - safeReport is not string:", typeof safeReport);
+        console.error(
+          "❌ Final check failed - safeReport is not string:",
+          typeof safeReport
+        );
         setAiReport("");
       }
 
@@ -618,8 +719,7 @@ const triggerGeneration = async () => {
 
       toast.error("Generation Failed", {
         description:
-          error?.message ||
-          "Could not process the file. Please try again.",
+          error?.message || "Could not process the file. Please try again.",
       });
     }
   };
@@ -743,8 +843,8 @@ const triggerGeneration = async () => {
                 Upload Unsafe Acts Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Upload the `sample.xlsx` file to generate your
-                AI-powered dashboard.
+                Upload the `sample.xlsx` file to generate your AI-powered
+                dashboard.
               </p>
             </CardHeader>
 
@@ -788,7 +888,10 @@ const triggerGeneration = async () => {
                 />
               </label>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.99 }}
+              >
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
@@ -874,7 +977,10 @@ const triggerGeneration = async () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={downloadPDF} className="bg-[#0B3D91] hover:bg-[#082f70]">
+          <Button
+            onClick={downloadPDF}
+            className="bg-[#0B3D91] hover:bg-[#082f70]"
+          >
             <FileText className="w-4 h-4 mr-2" />
             Download Report (PDF)
           </Button>
@@ -892,24 +998,37 @@ const triggerGeneration = async () => {
               value="report"
               className="flex items-center gap-2 text-base data-[state=active]:bg-white"
             >
-              <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+              <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
+              Report
             </TabsTrigger>
             <TabsTrigger
               value="charts"
               className="flex items-center gap-2 text-base data-[state=active]:bg-white"
             >
-              <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+              <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive
+              Charts
             </TabsTrigger>
           </TabsList>
 
           {/* Report tab */}
           <TabsContent value="report" className="mt-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
               <Card className="shadow-lg">
                 <CardHeader>
-                  <CardTitle>Gemini AI Analysis</CardTitle>
-                  <CardDescription>
-                    This is the full report generated by the AI based on your uploaded data.
+                  <CardTitle className="text-2xl font-bold text-gray-800">
+                    <span className="text-4xl text-[#0B3D91] font-extrabold underline">
+                      DATTU
+                    </span>{" "}
+                    AI Analysis
+                  </CardTitle>
+
+                  <CardDescription className="text-lg text-gray-600">
+                    This is the full report generated by the AI based on your
+                    uploaded data.
                   </CardDescription>
                 </CardHeader>
 
@@ -923,20 +1042,33 @@ const triggerGeneration = async () => {
                   {(() => {
                     // ✅ SAFE RENDERER: Validate before rendering
                     // Enforce string type one more time before rendering
-                    const safeContent: string = typeof aiReport === "string" ? aiReport : String(aiReport || "");
+                    const safeContent: string =
+                      typeof aiReport === "string"
+                        ? aiReport
+                        : String(aiReport || "");
 
                     // Log only if there's an issue (to reduce console noise)
                     if (typeof aiReport !== "string") {
-                      console.error("❌ RENDER CHECK - aiReport is NOT a string! Type:", typeof aiReport, "Value:", aiReport);
+                      console.error(
+                        "❌ RENDER CHECK - aiReport is NOT a string! Type:",
+                        typeof aiReport,
+                        "Value:",
+                        aiReport
+                      );
                     }
 
-                    if (typeof safeContent === "string" && safeContent.length > 0) {
+                    if (
+                      typeof safeContent === "string" &&
+                      safeContent.length > 0
+                    ) {
                       // Use the SafeMarkdown component which has error boundaries and fallbacks
                       return <SafeMarkdown content={safeContent} />;
                     } else {
                       return (
                         <p className="text-red-500">
-                          {aiReport ? "Invalid report format received from backend." : "No report loaded yet."}
+                          {aiReport
+                            ? "Invalid report format received from backend."
+                            : "No report loaded yet."}
                         </p>
                       );
                     }
@@ -948,17 +1080,25 @@ const triggerGeneration = async () => {
 
           {/* Charts tab */}
           <TabsContent value="charts" className="mt-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
               <Card className="shadow-lg">
                 <CardHeader>
                   <CardTitle>Interactive Charts</CardTitle>
                   <CardDescription>
-                    Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                    Select a chart to view the interactive (Plotly) HTML report
+                    generated by the backend.
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
+                  <Select
+                    onValueChange={handleChartSelect}
+                    value={selectedChartName || undefined}
+                  >
                     <SelectTrigger className="w-full md:w-1/2">
                       <SelectValue placeholder="Select a chart to display" />
                     </SelectTrigger>
@@ -966,7 +1106,10 @@ const triggerGeneration = async () => {
                     <SelectContent>
                       {chartList.map((chart) => (
                         <SelectItem key={chart.name} value={chart.name}>
-                          {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "")}
+                          {chart.name
+                            .replace(".html", "")
+                            .replace(/_/g, " ")
+                            .replace(/^\d+\s*/, "")}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -985,7 +1128,11 @@ const triggerGeneration = async () => {
                     ) : (
                       <div className="h-full w-full flex items-center justify-center text-gray-500">
                         <Loader2 className="h-6 w-6 animate-spin" />
-                        <p className="ml-2">{selectedChartName ? "Loading Chart..." : "Select a chart from the dropdown"}</p>
+                        <p className="ml-2">
+                          {selectedChartName
+                            ? "Loading Chart..."
+                            : "Select a chart from the dropdown"}
+                        </p>
                       </div>
                     )}
                   </div>
