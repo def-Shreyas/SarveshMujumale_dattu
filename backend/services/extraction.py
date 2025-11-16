@@ -74,4 +74,4 @@ def extract_tables(excel_path):
             xls.close()
 
 if __name__ == "__main__":
-    extract_tables(r"C:\Users\Lenovo\Desktop\dattu\New\medical_firstaid_database.xlsx")
+    extract_tables(r"C:\Users\Lenovo\Desktop\dattu\New\social_governance_database.xlsx")

@@ -21,6 +21,7 @@ import {
   Eye,
   BarChart2,
   ClipboardCheck,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -43,9 +44,10 @@ const BACKEND_URL = "http://localhost:8000";
 
 // --- AI Motivational Quotes ---
 const aiQuotes = [
-  "AI is analyzing your inspections and audit data...",
-  "Machine learning helps identify compliance patterns...",
-  "Every audit tells a story, AI helps us understand it...",
+  "Analyzing compliance patterns across your audit data...",
+  "Identifying recurring non-conformances (NCRs) by area...",
+  "Cross-referencing checklists to find systemic risks...",
+  "Generating your compliance scorecard and actionable insights...",
 ];
 
 // --- Types ---
@@ -390,6 +392,7 @@ export const Audits: React.FC = () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
+    // Generate report
     const r1 = await fetch(`${BACKEND_URL}/generate-inspections-report`, {
       method: "POST",
       headers: {
@@ -397,11 +400,31 @@ export const Audits: React.FC = () => {
       },
     });
 
-    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+    if (!r1.ok) {
+      // Try to get error details from response
+      let errorMessage = `Report generation failed (${r1.status})`;
+      try {
+        const errorBody = await r1.text();
+        if (errorBody) {
+          try {
+            const errorJson = JSON.parse(errorBody);
+            errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorMessage;
+          } catch {
+            // If not JSON, use the text as is
+            errorMessage = errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to read error response:", e);
+      }
+      console.error("Report generation error:", errorMessage);
+      throw new Error(errorMessage);
+    }
 
     // 🔥 ADD THIS LINE — prevents race condition
     await new Promise((res) => setTimeout(res, 1200));
 
+    // Generate charts
     const r2 = await fetch(`${BACKEND_URL}/generate-inspections-charts`, {
       method: "POST",
       headers: {
@@ -409,7 +432,26 @@ export const Audits: React.FC = () => {
       },
     });
 
-    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+    if (!r2.ok) {
+      // Try to get error details from response
+      let errorMessage = `Chart generation failed (${r2.status})`;
+      try {
+        const errorBody = await r2.text();
+        if (errorBody) {
+          try {
+            const errorJson = JSON.parse(errorBody);
+            errorMessage = errorJson.detail || errorJson.message || errorJson.error || errorMessage;
+          } catch {
+            // If not JSON, use the text as is
+            errorMessage = errorBody.length > 200 ? errorBody.substring(0, 200) + "..." : errorBody;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to read error response:", e);
+      }
+      console.error("Chart generation error:", errorMessage);
+      throw new Error(errorMessage);
+    }
   };
 
   // helper: pull AI report text
@@ -715,14 +757,74 @@ export const Audits: React.FC = () => {
   // 1. Upload screen
   if (!showDashboard && !isGenerating) {
     return (
-      <div className="w-full flex items-center justify-center py-10">
-        <motion.div
-          className="w-full max-w-2xl"
+      <div className="w-full py-12">
+        {/* TOP PAGE HEADING */}
+        <div className="text-center mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-extrabold text-[#0B3D91]"
+          >
+            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
+              DATTU AI Audit Analyzer
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
+          >
+            Upload your Excel audit dataset and let DATTU generate a smart,
+            interactive compliance analysis and AI-powered recommendations.
+          </motion.p>
+        </div>
+
+        {/* HOW IT WORKS */}
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+          {[
+            {
+              title: "1. Upload Audit Excel",
+              icon: Upload,
+              desc: "Upload raw audit & inspection Excel files.",
+            },
+            {
+              title: "2. AI Analyzes NCRs",
+              icon: Sparkles,
+              desc: "DATTU processes non-conformances & compliance data.",
+            },
+            {
+              title: "3. View Dashboard",
+              icon: BarChart2,
+              desc: "Get interactive scorecards & recurring risk reports.",
+            },
+          ].map((step, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              className="bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-lg transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <step.icon className="w-8 h-8 text-[#0B3D91]" />
+                <p className="font-semibold text-gray-800">{step.title}</p>
+              </div>
+              <p className="text-sm text-gray-600">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+{/* UPLOAD CARD */}
+<motion.div
+          className="w-full flex items-center justify-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ delay: 0.5 }}
         >
-          <Card className="shadow-xl border-t-4 border-[#0B3D91]">
+          <Card className="shadow-xl border-t-4 border-[#0B3D91] w-full max-w-2xl overflow-hidden">
             <CardHeader className="text-center pb-6">
               <motion.div
                 className="flex justify-center mb-4"
@@ -734,29 +836,42 @@ export const Audits: React.FC = () => {
                   stiffness: 200,
                 }}
               >
-                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
-                  <ClipboardCheck className="w-12 h-12 text-[#0B3D91]" />
+                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/15 to-[#00A79D]/15 border border-[#0B3D91]/30">
+                  {/* --- "MOVING" ICON (for Audits) --- */}
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }} // Bobbing animation
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <ClipboardCheck className="w-12 h-12 text-[#0B3D91]" />
+                  </motion.div>
                 </div>
               </motion.div>
-              <CardTitle className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                {/* --- Text for Audits --- */}
                 Upload Inspections & Audits Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Upload the inspections_audit_database.xlsx file to generate your
-                AI-powered dashboard.
+                Choose an Excel file (.xlsx / .xls) to begin the analysis.
               </p>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <label
+            <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
+              {/* --- DRAG & DROP HOVER EFFECT --- */}
+              <motion.label
                 htmlFor="file-upload"
+                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
                 className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {selectedFile ? (
                     <>
                       <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         {selectedFile.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -766,7 +881,7 @@ export const Audits: React.FC = () => {
                   ) : (
                     <>
                       <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
@@ -776,7 +891,6 @@ export const Audits: React.FC = () => {
                   )}
                 </div>
 
-                {/* Use native input so ref works */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -785,13 +899,18 @@ export const Audits: React.FC = () => {
                   className="hidden"
                   id="file-upload"
                 />
-              </label>
+              </motion.label>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }}>
+              {/* --- ENHANCED BUTTON HOVER --- */}
+              <motion.div
+                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
+              >
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
+                             shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   Generate AI Dashboard
@@ -799,6 +918,94 @@ export const Audits: React.FC = () => {
               </motion.div>
             </CardContent>
           </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+
+  // 2. LOADING SCREEN (ENHANCED)
+  // 2. LOADING SCREEN (ENHANCED)
+  if (isGenerating) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* --- ENHANCED: "Breathing" AI Icon --- */}
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              {/* --- NEW: AI-themed Icon --- */}
+              <Bot className="w-16 h-16 text-[#0B3D91]" />
+            </div>
+          </motion.div>
+
+          {/* Main Title (Unchanged) */}
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Analyzing Your Data...
+          </h2>
+
+          {/* Rotating AI Quotes (Using new quotes) */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* --- NEW: Dynamic Loading Step Text --- */}
+          <div className="h-6 mt-4"> {/* Height container */}
+            <AnimatePresence mode="wait">
+              <motion.p
+                // Keyed to the step
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-sm text-gray-500"
+              >
+                
+              </motion.p>
+            </AnimatePresence>
+          </div>
+
+          {/* --- NEW: Indeterminate Progress Bar --- */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+
         </motion.div>
       </div>
     );

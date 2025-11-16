@@ -2131,3 +2131,3041 @@ def create_all_medical_charts():
     except Exception as e:
         print(f"Error generating medical charts: {str(e)}")
         raise
+
+
+# ============================================================================
+# TRAINING DATABASE CHARTING FUNCTIONS
+# ============================================================================
+
+def load_training_data():
+    """Load training records data from CSV files."""
+    training_df = pd.read_csv('Generated/extracted_tables/Training_Records_150plus/table_1.csv')
+    
+    # Convert date columns
+    training_df['course_date'] = pd.to_datetime(training_df['course_date'], errors='coerce')
+    training_df['cert_expiry'] = pd.to_datetime(training_df['cert_expiry'], errors='coerce')
+    
+    # Calculate days until expiry
+    today = pd.Timestamp.now()
+    training_df['days_until_expiry'] = (training_df['cert_expiry'] - today).dt.days
+    
+    # Calculate effectiveness (Post - Pre score)
+    training_df['effectiveness'] = training_df['post_score'] - training_df['pre_score']
+    
+    return training_df
+
+
+def create_training_completion_summary():
+    """Create training completion summary dashboard."""
+    training_df = load_training_data()
+    
+    # Calculate completion metrics
+    total_trainings = len(training_df)
+    unique_employees = training_df['employee_id'].nunique()
+    unique_courses = training_df['course'].nunique()
+    
+    # Training by department
+    dept_trainings = training_df['department'].value_counts()
+    
+    # Training by course
+    course_trainings = training_df['course'].value_counts().head(10)
+    
+    # Internal vs External
+    delivery_type_counts = training_df['delivery_type'].value_counts()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Training Completion Summary', 'Training by Department',
+                       'Top 10 Courses', 'Internal vs External Training'),
+        specs=[[{"type": "indicator"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "pie"}]]
+    )
+    
+    # Plot 1: Completion summary gauge
+    # Coverage % = Trained / Total (assuming total employees from unique count)
+    coverage_percentage = 100  # Placeholder - would need total employee count
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=coverage_percentage,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Training Coverage (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Training by department
+    if not dept_trainings.empty:
+        fig.add_trace(
+            go.Bar(x=dept_trainings.index, y=dept_trainings.values,
+                   marker_color='lightblue', name='Trainings by Department'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Top 10 courses
+    if not course_trainings.empty:
+        fig.add_trace(
+            go.Bar(x=course_trainings.index, y=course_trainings.values,
+                   marker_color='lightgreen', name='Course Count'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Internal vs External
+    fig.add_trace(
+        go.Pie(labels=delivery_type_counts.index, values=delivery_type_counts.values,
+               name="Delivery Type", textinfo='label+percent'),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Training Count", row=1, col=2)
+    fig.update_xaxes(title_text="Course", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Training Count", row=2, col=1)
+    
+    fig.update_layout(height=900, title_text="Training Completion Summary Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/training_1_completion_summary.html')
+    print(f"  ✓ Saved: {charts_dir}/training_1_completion_summary.html")
+
+
+def create_skill_gap_analysis():
+    """Create skill gap analysis dashboard."""
+    training_df = load_training_data()
+    
+    # Calculate skill gaps (low post scores or high pre-post difference)
+    training_df['skill_gap'] = training_df['post_score'] < 70  # Assuming 70 is passing
+    training_df['improvement'] = training_df['post_score'] - training_df['pre_score']
+    
+    # Skill gap by department
+    dept_gaps = training_df.groupby('department').agg({
+        'skill_gap': 'sum',
+        'employee_id': 'count'
+    }).reset_index()
+    dept_gaps.columns = ['Department', 'Gap_Count', 'Total_Trainings']
+    dept_gaps['Gap_Percentage'] = (dept_gaps['Gap_Count'] / dept_gaps['Total_Trainings'] * 100)
+    
+    # Skill gap by course
+    course_gaps = training_df.groupby('course').agg({
+        'skill_gap': 'sum',
+        'employee_id': 'count'
+    }).reset_index()
+    course_gaps.columns = ['Course', 'Gap_Count', 'Total_Trainings']
+    course_gaps['Gap_Percentage'] = (course_gaps['Gap_Count'] / course_gaps['Total_Trainings'] * 100)
+    top_gap_courses = course_gaps.nlargest(10, 'Gap_Percentage')
+    
+    # Average scores by department
+    dept_scores = training_df.groupby('department')['post_score'].mean().reset_index()
+    dept_scores.columns = ['Department', 'Avg_Score']
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Skill Gap by Department', 'Top Courses with Skill Gaps',
+                       'Average Post-Score by Department', 'Score Distribution'),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "box"}]]
+    )
+    
+    # Plot 1: Skill gap by department
+    if not dept_gaps.empty:
+        fig.add_trace(
+            go.Bar(x=dept_gaps['Department'], y=dept_gaps['Gap_Percentage'],
+                   marker_color='coral', name='Gap Percentage'),
+            row=1, col=1
+        )
+    
+    # Plot 2: Top courses with gaps
+    if not top_gap_courses.empty:
+        fig.add_trace(
+            go.Bar(x=top_gap_courses['Course'], y=top_gap_courses['Gap_Percentage'],
+                   marker_color='lightcoral', name='Gap Percentage'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Average scores by department
+    if not dept_scores.empty:
+        fig.add_trace(
+            go.Bar(x=dept_scores['Department'], y=dept_scores['Avg_Score'],
+                   marker_color='lightgreen', name='Avg Post Score'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Score distribution
+    fig.add_trace(
+        go.Box(y=training_df['post_score'], name='Post Score Distribution',
+               boxmean='sd'),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Gap Percentage (%)", row=1, col=1)
+    fig.update_xaxes(title_text="Course", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Gap Percentage (%)", row=1, col=2)
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Average Score", row=2, col=1)
+    fig.update_xaxes(title_text="", row=2, col=2)
+    fig.update_yaxes(title_text="Post Score", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Skill Gap Analysis", showlegend=False)
+    fig.write_html(f'{charts_dir}/training_2_skill_gap_analysis.html')
+    print(f"  ✓ Saved: {charts_dir}/training_2_skill_gap_analysis.html")
+
+
+def create_expiry_reminders():
+    """Create expiry reminders and alerts dashboard."""
+    training_df = load_training_data()
+    
+    # Calculate expiry status
+    today = pd.Timestamp.now()
+    training_df['is_expired'] = training_df['cert_expiry'] < today
+    training_df['expires_soon'] = (training_df['cert_expiry'] >= today) & (training_df['cert_expiry'] <= today + pd.Timedelta(days=90))
+    training_df['is_valid'] = training_df['cert_expiry'] > today + pd.Timedelta(days=90)
+    
+    # Expiry status counts
+    expired_count = training_df['is_expired'].sum()
+    expires_soon_count = training_df['expires_soon'].sum()
+    valid_count = training_df['is_valid'].sum()
+    
+    # Expiry Compliance % = Valid / Total × 100
+    total_certs = len(training_df)
+    expiry_compliance = (valid_count / total_certs * 100) if total_certs > 0 else 0
+    
+    # Expiring soon by department
+    expiring_soon = training_df[training_df['expires_soon']].groupby('department').size().reset_index()
+    expiring_soon.columns = ['Department', 'Count']
+    
+    # Expiring soon by course
+    expiring_courses = training_df[training_df['expires_soon']].groupby('course').size().reset_index()
+    expiring_courses.columns = ['Course', 'Count']
+    top_expiring = expiring_courses.nlargest(10, 'Count')
+    
+    # Monthly expiry timeline
+    training_df['expiry_month'] = training_df['cert_expiry'].dt.to_period('M').astype(str)
+    monthly_expiry = training_df.groupby('expiry_month').size().reset_index()
+    monthly_expiry.columns = ['Month', 'Expiring_Count']
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Expiry Status Summary', 'Expiry Compliance %',
+                       'Expiring Soon by Department', 'Monthly Expiry Timeline'),
+        specs=[[{"type": "bar"}, {"type": "indicator"}],
+               [{"type": "bar"}, {"type": "scatter"}]]
+    )
+    
+    # Plot 1: Expiry status bar chart
+    fig.add_trace(
+        go.Bar(x=['Expired', 'Expires Soon (90 days)', 'Valid'],
+               y=[expired_count, expires_soon_count, valid_count],
+               marker_color=['#ff6b6b', '#ffd93d', '#51cf66'],
+               name='Expiry Status'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Expiry compliance gauge
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=expiry_compliance,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Expiry Compliance (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Expiring soon by department
+    if not expiring_soon.empty:
+        fig.add_trace(
+            go.Bar(x=expiring_soon['Department'], y=expiring_soon['Count'],
+                   marker_color='orange', name='Expiring Soon'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Monthly expiry timeline
+    if not monthly_expiry.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_expiry['Month'], y=monthly_expiry['Expiring_Count'],
+                      mode='lines+markers', name='Monthly Expiry',
+                      marker=dict(symbol='circle', size=8)),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Status", row=1, col=1)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Expiring Count", row=2, col=1)
+    fig.update_xaxes(title_text="Month", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Expiring Count", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Expiry Reminders & Alerts Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/training_3_expiry_reminders.html')
+    print(f"  ✓ Saved: {charts_dir}/training_3_expiry_reminders.html")
+
+
+def create_training_kpi_dashboard():
+    """Create training KPI dashboard."""
+    training_df = load_training_data()
+    
+    # Calculate KPIs
+    total_trainings = len(training_df)
+    unique_employees = training_df['employee_id'].nunique()
+    unique_courses = training_df['course'].nunique()
+    
+    # Coverage % = Trained / Total × 100 (placeholder - would need total employee count)
+    coverage_percentage = 100  # Placeholder
+    
+    # Effectiveness = Avg(Post – Pre Test)
+    effectiveness = training_df['effectiveness'].mean() if 'effectiveness' in training_df.columns else 0
+    
+    # Expiry Compliance % = Valid / Total × 100
+    today = pd.Timestamp.now()
+    valid_certs = len(training_df[training_df['cert_expiry'] > today + pd.Timedelta(days=90)])
+    expiry_compliance = (valid_certs / total_trainings * 100) if total_trainings > 0 else 0
+    
+    # Average scores
+    avg_pre_score = training_df['pre_score'].mean()
+    avg_post_score = training_df['post_score'].mean()
+    avg_final_score = training_df['score'].mean()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Training Coverage %', 'Training Effectiveness',
+                       'Expiry Compliance %', 'KPIs Summary'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Coverage percentage
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=coverage_percentage,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Coverage (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Effectiveness
+    fig.add_trace(
+        go.Indicator(
+            mode="number+gauge",
+            value=effectiveness,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Effectiveness (Post - Pre)"},
+            gauge={
+                'axis': {'range': [-50, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [-50, 0], 'color': "lightgray"},
+                    {'range': [0, 20], 'color': "yellow"}
+                ]
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Expiry compliance
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=expiry_compliance,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Expiry Compliance (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkorange"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: KPIs summary table
+    kpi_data = {
+        'Metric': ['Total Trainings', 'Unique Employees', 'Unique Courses', 'Coverage %', 'Effectiveness', 'Expiry Compliance %', 'Avg Pre-Score', 'Avg Post-Score', 'Avg Final Score'],
+        'Value': [
+            total_trainings,
+            unique_employees,
+            unique_courses,
+            f"{coverage_percentage:.1f}%",
+            f"{effectiveness:.2f}",
+            f"{expiry_compliance:.2f}%",
+            f"{avg_pre_score:.2f}",
+            f"{avg_post_score:.2f}",
+            f"{avg_final_score:.2f}"
+        ]
+    }
+    kpi_df = pd.DataFrame(kpi_data)
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_df.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_df['Metric'], kpi_df['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(height=900, title_text="Training KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/training_4_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/training_4_kpi_dashboard.html")
+
+
+def create_training_calendar():
+    """Create training calendar visualization."""
+    training_df = load_training_data()
+    
+    # Prepare calendar data
+    training_df['month'] = training_df['course_date'].dt.to_period('M').astype(str)
+    training_df['week'] = training_df['course_date'].dt.to_period('W').astype(str)
+    training_df['day_of_week'] = training_df['course_date'].dt.day_name()
+    
+    # Monthly training schedule
+    monthly_schedule = training_df.groupby('month').size().reset_index()
+    monthly_schedule.columns = ['Month', 'Training_Count']
+    
+    # Weekly training schedule
+    weekly_schedule = training_df.groupby('week').size().reset_index()
+    weekly_schedule.columns = ['Week', 'Training_Count']
+    
+    # Training by day of week
+    day_schedule = training_df['day_of_week'].value_counts().reindex(
+        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    )
+    
+    # Training by course type over time
+    course_monthly = training_df.groupby(['month', 'course']).size().reset_index()
+    course_monthly.columns = ['Month', 'Course', 'Count']
+    top_courses = training_df['course'].value_counts().head(5).index
+    top_course_monthly = course_monthly[course_monthly['Course'].isin(top_courses)]
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Monthly Training Schedule', 'Weekly Training Schedule',
+                       'Training by Day of Week', 'Top 5 Courses Over Time'),
+        specs=[[{"type": "bar"}, {"type": "scatter"}],
+               [{"type": "bar"}, {"type": "scatter"}]]
+    )
+    
+    # Plot 1: Monthly schedule
+    fig.add_trace(
+        go.Bar(x=monthly_schedule['Month'], y=monthly_schedule['Training_Count'],
+               marker_color='lightblue', name='Monthly Trainings'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Weekly schedule
+    if not weekly_schedule.empty:
+        fig.add_trace(
+            go.Scatter(x=weekly_schedule['Week'], y=weekly_schedule['Training_Count'],
+                      mode='lines+markers', name='Weekly Trainings',
+                      marker=dict(symbol='circle', size=8)),
+            row=1, col=2
+        )
+    
+    # Plot 3: Day of week
+    fig.add_trace(
+        go.Bar(x=day_schedule.index, y=day_schedule.values,
+               marker_color='skyblue', name='Trainings by Day'),
+        row=2, col=1
+    )
+    
+    # Plot 4: Top courses over time
+    for course in top_courses:
+        course_data = top_course_monthly[top_course_monthly['Course'] == course]
+        if not course_data.empty:
+            fig.add_trace(
+                go.Scatter(x=course_data['Month'], y=course_data['Count'],
+                          mode='lines+markers', name=course,
+                          marker=dict(size=6)),
+                row=2, col=2
+            )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Training Count", row=1, col=1)
+    fig.update_xaxes(title_text="Week", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Training Count", row=1, col=2)
+    fig.update_xaxes(title_text="Day of Week", row=2, col=1)
+    fig.update_yaxes(title_text="Training Count", row=2, col=1)
+    fig.update_xaxes(title_text="Month", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Training Count", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Training Calendar", showlegend=True)
+    fig.write_html(f'{charts_dir}/training_5_training_calendar.html')
+    print(f"  ✓ Saved: {charts_dir}/training_5_training_calendar.html")
+
+
+def create_skill_matrix_chart():
+    """Create skill matrix chart by department and course."""
+    training_df = load_training_data()
+    
+    # Create skill matrix: Department vs Course with average scores
+    skill_matrix = training_df.groupby(['department', 'course'])['post_score'].mean().reset_index()
+    skill_matrix_pivot = skill_matrix.pivot(index='department', columns='course', values='post_score')
+    
+    # Get top courses and departments for visualization
+    top_courses = training_df['course'].value_counts().head(10).index
+    top_depts = training_df['department'].value_counts().head(10).index
+    
+    skill_matrix_filtered = skill_matrix_pivot.loc[top_depts, top_courses]
+    
+    # Training count matrix
+    count_matrix = training_df.groupby(['department', 'course']).size().reset_index()
+    count_matrix.columns = ['department', 'course', 'count']
+    count_matrix_pivot = count_matrix.pivot(index='department', columns='course', values='count')
+    count_matrix_filtered = count_matrix_pivot.loc[top_depts, top_courses]
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=('Skill Matrix - Average Post Scores', 'Training Count Matrix'),
+        specs=[[{"type": "heatmap"}],
+               [{"type": "heatmap"}]],
+        vertical_spacing=0.15
+    )
+    
+    # Plot 1: Skill matrix heatmap
+    if not skill_matrix_filtered.empty:
+        fig.add_trace(
+            go.Heatmap(z=skill_matrix_filtered.values,
+                      x=skill_matrix_filtered.columns,
+                      y=skill_matrix_filtered.index,
+                      colorscale='RdYlGn',
+                      text=skill_matrix_filtered.values.round(1),
+                      texttemplate='%{text}',
+                      textfont={"size": 8},
+                      colorbar=dict(title="Avg Score", x=1.02)),
+            row=1, col=1
+        )
+    
+    # Plot 2: Training count matrix
+    if not count_matrix_filtered.empty:
+        fig.add_trace(
+            go.Heatmap(z=count_matrix_filtered.values,
+                      x=count_matrix_filtered.columns,
+                      y=count_matrix_filtered.index,
+                      colorscale='Blues',
+                      text=count_matrix_filtered.values,
+                      texttemplate='%{text}',
+                      textfont={"size": 8},
+                      colorbar=dict(title="Count", x=1.02)),
+            row=2, col=1
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Course", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Department", row=1, col=1)
+    fig.update_xaxes(title_text="Course", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Department", row=2, col=1)
+    
+    fig.update_layout(height=1000, title_text="Skill Matrix Chart", showlegend=False)
+    fig.write_html(f'{charts_dir}/training_6_skill_matrix.html')
+    print(f"  ✓ Saved: {charts_dir}/training_6_skill_matrix.html")
+
+
+def create_all_training_charts():
+    """Generate all training database charts."""
+    print("\n" + "="*50)
+    print("GENERATING TRAINING DATABASE CHARTS")
+    print("="*50)
+    
+    try:
+        create_training_completion_summary()
+        create_skill_gap_analysis()
+        create_expiry_reminders()
+        create_training_kpi_dashboard()
+        create_training_calendar()
+        create_skill_matrix_chart()
+        
+        print("\nAll Training Database visualizations completed! 🎉")
+        
+        # Print summary statistics
+        training_df = load_training_data()
+        print("\n" + "="*50)
+        print("TRAINING DATABASE SUMMARY STATISTICS")
+        print("="*50)
+        
+        total_trainings = len(training_df)
+        unique_employees = training_df['employee_id'].nunique()
+        unique_courses = training_df['course'].nunique()
+        effectiveness = training_df['effectiveness'].mean() if 'effectiveness' in training_df.columns else 0
+        
+        today = pd.Timestamp.now()
+        expired_count = len(training_df[training_df['cert_expiry'] < today])
+        expires_soon_count = len(training_df[(training_df['cert_expiry'] >= today) & 
+                                            (training_df['cert_expiry'] <= today + pd.Timedelta(days=90))])
+        
+        print(f"Total Trainings: {total_trainings}")
+        print(f"Unique Employees Trained: {unique_employees}")
+        print(f"Unique Courses: {unique_courses}")
+        print(f"Average Effectiveness (Post - Pre): {effectiveness:.2f}")
+        print(f"Expired Certifications: {expired_count}")
+        print(f"Expiring Soon (90 days): {expires_soon_count}")
+        
+        print(f"\nTop 5 Departments by Training Count:")
+        print(training_df['department'].value_counts().head(5))
+        
+        print(f"\nTop 5 Courses:")
+        print(training_df['course'].value_counts().head(5))
+        
+    except Exception as e:
+        print(f"Error generating training charts: {str(e)}")
+        raise
+
+
+# ============================================================================
+# PPE (ASSETS & PPE) CHARTING FUNCTIONS
+# ============================================================================
+
+def load_ppe_data():
+    """Load PPE data from CSV files."""
+    # Try different possible paths for PPE data
+    possible_paths = [
+        'Generated/extracted_tables/Sheet1/table_1.csv',
+        'Generated/extracted_tables/PPE/table_1.csv',
+        'Generated/extracted_tables/Assets_PPE/table_1.csv'
+    ]
+    
+    ppe_df = None
+    for path in possible_paths:
+        try:
+            ppe_df = pd.read_csv(path)
+            break
+        except FileNotFoundError:
+            continue
+    
+    if ppe_df is None:
+        raise FileNotFoundError("PPE data file not found in expected locations")
+    
+    # Convert date columns
+    ppe_df['purchase_date'] = pd.to_datetime(ppe_df['purchase_date'], errors='coerce')
+    ppe_df['issue_date'] = pd.to_datetime(ppe_df['issue_date'], errors='coerce')
+    ppe_df['next_delivery_due'] = pd.to_datetime(ppe_df['next_delivery_due'], errors='coerce')
+    
+    # Calculate utilization % = Issued / Purchased × 100
+    ppe_df['utilization_pct'] = (ppe_df['quantity_issued'] / ppe_df['quantity_purchased'] * 100).fillna(0)
+    
+    return ppe_df
+
+
+def create_ppe_stock_summary():
+    """Create stock summary by PPE type dashboard."""
+    ppe_df = load_ppe_data()
+    
+    # Stock summary by PPE type
+    stock_by_type = ppe_df.groupby('ppe_item').agg({
+        'quantity_purchased': 'sum',
+        'quantity_issued': 'sum',
+        'balance_stock': 'sum'
+    }).reset_index()
+    stock_by_type.columns = ['PPE_Item', 'Total_Purchased', 'Total_Issued', 'Total_Balance']
+    
+    # Reorder alerts
+    reorder_items = ppe_df[ppe_df['reorder_flag'] == 'Reorder Needed']
+    reorder_by_type = reorder_items.groupby('ppe_item').agg({
+        'balance_stock': 'sum',
+        'ppe_id': 'count'
+    }).reset_index()
+    reorder_by_type.columns = ['PPE_Item', 'Balance_Stock', 'Reorder_Count']
+    
+    # Usage level distribution
+    usage_level_counts = ppe_df['usage_level'].value_counts()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Stock Summary by PPE Type', 'Reorder Alerts by Type',
+                       'Usage Level Distribution', 'Balance Stock by Type'),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "pie"}, {"type": "bar"}]]
+    )
+    
+    # Plot 1: Stock summary by type
+    fig.add_trace(
+        go.Bar(x=stock_by_type['PPE_Item'], y=stock_by_type['Total_Purchased'],
+               name='Purchased', marker_color='lightblue'),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=stock_by_type['PPE_Item'], y=stock_by_type['Total_Issued'],
+               name='Issued', marker_color='lightgreen'),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=stock_by_type['PPE_Item'], y=stock_by_type['Total_Balance'],
+               name='Balance', marker_color='lightcoral'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Reorder alerts
+    if not reorder_by_type.empty:
+        fig.add_trace(
+            go.Bar(x=reorder_by_type['PPE_Item'], y=reorder_by_type['Balance_Stock'],
+                   marker_color='orange', name='Reorder Needed'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Usage level distribution
+    fig.add_trace(
+        go.Pie(labels=usage_level_counts.index, values=usage_level_counts.values,
+               name="Usage Level", textinfo='label+percent'),
+        row=2, col=1
+    )
+    
+    # Plot 4: Balance stock by type
+    fig.add_trace(
+        go.Bar(x=stock_by_type['PPE_Item'], y=stock_by_type['Total_Balance'],
+               marker_color='skyblue', name='Balance Stock'),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="PPE Item", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Quantity", row=1, col=1)
+    fig.update_xaxes(title_text="PPE Item", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Balance Stock", row=1, col=2)
+    fig.update_xaxes(title_text="PPE Item", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Balance Stock", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="PPE Stock Summary Dashboard", barmode='group')
+    fig.write_html(f'{charts_dir}/ppe_1_stock_summary.html')
+    print(f"  ✓ Saved: {charts_dir}/ppe_1_stock_summary.html")
+
+
+def create_ppe_usage_vs_purchase():
+    """Create usage vs purchase chart."""
+    ppe_df = load_ppe_data()
+    
+    # Usage vs Purchase by type
+    usage_purchase = ppe_df.groupby('ppe_item').agg({
+        'quantity_purchased': 'sum',
+        'quantity_issued': 'sum',
+        'utilization_pct': 'mean'
+    }).reset_index()
+    usage_purchase.columns = ['PPE_Item', 'Purchased', 'Issued', 'Avg_Utilization']
+    
+    # Usage vs Purchase by department
+    dept_usage = ppe_df.groupby('department').agg({
+        'quantity_purchased': 'sum',
+        'quantity_issued': 'sum'
+    }).reset_index()
+    dept_usage.columns = ['Department', 'Purchased', 'Issued']
+    dept_usage['Utilization_Pct'] = (dept_usage['Issued'] / dept_usage['Purchased'] * 100).fillna(0)
+    
+    # Monthly trends
+    ppe_df['purchase_month'] = ppe_df['purchase_date'].dt.to_period('M').astype(str)
+    monthly_purchase = ppe_df.groupby('purchase_month')['quantity_purchased'].sum().reset_index()
+    monthly_purchase.columns = ['Month', 'Purchased']
+    
+    ppe_df['issue_month'] = ppe_df['issue_date'].dt.to_period('M').astype(str)
+    monthly_issue = ppe_df.groupby('issue_month')['quantity_issued'].sum().reset_index()
+    monthly_issue.columns = ['Month', 'Issued']
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Usage vs Purchase by PPE Type', 'Utilization % by Type',
+                       'Usage vs Purchase by Department', 'Monthly Purchase vs Issue Trends'),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "scatter"}]]
+    )
+    
+    # Plot 1: Usage vs Purchase by type
+    fig.add_trace(
+        go.Bar(x=usage_purchase['PPE_Item'], y=usage_purchase['Purchased'],
+               name='Purchased', marker_color='lightblue'),
+        row=1, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=usage_purchase['PPE_Item'], y=usage_purchase['Issued'],
+               name='Issued', marker_color='lightgreen'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Utilization % by type
+    fig.add_trace(
+        go.Bar(x=usage_purchase['PPE_Item'], y=usage_purchase['Avg_Utilization'],
+               marker_color='coral', name='Utilization %'),
+        row=1, col=2
+    )
+    
+    # Plot 3: Usage vs Purchase by department
+    fig.add_trace(
+        go.Bar(x=dept_usage['Department'], y=dept_usage['Purchased'],
+               name='Purchased', marker_color='lightblue'),
+        row=2, col=1
+    )
+    fig.add_trace(
+        go.Bar(x=dept_usage['Department'], y=dept_usage['Issued'],
+               name='Issued', marker_color='lightgreen'),
+        row=2, col=1
+    )
+    
+    # Plot 4: Monthly trends
+    if not monthly_purchase.empty and not monthly_issue.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_purchase['Month'], y=monthly_purchase['Purchased'],
+                      mode='lines+markers', name='Purchased',
+                      marker=dict(symbol='circle', size=8)),
+            row=2, col=2
+        )
+        fig.add_trace(
+            go.Scatter(x=monthly_issue['Month'], y=monthly_issue['Issued'],
+                      mode='lines+markers', name='Issued',
+                      marker=dict(symbol='square', size=8)),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="PPE Item", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Quantity", row=1, col=1)
+    fig.update_xaxes(title_text="PPE Item", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Utilization %", row=1, col=2)
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Quantity", row=2, col=1)
+    fig.update_xaxes(title_text="Month", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Quantity", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="PPE Usage vs Purchase Analysis", barmode='group')
+    fig.write_html(f'{charts_dir}/ppe_2_usage_vs_purchase.html')
+    print(f"  ✓ Saved: {charts_dir}/ppe_2_usage_vs_purchase.html")
+
+
+def create_ppe_reorder_alerts():
+    """Create reorder alerts dashboard."""
+    ppe_df = load_ppe_data()
+    
+    # Reorder alerts
+    reorder_items = ppe_df[ppe_df['reorder_flag'] == 'Reorder Needed'].copy()
+    
+    # Low stock threshold (assuming < 20% of average purchase is low)
+    avg_purchase_by_type = ppe_df.groupby('ppe_item')['quantity_purchased'].mean()
+    ppe_df['low_stock_threshold'] = ppe_df['ppe_item'].map(avg_purchase_by_type) * 0.2
+    ppe_df['is_low_stock'] = ppe_df['balance_stock'] < ppe_df['low_stock_threshold']
+    
+    low_stock_items = ppe_df[ppe_df['is_low_stock']].copy()
+    
+    # Reorder by department
+    reorder_by_dept = reorder_items.groupby('department').size().reset_index()
+    reorder_by_dept.columns = ['Department', 'Reorder_Count']
+    
+    # Reorder by PPE type
+    reorder_by_type = reorder_items.groupby('ppe_item').agg({
+        'balance_stock': 'sum',
+        'ppe_id': 'count'
+    }).reset_index()
+    reorder_by_type.columns = ['PPE_Item', 'Balance_Stock', 'Count']
+    
+    # Upcoming delivery due
+    today = pd.Timestamp.now()
+    upcoming_delivery = ppe_df[ppe_df['next_delivery_due'] >= today].copy()
+    upcoming_delivery = upcoming_delivery.sort_values('next_delivery_due').head(20)
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Reorder Alerts by Department', 'Reorder Alerts by PPE Type',
+                       'Low Stock Items', 'Upcoming Delivery Due (Next 20)'),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Reorder by department
+    if not reorder_by_dept.empty:
+        fig.add_trace(
+            go.Bar(x=reorder_by_dept['Department'], y=reorder_by_dept['Reorder_Count'],
+                   marker_color='orange', name='Reorder Count'),
+            row=1, col=1
+        )
+    
+    # Plot 2: Reorder by type
+    if not reorder_by_type.empty:
+        fig.add_trace(
+            go.Bar(x=reorder_by_type['PPE_Item'], y=reorder_by_type['Balance_Stock'],
+                   marker_color='coral', name='Balance Stock'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Low stock items
+    if not low_stock_items.empty:
+        low_stock_summary = low_stock_items.groupby('ppe_item')['balance_stock'].sum().reset_index()
+        low_stock_summary.columns = ['PPE_Item', 'Balance_Stock']
+        fig.add_trace(
+            go.Bar(x=low_stock_summary['PPE_Item'], y=low_stock_summary['Balance_Stock'],
+                   marker_color='red', name='Low Stock'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Upcoming delivery table
+    if not upcoming_delivery.empty:
+        delivery_table = upcoming_delivery[['ppe_item', 'department', 'next_delivery_due', 'balance_stock']].copy()
+        delivery_table['next_delivery_due'] = delivery_table['next_delivery_due'].dt.strftime('%Y-%m-%d')
+        delivery_table.columns = ['PPE Item', 'Department', 'Delivery Due', 'Balance Stock']
+        fig.add_trace(
+            go.Table(
+                header=dict(values=list(delivery_table.columns),
+                            fill_color='paleturquoise',
+                            align='left'),
+                cells=dict(values=[delivery_table[col] for col in delivery_table.columns],
+                          fill_color='lavender',
+                          align='left')
+            ),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Reorder Count", row=1, col=1)
+    fig.update_xaxes(title_text="PPE Item", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Balance Stock", row=1, col=2)
+    fig.update_xaxes(title_text="PPE Item", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Balance Stock", row=2, col=1)
+    
+    fig.update_layout(height=900, title_text="PPE Reorder Alerts Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/ppe_3_reorder_alerts.html')
+    print(f"  ✓ Saved: {charts_dir}/ppe_3_reorder_alerts.html")
+
+
+def create_ppe_kpi_dashboard():
+    """Create PPE KPI dashboard."""
+    ppe_df = load_ppe_data()
+    
+    # Calculate KPIs
+    total_purchased = ppe_df['quantity_purchased'].sum()
+    total_issued = ppe_df['quantity_issued'].sum()
+    total_balance = ppe_df['balance_stock'].sum()
+    
+    # Utilization % = Issued / Purchased × 100
+    utilization_pct = (total_issued / total_purchased * 100) if total_purchased > 0 else 0
+    
+    # Stock Turnover Rate (Issued / Average Stock)
+    avg_stock = (total_purchased + total_balance) / 2 if (total_purchased + total_balance) > 0 else 1
+    stock_turnover = total_issued / avg_stock if avg_stock > 0 else 0
+    
+    # Low Stock Alerts
+    avg_purchase_by_type = ppe_df.groupby('ppe_item')['quantity_purchased'].mean()
+    ppe_df['low_stock_threshold'] = ppe_df['ppe_item'].map(avg_purchase_by_type) * 0.2
+    ppe_df['is_low_stock'] = ppe_df['balance_stock'] < ppe_df['low_stock_threshold']
+    low_stock_count = ppe_df['is_low_stock'].sum()
+    reorder_needed_count = len(ppe_df[ppe_df['reorder_flag'] == 'Reorder Needed'])
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Utilization %', 'Stock Turnover Rate',
+                       'Low Stock Alerts', 'KPIs Summary'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Utilization %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=utilization_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Utilization (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 50], 'color': "lightgray"},
+                    {'range': [50, 80], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Stock Turnover Rate
+    fig.add_trace(
+        go.Indicator(
+            mode="number+gauge",
+            value=stock_turnover,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Stock Turnover Rate"},
+            gauge={
+                'axis': {'range': [0, max(stock_turnover * 2, 5)]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, stock_turnover], 'color': "lightgray"}
+                ]
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Low Stock Alerts
+    fig.add_trace(
+        go.Indicator(
+            mode="number",
+            value=low_stock_count,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Low Stock Alerts"},
+            number={'font': {'color': 'red' if low_stock_count > 10 else 'orange'}}
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: KPIs summary table
+    kpi_data = {
+        'Metric': ['Total Purchased', 'Total Issued', 'Total Balance', 'Utilization %', 'Stock Turnover Rate', 'Low Stock Alerts', 'Reorder Needed Count'],
+        'Value': [
+            total_purchased,
+            total_issued,
+            total_balance,
+            f"{utilization_pct:.2f}%",
+            f"{stock_turnover:.2f}",
+            low_stock_count,
+            reorder_needed_count
+        ]
+    }
+    kpi_df = pd.DataFrame(kpi_data)
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_df.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_df['Metric'], kpi_df['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(height=900, title_text="PPE KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/ppe_4_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/ppe_4_kpi_dashboard.html")
+
+
+def create_ppe_stock_tracker():
+    """Create PPE stock tracker dashboard."""
+    ppe_df = load_ppe_data()
+    
+    # Stock tracker by department
+    dept_stock = ppe_df.groupby('department').agg({
+        'balance_stock': 'sum',
+        'quantity_issued': 'sum',
+        'quantity_purchased': 'sum'
+    }).reset_index()
+    dept_stock.columns = ['Department', 'Balance', 'Issued', 'Purchased']
+    
+    # Consumption trend by department (monthly)
+    ppe_df['issue_month'] = ppe_df['issue_date'].dt.to_period('M').astype(str)
+    monthly_consumption = ppe_df.groupby(['issue_month', 'department'])['quantity_issued'].sum().reset_index()
+    monthly_consumption.columns = ['Month', 'Department', 'Consumption']
+    
+    # Top consuming departments
+    top_depts = dept_stock.nlargest(10, 'Issued')
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Stock Tracker by Department', 'Consumption Trend by Department',
+                       'Top 10 Consuming Departments', 'Stock Status by Department'),
+        specs=[[{"type": "bar"}, {"type": "scatter"}],
+               [{"type": "bar"}, {"type": "bar"}]]
+    )
+    
+    # Plot 1: Stock tracker by department
+    fig.add_trace(
+        go.Bar(x=dept_stock['Department'], y=dept_stock['Balance'],
+               marker_color='lightblue', name='Balance Stock'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Consumption trend by department
+    top_dept_names = top_depts['Department'].head(5).tolist()
+    for dept in top_dept_names:
+        dept_data = monthly_consumption[monthly_consumption['Department'] == dept]
+        if not dept_data.empty:
+            fig.add_trace(
+                go.Scatter(x=dept_data['Month'], y=dept_data['Consumption'],
+                          mode='lines+markers', name=dept,
+                          marker=dict(size=6)),
+                row=1, col=2
+            )
+    
+    # Plot 3: Top consuming departments
+    fig.add_trace(
+        go.Bar(x=top_depts['Department'], y=top_depts['Issued'],
+               marker_color='lightgreen', name='Issued'),
+        row=2, col=1
+    )
+    
+    # Plot 4: Stock status by department
+    fig.add_trace(
+        go.Bar(x=dept_stock['Department'], y=dept_stock['Balance'],
+               marker_color='skyblue', name='Balance'),
+        row=2, col=2
+    )
+    fig.add_trace(
+        go.Bar(x=dept_stock['Department'], y=dept_stock['Issued'],
+               marker_color='lightcoral', name='Issued'),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Balance Stock", row=1, col=1)
+    fig.update_xaxes(title_text="Month", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Consumption", row=1, col=2)
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Issued", row=2, col=1)
+    fig.update_xaxes(title_text="Department", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Quantity", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="PPE Stock Tracker Dashboard", barmode='group')
+    fig.write_html(f'{charts_dir}/ppe_5_stock_tracker.html')
+    print(f"  ✓ Saved: {charts_dir}/ppe_5_stock_tracker.html")
+
+
+def create_all_ppe_charts():
+    """Generate all PPE charts."""
+    print("\n" + "="*50)
+    print("GENERATING PPE (ASSETS & PPE) CHARTS")
+    print("="*50)
+    
+    try:
+        create_ppe_stock_summary()
+        create_ppe_usage_vs_purchase()
+        create_ppe_reorder_alerts()
+        create_ppe_kpi_dashboard()
+        create_ppe_stock_tracker()
+        
+        print("\nAll PPE visualizations completed! 🎉")
+        
+        # Print summary statistics
+        ppe_df = load_ppe_data()
+        print("\n" + "="*50)
+        print("PPE SUMMARY STATISTICS")
+        print("="*50)
+        
+        total_purchased = ppe_df['quantity_purchased'].sum()
+        total_issued = ppe_df['quantity_issued'].sum()
+        total_balance = ppe_df['balance_stock'].sum()
+        utilization_pct = (total_issued / total_purchased * 100) if total_purchased > 0 else 0
+        reorder_count = len(ppe_df[ppe_df['reorder_flag'] == 'Reorder Needed'])
+        
+        print(f"Total Purchased: {total_purchased}")
+        print(f"Total Issued: {total_issued}")
+        print(f"Total Balance: {total_balance}")
+        print(f"Utilization %: {utilization_pct:.2f}%")
+        print(f"Reorder Needed Count: {reorder_count}")
+        
+        print(f"\nTop 5 PPE Items by Purchase:")
+        print(ppe_df.groupby('ppe_item')['quantity_purchased'].sum().sort_values(ascending=False).head(5))
+        
+        print(f"\nTop 5 Departments by Consumption:")
+        print(ppe_df.groupby('department')['quantity_issued'].sum().sort_values(ascending=False).head(5))
+        
+    except Exception as e:
+        print(f"Error generating PPE charts: {str(e)}")
+        raise
+
+
+# ============================================================================
+# CORRECTIVE ACTIONS & RCA CHARTING FUNCTIONS
+# ============================================================================
+
+def load_corrective_actions_data():
+    """Load corrective actions and RCA data from CSV files."""
+    # Try different possible paths for corrective actions data
+    possible_paths = [
+        'Generated/extracted_tables/Corrective_Actions_RCA/table_1.csv',
+        'Generated/extracted_tables/Corrective_Actions/table_1.csv',
+        'Generated/extracted_tables/RCA/table_1.csv',
+        'Generated/extracted_tables/Actions/table_1.csv'
+    ]
+    
+    actions_df = None
+    for path in possible_paths:
+        try:
+            actions_df = pd.read_csv(path)
+            # Check if this looks like corrective actions data
+            if any(col in actions_df.columns for col in ['action_id', 'Action ID', 'status', 'Status', 'due_date', 'Due Date', 'owner', 'priority']):
+                break
+        except FileNotFoundError:
+            continue
+    
+    if actions_df is None:
+        raise FileNotFoundError("Corrective Actions data file not found in expected locations")
+    
+    # Normalize column names (handle case variations)
+    actions_df.columns = actions_df.columns.str.lower().str.replace(' ', '_')
+    
+    # Convert date columns
+    date_cols = ['due_date', 'due_dt', 'start_date', 'start_dt', 'closed_date', 'created_date', 'created date']
+    for col in date_cols:
+        if col in actions_df.columns:
+            actions_df[col] = pd.to_datetime(actions_df[col], errors='coerce')
+    
+    # Calculate closure time if both start and closed dates exist
+    if 'start_dt' in actions_df.columns and 'closed_date' in actions_df.columns:
+        actions_df['closure_time_days'] = (actions_df['closed_date'] - actions_df['start_dt']).dt.days
+    elif 'start_date' in actions_df.columns and 'closed_date' in actions_df.columns:
+        actions_df['closure_time_days'] = (actions_df['closed_date'] - actions_df['start_date']).dt.days
+    
+    # Calculate overdue status
+    if 'due_dt' in actions_df.columns:
+        today = pd.Timestamp.now()
+        actions_df['days_until_due'] = (actions_df['due_dt'] - today).dt.days
+        actions_df['is_overdue'] = (actions_df['days_until_due'] < 0) & (actions_df['status'].str.contains('Open|open|In Progress|in progress', case=False, na=False))
+    elif 'due_date' in actions_df.columns:
+        today = pd.Timestamp.now()
+        actions_df['days_until_due'] = (actions_df['due_date'] - today).dt.days
+        actions_df['is_overdue'] = (actions_df['days_until_due'] < 0) & (actions_df['status'].str.contains('Open|open|In Progress|in progress', case=False, na=False))
+    
+    return actions_df
+
+
+def create_corrective_actions_summary():
+    """Create open vs closed actions summary dashboard."""
+    actions_df = load_corrective_actions_data()
+    
+    # Status summary
+    if 'status' in actions_df.columns:
+        status_counts = actions_df['status'].value_counts()
+        open_count = len(actions_df[actions_df['status'].str.contains('Open|open', case=False, na=False)])
+        closed_count = len(actions_df[actions_df['status'].str.contains('Closed|closed|Completed|completed', case=False, na=False)])
+        in_progress_count = len(actions_df[actions_df['status'].str.contains('In Progress|in progress|InProgress', case=False, na=False)])
+    else:
+        status_counts = pd.Series()
+        open_count = 0
+        closed_count = 0
+        in_progress_count = 0
+    
+    total_actions = len(actions_df)
+    action_closure_pct = (closed_count / total_actions * 100) if total_actions > 0 else 0
+    
+    # Actions by owner
+    if 'owner' in actions_df.columns:
+        actions_by_owner = actions_df['owner'].value_counts().head(10)
+    else:
+        actions_by_owner = pd.Series()
+    
+    # Overdue actions
+    if 'is_overdue' in actions_df.columns:
+        overdue_count = actions_df['is_overdue'].sum()
+        overdue_actions = actions_df[actions_df['is_overdue']].copy()
+    else:
+        overdue_count = 0
+        overdue_actions = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Open vs Closed Actions', 'Action Closure %',
+                       'Actions by Owner', 'Overdue Actions Summary'),
+        specs=[[{"type": "bar"}, {"type": "indicator"}],
+               [{"type": "bar"}, {"type": "bar"}]]
+    )
+    
+    # Plot 1: Open vs Closed
+    fig.add_trace(
+        go.Bar(x=['Open', 'In Progress', 'Closed'],
+               y=[open_count, in_progress_count, closed_count],
+               marker_color=['#ff6b6b', '#ffa500', '#51cf66'],
+               name='Action Status'),
+        row=1, col=1
+    )
+    
+    # Plot 2: Action Closure %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=action_closure_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Action Closure (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Actions by owner
+    if not actions_by_owner.empty:
+        fig.add_trace(
+            go.Bar(x=actions_by_owner.index, y=actions_by_owner.values,
+                   marker_color='lightblue', name='Actions Count'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Overdue summary
+    if not overdue_actions.empty and 'priority' in overdue_actions.columns:
+        overdue_by_priority = overdue_actions['priority'].value_counts()
+        fig.add_trace(
+            go.Bar(x=overdue_by_priority.index, y=overdue_by_priority.values,
+                   marker_color='coral', name='Overdue Count'),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Status", row=1, col=1)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+    fig.update_xaxes(title_text="Owner", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Actions Count", row=2, col=1)
+    fig.update_xaxes(title_text="Priority", row=2, col=2)
+    fig.update_yaxes(title_text="Overdue Count", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Corrective Actions Summary Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/rca_1_actions_summary.html')
+    print(f"  ✓ Saved: {charts_dir}/rca_1_actions_summary.html")
+
+
+def create_rca_closure_tracking():
+    """Create SLA-based closure tracking and RCA closure gauge."""
+    actions_df = load_corrective_actions_data()
+    
+    # Calculate closure metrics
+    total_actions = len(actions_df)
+    if 'status' in actions_df.columns:
+        closed_count = len(actions_df[actions_df['status'].str.contains('Closed|closed|Completed|completed', case=False, na=False)])
+    else:
+        closed_count = 0
+    
+    # Overdue actions
+    if 'is_overdue' in actions_df.columns:
+        overdue_count = actions_df['is_overdue'].sum()
+    else:
+        overdue_count = 0
+    
+    # Average closure time
+    if 'closure_time_days' in actions_df.columns:
+        avg_closure_time = actions_df['closure_time_days'].mean()
+        closed_actions = actions_df[actions_df['closure_time_days'].notna()].copy()
+    else:
+        avg_closure_time = 0
+        closed_actions = pd.DataFrame()
+    
+    # Overdue trend (if we have due dates)
+    if 'due_dt' in actions_df.columns:
+        actions_df['due_month'] = actions_df['due_dt'].dt.to_period('M').astype(str)
+        monthly_overdue = actions_df[actions_df['is_overdue']].groupby('due_month').size().reset_index()
+        monthly_overdue.columns = ['Month', 'Overdue_Count']
+    elif 'due_date' in actions_df.columns:
+        actions_df['due_month'] = actions_df['due_date'].dt.to_period('M').astype(str)
+        monthly_overdue = actions_df[actions_df['is_overdue']].groupby('due_month').size().reset_index()
+        monthly_overdue.columns = ['Month', 'Overdue_Count']
+    else:
+        monthly_overdue = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('RCA Closure Gauge', 'Overdue Actions Count',
+                       'Average Closure Time', 'Overdue Trend Chart'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "scatter"}]]
+    )
+    
+    # Plot 1: RCA Closure Gauge
+    action_closure_pct = (closed_count / total_actions * 100) if total_actions > 0 else 0
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=action_closure_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "RCA Closure (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Overdue Actions Count
+    fig.add_trace(
+        go.Indicator(
+            mode="number",
+            value=overdue_count,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Overdue Actions"},
+            number={'font': {'color': 'red' if overdue_count > 0 else 'green'}}
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Average Closure Time
+    fig.add_trace(
+        go.Indicator(
+            mode="number+gauge",
+            value=avg_closure_time,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Avg. Closure Time (Days)"},
+            gauge={
+                'axis': {'range': [0, max(avg_closure_time * 2, 30)]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, avg_closure_time], 'color': "lightgray"}
+                ]
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: Overdue trend
+    if not monthly_overdue.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_overdue['Month'], y=monthly_overdue['Overdue_Count'],
+                      mode='lines+markers', name='Overdue Trend',
+                      marker=dict(symbol='circle', size=8, color='red')),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Overdue Count", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="RCA Closure Tracking Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/rca_2_closure_tracking.html')
+    print(f"  ✓ Saved: {charts_dir}/rca_2_closure_tracking.html")
+
+
+def create_rca_kpi_dashboard():
+    """Create Corrective Actions & RCA KPI dashboard."""
+    actions_df = load_corrective_actions_data()
+    
+    # Calculate KPIs
+    total_actions = len(actions_df)
+    
+    if 'status' in actions_df.columns:
+        closed_count = len(actions_df[actions_df['status'].str.contains('Closed|closed|Completed|completed', case=False, na=False)])
+        open_count = len(actions_df[actions_df['status'].str.contains('Open|open', case=False, na=False)])
+    else:
+        closed_count = 0
+        open_count = 0
+    
+    # Action Closure % = Closed / Total × 100
+    action_closure_pct = (closed_count / total_actions * 100) if total_actions > 0 else 0
+    
+    # Overdue Actions = Count(>DueDate)
+    if 'is_overdue' in actions_df.columns:
+        overdue_count = actions_df['is_overdue'].sum()
+    else:
+        overdue_count = 0
+    
+    # Avg. Closure Time
+    if 'closure_time_days' in actions_df.columns:
+        avg_closure_time = actions_df['closure_time_days'].mean()
+    else:
+        avg_closure_time = 0
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Action Closure %', 'Overdue Actions',
+                       'Average Closure Time', 'KPIs Summary'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Action Closure %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=action_closure_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Action Closure (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Overdue Actions
+    fig.add_trace(
+        go.Indicator(
+            mode="number",
+            value=overdue_count,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Overdue Actions"},
+            number={'font': {'color': 'red' if overdue_count > 0 else 'green'}}
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Average Closure Time
+    fig.add_trace(
+        go.Indicator(
+            mode="number+gauge",
+            value=avg_closure_time,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Avg. Closure Time (Days)"},
+            gauge={
+                'axis': {'range': [0, max(avg_closure_time * 2, 30)]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, avg_closure_time], 'color': "lightgray"}
+                ]
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: KPIs summary table
+    kpi_data = {
+        'Metric': ['Total Actions', 'Open Actions', 'Closed Actions', 'Action Closure %', 'Overdue Actions', 'Avg. Closure Time (Days)'],
+        'Value': [
+            total_actions,
+            open_count,
+            closed_count,
+            f"{action_closure_pct:.2f}%",
+            overdue_count,
+            f"{avg_closure_time:.2f}"
+        ]
+    }
+    kpi_df = pd.DataFrame(kpi_data)
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_df.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_df['Metric'], kpi_df['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(height=900, title_text="Corrective Actions & RCA KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/rca_3_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/rca_3_kpi_dashboard.html")
+
+
+def create_all_rca_charts():
+    """Generate all Corrective Actions & RCA charts."""
+    print("\n" + "="*50)
+    print("GENERATING CORRECTIVE ACTIONS & RCA CHARTS")
+    print("="*50)
+    
+    try:
+        create_corrective_actions_summary()
+        create_rca_closure_tracking()
+        create_rca_kpi_dashboard()
+        
+        print("\nAll Corrective Actions & RCA visualizations completed! 🎉")
+        
+        # Print summary statistics
+        actions_df = load_corrective_actions_data()
+        print("\n" + "="*50)
+        print("CORRECTIVE ACTIONS & RCA SUMMARY STATISTICS")
+        print("="*50)
+        
+        total_actions = len(actions_df)
+        if 'status' in actions_df.columns:
+            closed_count = len(actions_df[actions_df['status'].str.contains('Closed|closed|Completed|completed', case=False, na=False)])
+            open_count = len(actions_df[actions_df['status'].str.contains('Open|open', case=False, na=False)])
+        else:
+            closed_count = 0
+            open_count = 0
+        
+        if 'is_overdue' in actions_df.columns:
+            overdue_count = actions_df['is_overdue'].sum()
+        else:
+            overdue_count = 0
+        
+        print(f"Total Actions: {total_actions}")
+        print(f"Open Actions: {open_count}")
+        print(f"Closed Actions: {closed_count}")
+        print(f"Overdue Actions: {overdue_count}")
+        
+        if 'status' in actions_df.columns:
+            print(f"\nStatus Distribution:")
+            print(actions_df['status'].value_counts())
+        
+    except Exception as e:
+        print(f"Error generating Corrective Actions & RCA charts: {str(e)}")
+        raise
+
+
+# ============================================================================
+# ENVIRONMENTAL & RESOURCE USE CHARTING FUNCTIONS
+# ============================================================================
+
+def load_environmental_data():
+    """Load environmental and resource use data from CSV files."""
+    # Try different possible paths for environmental data
+    possible_paths = [
+        'Generated/extracted_tables/Environmental_Data/table_1.csv',
+        'Generated/extracted_tables/Monthly_KPIs/table_1.csv',
+        'Generated/extracted_tables/Environmental/table_1.csv',
+        'Generated/extracted_tables/Resource_Use/table_1.csv'
+    ]
+    
+    env_df = None
+    kpi_df = None
+    
+    # Load Environmental_Data
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            # Check if this looks like Environmental_Data (has date, energy_consumed_kWh, etc.)
+            if 'energy_consumed_kWh' in test_df.columns or 'energy_consumed' in test_df.columns:
+                env_df = test_df
+                break
+        except FileNotFoundError:
+            continue
+    
+    # Load Monthly_KPIs
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            # Check if this looks like Monthly_KPIs (has month, energy_kWh_total, etc.)
+            if 'energy_kWh_total' in test_df.columns or 'month' in test_df.columns:
+                if 'energy_kWh_total' in test_df.columns or 'recycling_rate_pct' in test_df.columns:
+                    kpi_df = test_df
+                    break
+        except FileNotFoundError:
+            continue
+    
+    if env_df is None and kpi_df is None:
+        raise FileNotFoundError("Environmental data files not found in expected locations")
+    
+    # Normalize column names (handle case variations)
+    if env_df is not None:
+        env_df.columns = env_df.columns.str.lower().str.replace(' ', '_')
+        # Convert date columns
+        if 'date' in env_df.columns:
+            env_df['date'] = pd.to_datetime(env_df['date'], errors='coerce')
+        # Calculate total emissions if we have scope1 and scope2
+        if 'scope1_emissions_tco2e' in env_df.columns and 'scope2_emissions_tco2e' in env_df.columns:
+            env_df['total_emissions'] = env_df['scope1_emissions_tco2e'] + env_df['scope2_emissions_tco2e']
+        # Calculate recycling % if we have waste data
+        if 'waste_generated_t' in env_df.columns and 'recycled_waste_t' in env_df.columns:
+            env_df['recycling_pct'] = (env_df['recycled_waste_t'] / env_df['waste_generated_t'] * 100).fillna(0)
+    
+    if kpi_df is not None:
+        kpi_df.columns = kpi_df.columns.str.lower().str.replace(' ', '_')
+        # Convert month column
+        if 'month' in kpi_df.columns:
+            kpi_df['month'] = pd.to_datetime(kpi_df['month'], errors='coerce')
+    
+    return env_df, kpi_df
+
+
+def create_energy_emission_trend():
+    """Create energy and emission trend charts."""
+    env_df, kpi_df = load_environmental_data()
+    
+    # Use Monthly_KPIs if available, otherwise aggregate from Environmental_Data
+    if kpi_df is not None and 'month' in kpi_df.columns:
+        # Energy trend by month
+        if 'energy_kwh_total' in kpi_df.columns:
+            monthly_energy = kpi_df.groupby('month')['energy_kwh_total'].sum().reset_index()
+            monthly_energy.columns = ['Month', 'Energy_kWh']
+        else:
+            monthly_energy = pd.DataFrame()
+        
+        # CO2 trend by month
+        if 'total_emissions' in kpi_df.columns:
+            monthly_co2 = kpi_df.groupby('month')['total_emissions'].sum().reset_index()
+            monthly_co2.columns = ['Month', 'CO2_t']
+        else:
+            monthly_co2 = pd.DataFrame()
+    elif env_df is not None and 'date' in env_df.columns:
+        # Aggregate from Environmental_Data
+        env_df['month'] = env_df['date'].dt.to_period('M').astype(str)
+        if 'energy_consumed_kwh' in env_df.columns:
+            monthly_energy = env_df.groupby('month')['energy_consumed_kwh'].sum().reset_index()
+            monthly_energy.columns = ['Month', 'Energy_kWh']
+        else:
+            monthly_energy = pd.DataFrame()
+        
+        if 'total_emissions' in env_df.columns:
+            monthly_co2 = env_df.groupby('month')['total_emissions'].sum().reset_index()
+            monthly_co2.columns = ['Month', 'CO2_t']
+        else:
+            monthly_co2 = pd.DataFrame()
+    else:
+        monthly_energy = pd.DataFrame()
+        monthly_co2 = pd.DataFrame()
+    
+    # Energy by plant
+    if kpi_df is not None and 'plant' in kpi_df.columns and 'energy_kwh_total' in kpi_df.columns:
+        energy_by_plant = kpi_df.groupby('plant')['energy_kwh_total'].sum().reset_index()
+        energy_by_plant.columns = ['Plant', 'Energy_kWh']
+    elif env_df is not None and 'plant' in env_df.columns and 'energy_consumed_kwh' in env_df.columns:
+        energy_by_plant = env_df.groupby('plant')['energy_consumed_kwh'].sum().reset_index()
+        energy_by_plant.columns = ['Plant', 'Energy_kWh']
+    else:
+        energy_by_plant = pd.DataFrame()
+    
+    # CO2 by plant
+    if kpi_df is not None and 'plant' in kpi_df.columns and 'total_emissions' in kpi_df.columns:
+        co2_by_plant = kpi_df.groupby('plant')['total_emissions'].sum().reset_index()
+        co2_by_plant.columns = ['Plant', 'CO2_t']
+    elif env_df is not None and 'plant' in env_df.columns and 'total_emissions' in env_df.columns:
+        co2_by_plant = env_df.groupby('plant')['total_emissions'].sum().reset_index()
+        co2_by_plant.columns = ['Plant', 'CO2_t']
+    else:
+        co2_by_plant = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Energy Trend by Month', 'CO₂ Trend by Month',
+                       'Energy by Plant', 'CO₂ by Plant'),
+        specs=[[{"type": "scatter"}, {"type": "scatter"}],
+               [{"type": "bar"}, {"type": "bar"}]]
+    )
+    
+    # Plot 1: Energy trend
+    if not monthly_energy.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_energy['Month'], y=monthly_energy['Energy_kWh'],
+                      mode='lines+markers', name='Energy (kWh)',
+                      marker=dict(symbol='circle', size=8, color='blue')),
+            row=1, col=1
+        )
+    
+    # Plot 2: CO2 trend
+    if not monthly_co2.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_co2['Month'], y=monthly_co2['CO2_t'],
+                      mode='lines+markers', name='CO₂ (t)',
+                      marker=dict(symbol='square', size=8, color='red')),
+            row=1, col=2
+        )
+    
+    # Plot 3: Energy by plant
+    if not energy_by_plant.empty:
+        fig.add_trace(
+            go.Bar(x=energy_by_plant['Plant'], y=energy_by_plant['Energy_kWh'],
+                   marker_color='lightblue', name='Energy (kWh)'),
+            row=2, col=1
+        )
+    
+    # Plot 4: CO2 by plant
+    if not co2_by_plant.empty:
+        fig.add_trace(
+            go.Bar(x=co2_by_plant['Plant'], y=co2_by_plant['CO2_t'],
+                   marker_color='lightcoral', name='CO₂ (t)'),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Energy (kWh)", row=1, col=1)
+    fig.update_xaxes(title_text="Month", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="CO₂ (t)", row=1, col=2)
+    fig.update_xaxes(title_text="Plant", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Energy (kWh)", row=2, col=1)
+    fig.update_xaxes(title_text="Plant", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="CO₂ (t)", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Energy and Emission Trends", showlegend=False)
+    fig.write_html(f'{charts_dir}/env_1_energy_emission_trend.html')
+    print(f"  ✓ Saved: {charts_dir}/env_1_energy_emission_trend.html")
+
+
+def create_waste_recycling_summary():
+    """Create waste recycling summary dashboard."""
+    env_df, kpi_df = load_environmental_data()
+    
+    # Use Monthly_KPIs if available, otherwise aggregate from Environmental_Data
+    if kpi_df is not None and 'month' in kpi_df.columns:
+        # Recycling % trend
+        if 'recycling_rate_pct' in kpi_df.columns:
+            monthly_recycling = kpi_df.groupby('month')['recycling_rate_pct'].mean().reset_index()
+            monthly_recycling.columns = ['Month', 'Recycling_Pct']
+        else:
+            monthly_recycling = pd.DataFrame()
+        
+        # Waste by plant
+        if 'waste_t_total' in kpi_df.columns and 'plant' in kpi_df.columns:
+            waste_by_plant = kpi_df.groupby('plant')['waste_t_total'].sum().reset_index()
+            waste_by_plant.columns = ['Plant', 'Waste_t']
+        else:
+            waste_by_plant = pd.DataFrame()
+        
+        # Recycling % by plant
+        if 'recycling_rate_pct' in kpi_df.columns and 'plant' in kpi_df.columns:
+            recycling_by_plant = kpi_df.groupby('plant')['recycling_rate_pct'].mean().reset_index()
+            recycling_by_plant.columns = ['Plant', 'Recycling_Pct']
+        else:
+            recycling_by_plant = pd.DataFrame()
+    elif env_df is not None and 'date' in env_df.columns:
+        # Aggregate from Environmental_Data
+        env_df['month'] = env_df['date'].dt.to_period('M').astype(str)
+        if 'recycling_pct' in env_df.columns:
+            monthly_recycling = env_df.groupby('month')['recycling_pct'].mean().reset_index()
+            monthly_recycling.columns = ['Month', 'Recycling_Pct']
+        else:
+            monthly_recycling = pd.DataFrame()
+        
+        if 'waste_generated_t' in env_df.columns and 'plant' in env_df.columns:
+            waste_by_plant = env_df.groupby('plant')['waste_generated_t'].sum().reset_index()
+            waste_by_plant.columns = ['Plant', 'Waste_t']
+        else:
+            waste_by_plant = pd.DataFrame()
+        
+        if 'recycling_pct' in env_df.columns and 'plant' in env_df.columns:
+            recycling_by_plant = env_df.groupby('plant')['recycling_pct'].mean().reset_index()
+            recycling_by_plant.columns = ['Plant', 'Recycling_Pct']
+        else:
+            recycling_by_plant = pd.DataFrame()
+    else:
+        monthly_recycling = pd.DataFrame()
+        waste_by_plant = pd.DataFrame()
+        recycling_by_plant = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Recycling % Trend', 'Waste by Plant',
+                       'Recycling % by Plant', 'Waste Summary'),
+        specs=[[{"type": "scatter"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "pie"}]]
+    )
+    
+    # Plot 1: Recycling % trend
+    if not monthly_recycling.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_recycling['Month'], y=monthly_recycling['Recycling_Pct'],
+                      mode='lines+markers', name='Recycling %',
+                      marker=dict(symbol='circle', size=8, color='green')),
+            row=1, col=1
+        )
+    
+    # Plot 2: Waste by plant
+    if not waste_by_plant.empty:
+        fig.add_trace(
+            go.Bar(x=waste_by_plant['Plant'], y=waste_by_plant['Waste_t'],
+                   marker_color='orange', name='Waste (t)'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Recycling % by plant
+    if not recycling_by_plant.empty:
+        fig.add_trace(
+            go.Bar(x=recycling_by_plant['Plant'], y=recycling_by_plant['Recycling_Pct'],
+                   marker_color='lightgreen', name='Recycling %'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Waste distribution pie
+    if not waste_by_plant.empty:
+        fig.add_trace(
+            go.Pie(labels=waste_by_plant['Plant'], values=waste_by_plant['Waste_t'],
+                   name="Waste Distribution", textinfo='label+percent'),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Recycling %", row=1, col=1)
+    fig.update_xaxes(title_text="Plant", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Waste (t)", row=1, col=2)
+    fig.update_xaxes(title_text="Plant", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Recycling %", row=2, col=1)
+    
+    fig.update_layout(height=900, title_text="Waste Recycling Summary Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/env_2_waste_recycling_summary.html')
+    print(f"  ✓ Saved: {charts_dir}/env_2_waste_recycling_summary.html")
+
+
+def create_environmental_kpi_dashboard():
+    """Create Environmental & Resource Use KPI dashboard."""
+    env_df, kpi_df = load_environmental_data()
+    
+    # Calculate KPIs
+    if kpi_df is not None:
+        total_energy = kpi_df['energy_kwh_total'].sum() if 'energy_kwh_total' in kpi_df.columns else 0
+        total_co2 = kpi_df['total_emissions'].sum() if 'total_emissions' in kpi_df.columns else 0
+        total_waste = kpi_df['waste_t_total'].sum() if 'waste_t_total' in kpi_df.columns else 0
+        avg_recycling_pct = kpi_df['recycling_rate_pct'].mean() if 'recycling_rate_pct' in kpi_df.columns else 0
+        avg_renewable_pct = kpi_df['avg_renewable_pct'].mean() if 'avg_renewable_pct' in kpi_df.columns else 0
+    elif env_df is not None:
+        total_energy = env_df['energy_consumed_kwh'].sum() if 'energy_consumed_kwh' in env_df.columns else 0
+        total_co2 = env_df['total_emissions'].sum() if 'total_emissions' in env_df.columns else 0
+        total_waste = env_df['waste_generated_t'].sum() if 'waste_generated_t' in env_df.columns else 0
+        avg_recycling_pct = env_df['recycling_pct'].mean() if 'recycling_pct' in env_df.columns else 0
+        avg_renewable_pct = env_df['renewable_energy_%'].mean() if 'renewable_energy_%' in env_df.columns else 0
+    else:
+        total_energy = 0
+        total_co2 = 0
+        total_waste = 0
+        avg_recycling_pct = 0
+        avg_renewable_pct = 0
+    
+    # Energy Intensity (placeholder - would need production data)
+    energy_intensity = 0  # Placeholder
+    
+    # CO2 Intensity (placeholder - would need production data)
+    co2_intensity = 0  # Placeholder
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Recycling %', 'Renewable %',
+                       'ESG Score Gauge', 'KPIs Summary'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Recycling %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_recycling_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Recycling (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 50], 'color': "lightgray"},
+                    {'range': [50, 80], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Renewable %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_renewable_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Renewable (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 30], 'color': "lightgray"},
+                    {'range': [30, 70], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 80
+                }
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: ESG Score (calculated from multiple factors)
+    esg_score = (avg_recycling_pct * 0.3 + avg_renewable_pct * 0.4 + min(100, (100 - (total_co2 / max(total_co2, 1) * 100)) * 0.3)) if total_co2 > 0 else (avg_recycling_pct * 0.5 + avg_renewable_pct * 0.5)
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=esg_score,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "ESG Score"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 50], 'color': "lightgray"},
+                    {'range': [50, 80], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 90
+                }
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: KPIs summary table
+    kpi_data = {
+        'Metric': ['Total Energy (kWh)', 'Total CO₂ (t)', 'Total Waste (t)', 'Recycling %', 'Renewable %', 'Energy Intensity', 'CO₂ Intensity', 'ESG Score'],
+        'Value': [
+            f"{total_energy:,.0f}",
+            f"{total_co2:,.2f}",
+            f"{total_waste:,.2f}",
+            f"{avg_recycling_pct:.2f}%",
+            f"{avg_renewable_pct:.2f}%",
+            f"{energy_intensity:.2f}" if energy_intensity > 0 else "N/A",
+            f"{co2_intensity:.2f}" if co2_intensity > 0 else "N/A",
+            f"{esg_score:.2f}"
+        ]
+    }
+    kpi_df_table = pd.DataFrame(kpi_data)
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_df_table.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_df_table['Metric'], kpi_df_table['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(height=900, title_text="Environmental & Resource Use KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/env_3_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/env_3_kpi_dashboard.html")
+
+
+def create_co2_reduction_chart():
+    """Create CO₂ reduction chart."""
+    env_df, kpi_df = load_environmental_data()
+    
+    # Use Monthly_KPIs if available, otherwise aggregate from Environmental_Data
+    if kpi_df is not None and 'month' in kpi_df.columns:
+        if 'total_emissions' in kpi_df.columns:
+            monthly_co2 = kpi_df.groupby('month')['total_emissions'].sum().reset_index()
+            monthly_co2.columns = ['Month', 'CO2_t']
+            monthly_co2 = monthly_co2.sort_values('Month')
+            
+            # Calculate reduction percentage
+            if len(monthly_co2) > 1:
+                monthly_co2['Reduction_Pct'] = ((monthly_co2['CO2_t'].shift(1) - monthly_co2['CO2_t']) / monthly_co2['CO2_t'].shift(1) * 100).fillna(0)
+        else:
+            monthly_co2 = pd.DataFrame()
+        
+        if 'total_emissions' in kpi_df.columns and 'plant' in kpi_df.columns:
+            co2_by_plant = kpi_df.groupby('plant')['total_emissions'].sum().reset_index()
+            co2_by_plant.columns = ['Plant', 'CO2_t']
+        else:
+            co2_by_plant = pd.DataFrame()
+    elif env_df is not None and 'date' in env_df.columns:
+        env_df['month'] = env_df['date'].dt.to_period('M').astype(str)
+        if 'total_emissions' in env_df.columns:
+            monthly_co2 = env_df.groupby('month')['total_emissions'].sum().reset_index()
+            monthly_co2.columns = ['Month', 'CO2_t']
+            monthly_co2 = monthly_co2.sort_values('Month')
+            
+            # Calculate reduction percentage
+            if len(monthly_co2) > 1:
+                monthly_co2['Reduction_Pct'] = ((monthly_co2['CO2_t'].shift(1) - monthly_co2['CO2_t']) / monthly_co2['CO2_t'].shift(1) * 100).fillna(0)
+        else:
+            monthly_co2 = pd.DataFrame()
+        
+        if 'total_emissions' in env_df.columns and 'plant' in env_df.columns:
+            co2_by_plant = env_df.groupby('plant')['total_emissions'].sum().reset_index()
+            co2_by_plant.columns = ['Plant', 'CO2_t']
+        else:
+            co2_by_plant = pd.DataFrame()
+    else:
+        monthly_co2 = pd.DataFrame()
+        co2_by_plant = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=1,
+        subplot_titles=('CO₂ Reduction Trend', 'CO₂ by Plant'),
+        specs=[[{"type": "scatter"}],
+               [{"type": "bar"}]]
+    )
+    
+    # Plot 1: CO2 reduction trend
+    if not monthly_co2.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_co2['Month'], y=monthly_co2['CO2_t'],
+                      mode='lines+markers', name='CO₂ (t)',
+                      marker=dict(symbol='circle', size=8, color='red'),
+                      line=dict(color='red', width=2)),
+            row=1, col=1
+        )
+        if 'Reduction_Pct' in monthly_co2.columns:
+            fig.add_trace(
+                go.Scatter(x=monthly_co2['Month'], y=monthly_co2['Reduction_Pct'],
+                          mode='lines+markers', name='Reduction %',
+                          marker=dict(symbol='square', size=8, color='green'),
+                          yaxis='y2'),
+                row=1, col=1
+            )
+    
+    # Plot 2: CO2 by plant
+    if not co2_by_plant.empty:
+        fig.add_trace(
+            go.Bar(x=co2_by_plant['Plant'], y=co2_by_plant['CO2_t'],
+                   marker_color='lightcoral', name='CO₂ (t)'),
+            row=2, col=1
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="CO₂ (t)", row=1, col=1)
+    fig.update_xaxes(title_text="Plant", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="CO₂ (t)", row=2, col=1)
+    
+    fig.update_layout(height=700, title_text="CO₂ Reduction Analysis", showlegend=True)
+    fig.write_html(f'{charts_dir}/env_4_co2_reduction.html')
+    print(f"  ✓ Saved: {charts_dir}/env_4_co2_reduction.html")
+
+
+def create_all_environmental_charts():
+    """Generate all Environmental & Resource Use charts."""
+    print("\n" + "="*50)
+    print("GENERATING ENVIRONMENTAL & RESOURCE USE CHARTS")
+    print("="*50)
+    
+    try:
+        create_energy_emission_trend()
+        create_waste_recycling_summary()
+        create_environmental_kpi_dashboard()
+        create_co2_reduction_chart()
+        
+        print("\nAll Environmental & Resource Use visualizations completed! 🎉")
+        
+        # Print summary statistics
+        env_df, kpi_df = load_environmental_data()
+        print("\n" + "="*50)
+        print("ENVIRONMENTAL & RESOURCE USE SUMMARY STATISTICS")
+        print("="*50)
+        
+        if kpi_df is not None:
+            total_energy = kpi_df['energy_kwh_total'].sum() if 'energy_kwh_total' in kpi_df.columns else 0
+            total_co2 = kpi_df['total_emissions'].sum() if 'total_emissions' in kpi_df.columns else 0
+            total_waste = kpi_df['waste_t_total'].sum() if 'waste_t_total' in kpi_df.columns else 0
+            avg_recycling_pct = kpi_df['recycling_rate_pct'].mean() if 'recycling_rate_pct' in kpi_df.columns else 0
+        elif env_df is not None:
+            total_energy = env_df['energy_consumed_kwh'].sum() if 'energy_consumed_kwh' in env_df.columns else 0
+            total_co2 = env_df['total_emissions'].sum() if 'total_emissions' in env_df.columns else 0
+            total_waste = env_df['waste_generated_t'].sum() if 'waste_generated_t' in env_df.columns else 0
+            avg_recycling_pct = env_df['recycling_pct'].mean() if 'recycling_pct' in env_df.columns else 0
+        else:
+            total_energy = 0
+            total_co2 = 0
+            total_waste = 0
+            avg_recycling_pct = 0
+        
+        print(f"Total Energy: {total_energy:,.0f} kWh")
+        print(f"Total CO₂: {total_co2:,.2f} t")
+        print(f"Total Waste: {total_waste:,.2f} t")
+        print(f"Average Recycling %: {avg_recycling_pct:.2f}%")
+        
+        if kpi_df is not None and 'plant' in kpi_df.columns:
+            print(f"\nTop 5 Plants by Energy Consumption:")
+            print(kpi_df.groupby('plant')['energy_kwh_total'].sum().sort_values(ascending=False).head(5))
+        elif env_df is not None and 'plant' in env_df.columns:
+            print(f"\nTop 5 Plants by Energy Consumption:")
+            print(env_df.groupby('plant')['energy_consumed_kwh'].sum().sort_values(ascending=False).head(5))
+        
+    except Exception as e:
+        print(f"Error generating Environmental & Resource Use charts: {str(e)}")
+        raise
+
+
+# ============================================================================
+# SOCIAL & GOVERNANCE CHARTING FUNCTIONS
+# ============================================================================
+
+def load_social_governance_data():
+    """Load social and governance data from CSV files."""
+    # Try different possible paths for social/governance data
+    possible_paths = [
+        'Generated/extracted_tables/Workforce_Social/table_1.csv',
+        'Generated/extracted_tables/Workforce_KPIs_By_Dept/table_1.csv',
+        'Generated/extracted_tables/Supplier_Audits/table_1.csv',
+        'Generated/extracted_tables/Governance_Metrics/table_1.csv'
+    ]
+    
+    workforce_df = None
+    kpi_dept_df = None
+    supplier_df = None
+    governance_df = None
+    
+    # Load Workforce_Social
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            if 'employee_id' in test_df.columns or 'employee_survey_score' in test_df.columns:
+                workforce_df = test_df
+                break
+        except FileNotFoundError:
+            continue
+    
+    # Load Workforce_KPIs_By_Dept
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            if 'avg_turnover_pct' in test_df.columns or 'avg_absenteeism_pct' in test_df.columns:
+                kpi_dept_df = test_df
+                break
+        except FileNotFoundError:
+            continue
+    
+    # Load Supplier_Audits
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            if 'supplier_id' in test_df.columns or 'compliance_score_%' in test_df.columns:
+                supplier_df = test_df
+                break
+        except FileNotFoundError:
+            continue
+    
+    # Load Governance_Metrics
+    for path in possible_paths:
+        try:
+            test_df = pd.read_csv(path)
+            if 'board_women_%' in test_df.columns or 'whistleblower_reports_count' in test_df.columns:
+                governance_df = test_df
+                break
+        except FileNotFoundError:
+            continue
+    
+    if workforce_df is None and kpi_dept_df is None and supplier_df is None and governance_df is None:
+        raise FileNotFoundError("Social & Governance data files not found in expected locations")
+    
+    # Normalize column names (handle case variations)
+    if workforce_df is not None:
+        workforce_df.columns = workforce_df.columns.str.lower().str.replace(' ', '_')
+    
+    if kpi_dept_df is not None:
+        kpi_dept_df.columns = kpi_dept_df.columns.str.lower().str.replace(' ', '_')
+    
+    if supplier_df is not None:
+        supplier_df.columns = supplier_df.columns.str.lower().str.replace(' ', '_')
+        # Convert date columns
+        if 'csr_audit_date' in supplier_df.columns:
+            supplier_df['csr_audit_date'] = pd.to_datetime(supplier_df['csr_audit_date'], errors='coerce')
+    
+    if governance_df is not None:
+        governance_df.columns = governance_df.columns.str.lower().str.replace(' ', '_')
+        # Convert date columns
+        if 'month' in governance_df.columns:
+            governance_df['month'] = pd.to_datetime(governance_df['month'], errors='coerce')
+        if 'policy_review_date' in governance_df.columns:
+            governance_df['policy_review_date'] = pd.to_datetime(governance_df['policy_review_date'], errors='coerce')
+    
+    return workforce_df, kpi_dept_df, supplier_df, governance_df
+
+
+def create_workforce_diversity_summary():
+    """Create workforce diversity summary dashboard."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Gender distribution
+    if workforce_df is not None and 'gender' in workforce_df.columns:
+        gender_dist = workforce_df['gender'].value_counts()
+    else:
+        gender_dist = pd.Series()
+    
+    # Age group distribution
+    if workforce_df is not None and 'age_group' in workforce_df.columns:
+        age_dist = workforce_df['age_group'].value_counts()
+    else:
+        age_dist = pd.Series()
+    
+    # Department distribution
+    if workforce_df is not None and 'dept' in workforce_df.columns:
+        dept_dist = workforce_df['dept'].value_counts()
+    elif kpi_dept_df is not None and 'dept' in kpi_dept_df.columns:
+        dept_dist = kpi_dept_df.set_index('dept')['employees'].to_dict()
+        dept_dist = pd.Series(dept_dist)
+    else:
+        dept_dist = pd.Series()
+    
+    # Gender by department
+    if workforce_df is not None and 'gender' in workforce_df.columns and 'dept' in workforce_df.columns:
+        gender_by_dept = pd.crosstab(workforce_df['dept'], workforce_df['gender'])
+    else:
+        gender_by_dept = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Gender Distribution', 'Age Group Distribution',
+                       'Department Distribution', 'Gender by Department'),
+        specs=[[{"type": "pie"}, {"type": "pie"}],
+               [{"type": "bar"}, {"type": "bar"}]]
+    )
+    
+    # Plot 1: Gender distribution
+    if not gender_dist.empty:
+        fig.add_trace(
+            go.Pie(labels=gender_dist.index, values=gender_dist.values,
+                   name="Gender Distribution", textinfo='label+percent'),
+            row=1, col=1
+        )
+    
+    # Plot 2: Age group distribution
+    if not age_dist.empty:
+        fig.add_trace(
+            go.Pie(labels=age_dist.index, values=age_dist.values,
+                   name="Age Group Distribution", textinfo='label+percent'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Department distribution
+    if not dept_dist.empty:
+        fig.add_trace(
+            go.Bar(x=dept_dist.index, y=dept_dist.values,
+                   marker_color='lightblue', name='Employees'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Gender by department
+    if not gender_by_dept.empty:
+        for gender in gender_by_dept.columns:
+            fig.add_trace(
+                go.Bar(x=gender_by_dept.index, y=gender_by_dept[gender],
+                       name=gender),
+                row=2, col=2
+            )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Employees", row=2, col=1)
+    fig.update_xaxes(title_text="Department", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Count", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Workforce Diversity Summary Dashboard", showlegend=True)
+    fig.write_html(f'{charts_dir}/social_1_workforce_diversity.html')
+    print(f"  ✓ Saved: {charts_dir}/social_1_workforce_diversity.html")
+
+
+def create_policy_compliance_report():
+    """Create policy compliance report dashboard."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Policy compliance by month
+    if governance_df is not None and 'month' in governance_df.columns:
+        if 'policy_review_date' in governance_df.columns:
+            governance_df['policy_compliant'] = governance_df['policy_review_date'].notna()
+            monthly_compliance = governance_df.groupby('month')['policy_compliant'].sum().reset_index()
+            monthly_compliance.columns = ['Month', 'Compliant_Count']
+        else:
+            monthly_compliance = pd.DataFrame()
+        
+        # Whistleblower reports
+        if 'whistleblower_reports_count' in governance_df.columns:
+            monthly_whistleblower = governance_df.groupby('month')['whistleblower_reports_count'].sum().reset_index()
+            monthly_whistleblower.columns = ['Month', 'Reports_Count']
+        else:
+            monthly_whistleblower = pd.DataFrame()
+        
+        # Closed reports
+        if 'closed_reports_count' in governance_df.columns:
+            monthly_closed = governance_df.groupby('month')['closed_reports_count'].sum().reset_index()
+            monthly_closed.columns = ['Month', 'Closed_Count']
+        else:
+            monthly_closed = pd.DataFrame()
+    else:
+        monthly_compliance = pd.DataFrame()
+        monthly_whistleblower = pd.DataFrame()
+        monthly_closed = pd.DataFrame()
+    
+    # Board diversity
+    if governance_df is not None:
+        if 'board_women_%' in governance_df.columns:
+            avg_women_pct = governance_df['board_women_%'].mean()
+        else:
+            avg_women_pct = 0
+        
+        if 'board_minority_%' in governance_df.columns:
+            avg_minority_pct = governance_df['board_minority_%'].mean()
+        else:
+            avg_minority_pct = 0
+    else:
+        avg_women_pct = 0
+        avg_minority_pct = 0
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Policy Compliance Trend', 'Whistleblower Reports Trend',
+                       'Board Diversity', 'Policy Compliance Summary'),
+        specs=[[{"type": "scatter"}, {"type": "scatter"}],
+               [{"type": "indicator"}, {"type": "table"}]]
+    )
+    
+    # Plot 1: Policy compliance trend
+    if not monthly_compliance.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_compliance['Month'], y=monthly_compliance['Compliant_Count'],
+                      mode='lines+markers', name='Compliant Policies',
+                      marker=dict(symbol='circle', size=8, color='green')),
+            row=1, col=1
+        )
+    
+    # Plot 2: Whistleblower reports trend
+    if not monthly_whistleblower.empty:
+        fig.add_trace(
+            go.Scatter(x=monthly_whistleblower['Month'], y=monthly_whistleblower['Reports_Count'],
+                      mode='lines+markers', name='Reports',
+                      marker=dict(symbol='square', size=8, color='blue')),
+            row=1, col=1
+        )
+        if not monthly_closed.empty:
+            fig.add_trace(
+                go.Scatter(x=monthly_closed['Month'], y=monthly_closed['Closed_Count'],
+                          mode='lines+markers', name='Closed Reports',
+                          marker=dict(symbol='triangle-up', size=8, color='red')),
+                row=1, col=2
+            )
+    
+    # Plot 3: Board diversity
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_women_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Board Women (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 30], 'color': "lightgray"},
+                    {'range': [30, 50], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 50
+                }
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: Policy compliance summary table
+    compliance_data = {
+        'Metric': ['Board Women %', 'Board Minority %', 'Avg Whistleblower Reports', 'Avg Closed Reports'],
+        'Value': [
+            f"{avg_women_pct:.2f}%",
+            f"{avg_minority_pct:.2f}%",
+            f"{monthly_whistleblower['Reports_Count'].mean():.2f}" if not monthly_whistleblower.empty else "N/A",
+            f"{monthly_closed['Closed_Count'].mean():.2f}" if not monthly_closed.empty else "N/A"
+        ]
+    }
+    compliance_df = pd.DataFrame(compliance_data)
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(compliance_df.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[compliance_df['Metric'], compliance_df['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Month", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Count", row=1, col=1)
+    fig.update_xaxes(title_text="Month", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Count", row=1, col=2)
+    
+    fig.update_layout(height=900, title_text="Policy Compliance Report Dashboard", showlegend=True)
+    fig.write_html(f'{charts_dir}/social_2_policy_compliance.html')
+    print(f"  ✓ Saved: {charts_dir}/social_2_policy_compliance.html")
+
+
+def create_supplier_esg_rating():
+    """Create supplier ESG rating dashboard."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Supplier compliance scores
+    if supplier_df is not None:
+        if 'compliance_score_%' in supplier_df.columns:
+            compliance_scores = supplier_df['compliance_score_%'].describe()
+            avg_compliance = supplier_df['compliance_score_%'].mean()
+        else:
+            avg_compliance = 0
+            compliance_scores = pd.Series()
+        
+        # Suppliers by area
+        if 'area' in supplier_df.columns:
+            suppliers_by_area = supplier_df['area'].value_counts().head(10)
+        else:
+            suppliers_by_area = pd.Series()
+        
+        # Compliance by area
+        if 'area' in supplier_df.columns and 'compliance_score_%' in supplier_df.columns:
+            compliance_by_area = supplier_df.groupby('area')['compliance_score_%'].mean().reset_index()
+            compliance_by_area.columns = ['Area', 'Avg_Compliance']
+        else:
+            compliance_by_area = pd.DataFrame()
+        
+        # Suppliers with incidents
+        if 'incident_count' in supplier_df.columns:
+            suppliers_with_incidents = supplier_df[supplier_df['incident_count'] > 0]
+            incident_count = len(suppliers_with_incidents)
+        else:
+            incident_count = 0
+            suppliers_with_incidents = pd.DataFrame()
+    else:
+        avg_compliance = 0
+        compliance_scores = pd.Series()
+        suppliers_by_area = pd.Series()
+        compliance_by_area = pd.DataFrame()
+        incident_count = 0
+        suppliers_with_incidents = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Average Compliance Score', 'Suppliers by Area',
+                       'Compliance by Area', 'Suppliers with Incidents'),
+        specs=[[{"type": "indicator"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "indicator"}]]
+    )
+    
+    # Plot 1: Average compliance score
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_compliance,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Avg. Compliance (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Suppliers by area
+    if not suppliers_by_area.empty:
+        fig.add_trace(
+            go.Bar(x=suppliers_by_area.index, y=suppliers_by_area.values,
+                   marker_color='lightblue', name='Suppliers'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Compliance by area
+    if not compliance_by_area.empty:
+        fig.add_trace(
+            go.Bar(x=compliance_by_area['Area'], y=compliance_by_area['Avg_Compliance'],
+                   marker_color='lightgreen', name='Avg Compliance %'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Suppliers with incidents
+    total_suppliers = len(supplier_df) if supplier_df is not None else 0
+    fig.add_trace(
+        go.Indicator(
+            mode="number",
+            value=incident_count,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': f"Suppliers with Incidents (of {total_suppliers})"},
+            number={'font': {'color': 'red' if incident_count > 0 else 'green'}}
+        ),
+        row=2, col=2
+    )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Area", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Suppliers Count", row=1, col=2)
+    fig.update_xaxes(title_text="Area", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Avg Compliance %", row=2, col=1)
+    
+    fig.update_layout(height=900, title_text="Supplier ESG Rating Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/social_3_supplier_esg_rating.html')
+    print(f"  ✓ Saved: {charts_dir}/social_3_supplier_esg_rating.html")
+
+
+def create_social_governance_kpi_dashboard():
+    """Create Social & Governance KPI dashboard."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Calculate KPIs
+    # Turnover Rate
+    if kpi_dept_df is not None and 'avg_turnover_pct' in kpi_dept_df.columns:
+        avg_turnover_rate = kpi_dept_df['avg_turnover_pct'].mean()
+    elif workforce_df is not None and 'turnover_rate_%' in workforce_df.columns:
+        avg_turnover_rate = workforce_df['turnover_rate_%'].mean()
+    else:
+        avg_turnover_rate = 0
+    
+    # Absenteeism %
+    if kpi_dept_df is not None and 'avg_absenteeism_pct' in kpi_dept_df.columns:
+        avg_absenteeism_pct = kpi_dept_df['avg_absenteeism_pct'].mean()
+    elif workforce_df is not None and 'absenteeism_rate_%' in workforce_df.columns:
+        avg_absenteeism_pct = workforce_df['absenteeism_rate_%'].mean()
+    else:
+        avg_absenteeism_pct = 0
+    
+    # Policy Compliance %
+    if governance_df is not None and 'policy_review_date' in governance_df.columns:
+        total_policies = len(governance_df)
+        compliant_policies = governance_df['policy_review_date'].notna().sum()
+        policy_compliance_pct = (compliant_policies / total_policies * 100) if total_policies > 0 else 0
+    else:
+        policy_compliance_pct = 0
+    
+    # Supplier Audit %
+    if supplier_df is not None:
+        total_suppliers = len(supplier_df)
+        audited_suppliers = len(supplier_df[supplier_df['csr_audit_date'].notna()]) if 'csr_audit_date' in supplier_df.columns else total_suppliers
+        supplier_audit_pct = (audited_suppliers / total_suppliers * 100) if total_suppliers > 0 else 0
+    else:
+        supplier_audit_pct = 0
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Turnover Rate', 'Absenteeism %',
+                       'Policy Compliance %', 'Supplier Audit %'),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "indicator"}, {"type": "indicator"}]]
+    )
+    
+    # Plot 1: Turnover Rate
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_turnover_rate,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Turnover Rate (%)"},
+            gauge={
+                'axis': {'range': [None, 20]},
+                'bar': {'color': "darkred"},
+                'steps': [
+                    {'range': [0, 5], 'color': "lightgreen"},
+                    {'range': [5, 10], 'color': "yellow"},
+                    {'range': [10, 20], 'color': "lightcoral"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 15
+                }
+            }
+        ),
+        row=1, col=1
+    )
+    
+    # Plot 2: Absenteeism %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_absenteeism_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Absenteeism (%)"},
+            gauge={
+                'axis': {'range': [None, 10]},
+                'bar': {'color': "darkorange"},
+                'steps': [
+                    {'range': [0, 2], 'color': "lightgreen"},
+                    {'range': [2, 5], 'color': "yellow"},
+                    {'range': [5, 10], 'color': "lightcoral"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 7
+                }
+            }
+        ),
+        row=1, col=2
+    )
+    
+    # Plot 3: Policy Compliance %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=policy_compliance_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Policy Compliance (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkgreen"},
+                'steps': [
+                    {'range': [0, 80], 'color': "lightgray"},
+                    {'range': [80, 95], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 100
+                }
+            }
+        ),
+        row=2, col=1
+    )
+    
+    # Plot 4: Supplier Audit %
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=supplier_audit_pct,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Supplier Audit (%)"},
+            gauge={
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "darkblue"},
+                'steps': [
+                    {'range': [0, 70], 'color': "lightgray"},
+                    {'range': [70, 90], 'color': "yellow"}
+                ],
+                'threshold': {
+                    'line': {'color': "red", 'width': 4},
+                    'thickness': 0.75,
+                    'value': 95
+                }
+            }
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_layout(height=900, title_text="Social & Governance KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/social_4_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/social_4_kpi_dashboard.html")
+
+
+def create_workforce_stability_trend():
+    """Create workforce stability trend chart."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Use Workforce_KPIs_By_Dept if available
+    if kpi_dept_df is not None:
+        # Turnover by department
+        if 'dept' in kpi_dept_df.columns and 'avg_turnover_pct' in kpi_dept_df.columns:
+            turnover_by_dept = kpi_dept_df[['dept', 'avg_turnover_pct']].sort_values('avg_turnover_pct', ascending=False)
+            turnover_by_dept.columns = ['Department', 'Turnover_Rate']
+        else:
+            turnover_by_dept = pd.DataFrame()
+        
+        # Absenteeism by department
+        if 'dept' in kpi_dept_df.columns and 'avg_absenteeism_pct' in kpi_dept_df.columns:
+            absenteeism_by_dept = kpi_dept_df[['dept', 'avg_absenteeism_pct']].sort_values('avg_absenteeism_pct', ascending=False)
+            absenteeism_by_dept.columns = ['Department', 'Absenteeism_Rate']
+        else:
+            absenteeism_by_dept = pd.DataFrame()
+        
+        # Survey scores by department
+        if 'dept' in kpi_dept_df.columns and 'avg_survey_score' in kpi_dept_df.columns:
+            survey_by_dept = kpi_dept_df[['dept', 'avg_survey_score']].sort_values('avg_survey_score', ascending=False)
+            survey_by_dept.columns = ['Department', 'Survey_Score']
+        else:
+            survey_by_dept = pd.DataFrame()
+    elif workforce_df is not None:
+        # Aggregate from Workforce_Social
+        if 'dept' in workforce_df.columns and 'turnover_rate_%' in workforce_df.columns:
+            turnover_by_dept = workforce_df.groupby('dept')['turnover_rate_%'].mean().reset_index()
+            turnover_by_dept.columns = ['Department', 'Turnover_Rate']
+            turnover_by_dept = turnover_by_dept.sort_values('Turnover_Rate', ascending=False)
+        else:
+            turnover_by_dept = pd.DataFrame()
+        
+        if 'dept' in workforce_df.columns and 'absenteeism_rate_%' in workforce_df.columns:
+            absenteeism_by_dept = workforce_df.groupby('dept')['absenteeism_rate_%'].mean().reset_index()
+            absenteeism_by_dept.columns = ['Department', 'Absenteeism_Rate']
+            absenteeism_by_dept = absenteeism_by_dept.sort_values('Absenteeism_Rate', ascending=False)
+        else:
+            absenteeism_by_dept = pd.DataFrame()
+        
+        if 'dept' in workforce_df.columns and 'employee_survey_score' in workforce_df.columns:
+            survey_by_dept = workforce_df.groupby('dept')['employee_survey_score'].mean().reset_index()
+            survey_by_dept.columns = ['Department', 'Survey_Score']
+            survey_by_dept = survey_by_dept.sort_values('Survey_Score', ascending=False)
+        else:
+            survey_by_dept = pd.DataFrame()
+    else:
+        turnover_by_dept = pd.DataFrame()
+        absenteeism_by_dept = pd.DataFrame()
+        survey_by_dept = pd.DataFrame()
+    
+    # Create subplots
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=('Turnover Rate by Department', 'Absenteeism Rate by Department',
+                       'Survey Score by Department', 'Stability Trend'),
+        specs=[[{"type": "bar"}, {"type": "bar"}],
+               [{"type": "bar"}, {"type": "scatter"}]]
+    )
+    
+    # Plot 1: Turnover by department
+    if not turnover_by_dept.empty:
+        fig.add_trace(
+            go.Bar(x=turnover_by_dept['Department'], y=turnover_by_dept['Turnover_Rate'],
+                   marker_color='coral', name='Turnover Rate %'),
+            row=1, col=1
+        )
+    
+    # Plot 2: Absenteeism by department
+    if not absenteeism_by_dept.empty:
+        fig.add_trace(
+            go.Bar(x=absenteeism_by_dept['Department'], y=absenteeism_by_dept['Absenteeism_Rate'],
+                   marker_color='orange', name='Absenteeism Rate %'),
+            row=1, col=2
+        )
+    
+    # Plot 3: Survey scores by department
+    if not survey_by_dept.empty:
+        fig.add_trace(
+            go.Bar(x=survey_by_dept['Department'], y=survey_by_dept['Survey_Score'],
+                   marker_color='lightgreen', name='Survey Score'),
+            row=2, col=1
+        )
+    
+    # Plot 4: Combined stability trend (inverse of turnover + absenteeism)
+    if not turnover_by_dept.empty and not absenteeism_by_dept.empty:
+        # Merge data
+        stability_df = turnover_by_dept.merge(absenteeism_by_dept, on='Department', how='outer')
+        stability_df['Stability_Score'] = 100 - (stability_df['Turnover_Rate'].fillna(0) + stability_df['Absenteeism_Rate'].fillna(0) * 2)
+        stability_df = stability_df.sort_values('Stability_Score', ascending=False)
+        
+        fig.add_trace(
+            go.Scatter(x=stability_df['Department'], y=stability_df['Stability_Score'],
+                      mode='lines+markers', name='Stability Score',
+                      marker=dict(symbol='circle', size=8, color='blue')),
+            row=2, col=2
+        )
+    
+    # Update axes
+    fig.update_xaxes(title_text="Department", row=1, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Turnover Rate %", row=1, col=1)
+    fig.update_xaxes(title_text="Department", row=1, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Absenteeism Rate %", row=1, col=2)
+    fig.update_xaxes(title_text="Department", row=2, col=1, tickangle=45)
+    fig.update_yaxes(title_text="Survey Score", row=2, col=1)
+    fig.update_xaxes(title_text="Department", row=2, col=2, tickangle=45)
+    fig.update_yaxes(title_text="Stability Score", row=2, col=2)
+    
+    fig.update_layout(height=900, title_text="Workforce Stability Trend Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/social_5_workforce_stability_trend.html')
+    print(f"  ✓ Saved: {charts_dir}/social_5_workforce_stability_trend.html")
+
+
+def create_esg_radar_chart():
+    """Create ESG radar chart (Social and Governance pillars)."""
+    workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+    
+    # Calculate Social & Governance metrics
+    # Social Pillars
+    if kpi_dept_df is not None:
+        avg_turnover = kpi_dept_df['avg_turnover_pct'].mean() if 'avg_turnover_pct' in kpi_dept_df.columns else 0
+        avg_absenteeism = kpi_dept_df['avg_absenteeism_pct'].mean() if 'avg_absenteeism_pct' in kpi_dept_df.columns else 0
+        avg_survey = kpi_dept_df['avg_survey_score'].mean() if 'avg_survey_score' in kpi_dept_df.columns else 0
+    elif workforce_df is not None:
+        avg_turnover = workforce_df['turnover_rate_%'].mean() if 'turnover_rate_%' in workforce_df.columns else 0
+        avg_absenteeism = workforce_df['absenteeism_rate_%'].mean() if 'absenteeism_rate_%' in workforce_df.columns else 0
+        avg_survey = workforce_df['employee_survey_score'].mean() if 'employee_survey_score' in workforce_df.columns else 0
+    else:
+        avg_turnover = 0
+        avg_absenteeism = 0
+        avg_survey = 0
+    
+    # Diversity metrics
+    if workforce_df is not None and 'gender' in workforce_df.columns:
+        gender_diversity = len(workforce_df['gender'].unique()) / max(len(workforce_df), 1) * 100
+    else:
+        gender_diversity = 0
+    
+    # Governance Pillars
+    if governance_df is not None:
+        avg_board_women = governance_df['board_women_%'].mean() if 'board_women_%' in governance_df.columns else 0
+        avg_board_minority = governance_df['board_minority_%'].mean() if 'board_minority_%' in governance_df.columns else 0
+        if 'whistleblower_reports_count' in governance_df.columns and 'closed_reports_count' in governance_df.columns:
+            total_reports = governance_df['whistleblower_reports_count'].sum()
+            closed_reports = governance_df['closed_reports_count'].sum()
+            whistleblower_closure_rate = (closed_reports / total_reports * 100) if total_reports > 0 else 0
+        else:
+            whistleblower_closure_rate = 0
+    else:
+        avg_board_women = 0
+        avg_board_minority = 0
+        whistleblower_closure_rate = 0
+    
+    # Supplier compliance
+    if supplier_df is not None and 'compliance_score_%' in supplier_df.columns:
+        avg_supplier_compliance = supplier_df['compliance_score_%'].mean()
+    else:
+        avg_supplier_compliance = 0
+    
+    # Normalize metrics to 0-100 scale for radar chart
+    # Invert turnover and absenteeism (lower is better)
+    turnover_score = max(0, 100 - (avg_turnover * 5))  # Scale: 20% turnover = 0 score
+    absenteeism_score = max(0, 100 - (avg_absenteeism * 10))  # Scale: 10% absenteeism = 0 score
+    survey_score = avg_survey  # Already 0-100
+    
+    # Create radar chart data
+    categories = ['Turnover\n(Stability)', 'Absenteeism\n(Health)', 'Survey Score\n(Satisfaction)', 
+                  'Gender Diversity', 'Board Women %', 'Board Minority %', 
+                  'Whistleblower\nClosure', 'Supplier\nCompliance']
+    values = [turnover_score, absenteeism_score, survey_score, gender_diversity,
+              avg_board_women, avg_board_minority, whistleblower_closure_rate, avg_supplier_compliance]
+    
+    # Create radar chart
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=values,
+        theta=categories,
+        fill='toself',
+        name='ESG Score',
+        line_color='blue'
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 100]
+            )),
+        showlegend=True,
+        title_text="ESG Radar Chart (Social & Governance Pillars)",
+        height=700
+    )
+    
+    fig.write_html(f'{charts_dir}/social_6_esg_radar_chart.html')
+    print(f"  ✓ Saved: {charts_dir}/social_6_esg_radar_chart.html")
+
+
+def create_all_social_governance_charts():
+    """Generate all Social & Governance charts."""
+    print("\n" + "="*50)
+    print("GENERATING SOCIAL & GOVERNANCE CHARTS")
+    print("="*50)
+    
+    try:
+        create_workforce_diversity_summary()
+        create_policy_compliance_report()
+        create_supplier_esg_rating()
+        create_social_governance_kpi_dashboard()
+        create_workforce_stability_trend()
+        create_esg_radar_chart()
+        
+        print("\nAll Social & Governance visualizations completed! 🎉")
+        
+        # Print summary statistics
+        workforce_df, kpi_dept_df, supplier_df, governance_df = load_social_governance_data()
+        print("\n" + "="*50)
+        print("SOCIAL & GOVERNANCE SUMMARY STATISTICS")
+        print("="*50)
+        
+        if kpi_dept_df is not None:
+            avg_turnover = kpi_dept_df['avg_turnover_pct'].mean() if 'avg_turnover_pct' in kpi_dept_df.columns else 0
+            avg_absenteeism = kpi_dept_df['avg_absenteeism_pct'].mean() if 'avg_absenteeism_pct' in kpi_dept_df.columns else 0
+            avg_survey = kpi_dept_df['avg_survey_score'].mean() if 'avg_survey_score' in kpi_dept_df.columns else 0
+        elif workforce_df is not None:
+            avg_turnover = workforce_df['turnover_rate_%'].mean() if 'turnover_rate_%' in workforce_df.columns else 0
+            avg_absenteeism = workforce_df['absenteeism_rate_%'].mean() if 'absenteeism_rate_%' in workforce_df.columns else 0
+            avg_survey = workforce_df['employee_survey_score'].mean() if 'employee_survey_score' in workforce_df.columns else 0
+        else:
+            avg_turnover = 0
+            avg_absenteeism = 0
+            avg_survey = 0
+        
+        print(f"Average Turnover Rate: {avg_turnover:.2f}%")
+        print(f"Average Absenteeism Rate: {avg_absenteeism:.2f}%")
+        print(f"Average Survey Score: {avg_survey:.2f}")
+        
+        if supplier_df is not None:
+            avg_compliance = supplier_df['compliance_score_%'].mean() if 'compliance_score_%' in supplier_df.columns else 0
+            print(f"Average Supplier Compliance: {avg_compliance:.2f}%")
+        
+        if governance_df is not None:
+            avg_women = governance_df['board_women_%'].mean() if 'board_women_%' in governance_df.columns else 0
+            print(f"Average Board Women %: {avg_women:.2f}%")
+        
+        if kpi_dept_df is not None and 'dept' in kpi_dept_df.columns:
+            print(f"\nTop 5 Departments by Turnover Rate:")
+            print(kpi_dept_df.nlargest(5, 'avg_turnover_pct')[['dept', 'avg_turnover_pct']])
+        
+    except Exception as e:
+        print(f"Error generating Social & Governance charts: {str(e)}")
+        raise

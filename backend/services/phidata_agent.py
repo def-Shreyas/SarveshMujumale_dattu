@@ -338,6 +338,335 @@ def save_medical_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Medical Records Report generated: {report_path}")
 
 
+def create_training_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Training Database analysis."""
+    prompt = f"""
+You are a Training and Development Analysis Assistant.
+Analyze the provided training records data.
+
+Goals:
+1. Analyze training completion summary and provide statistics.
+2. Perform skill gap analysis to identify areas needing improvement.
+3. Generate expiry reminders for certifications.
+4. Calculate and interpret key KPIs:
+   - Coverage % = Trained / Total × 100
+   - Effectiveness = Avg(Post Score – Pre Score)
+   - Expiry Compliance % = Valid / Total × 100
+5. AI Functions:
+   - Recommend retraining candidates based on low scores or expiring certifications
+   - Predict departments with low competency based on training performance
+   - Generate monthly TNA (Training Needs Analysis) summary
+6. Provide actionable recommendations for improving training effectiveness.
+
+Please provide a comprehensive, detailed report similar to an executive training analysis report. Include:
+- Executive Summary
+- Training Completion Summary (statistics on completed trainings, coverage, etc.)
+- Skill Gap Analysis (identify departments/courses with skill gaps, low scores)
+- Expiry Reminders (list of certifications expiring soon, expired certifications)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Coverage Percentage (Trained / Total employees)
+  * Training Effectiveness (Average improvement: Post - Pre scores)
+  * Expiry Compliance Percentage (Valid certifications / Total)
+- AI Functions Results:
+  * Retraining Candidate Recommendations (employees needing retraining based on scores/expiry)
+  * Low Competency Department Predictions (departments with below-average training performance)
+  * Monthly TNA Summary (Training Needs Analysis by month, department, course)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Training Calendar Analysis (training distribution over time)
+- Skill Matrix Analysis (competency levels by department and course)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_training_report_with_gemini(prompt: str) -> str:
+    """Generate Training Database analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Training Database report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_training_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Training Database report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Training Database Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Training Database Report generated: {report_path}")
+
+
+def create_ppe_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for PPE (Assets & PPE) analysis."""
+    prompt = f"""
+You are a PPE (Personal Protective Equipment) and Assets Management Analysis Assistant.
+Analyze the provided PPE inventory and usage data.
+
+Goals:
+1. Analyze stock summary by PPE type and provide statistics.
+2. Analyze usage vs purchase patterns and identify trends.
+3. Generate reorder alerts for low stock items.
+4. Calculate and interpret key KPIs:
+   - Utilization % = Issued / Purchased × 100
+   - Stock Turnover Rate = Issued / Average Stock
+   - Low Stock Alerts (< threshold)
+5. AI Functions:
+   - Predict next stock-out date based on consumption patterns
+   - Identify high-usage departments requiring more frequent replenishment
+   - Auto-generate reorder list with recommended quantities
+6. Provide actionable recommendations for optimizing PPE inventory management.
+
+Please provide a comprehensive, detailed report similar to an executive PPE management analysis report. Include:
+- Executive Summary
+- Stock Summary by PPE Type (purchased, issued, balance statistics)
+- Usage vs Purchase Analysis (comparison charts, trends, patterns)
+- Reorder Alerts (items needing reorder, low stock items, upcoming deliveries)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Utilization Percentage (Issued / Purchased)
+  * Stock Turnover Rate (how quickly stock is being used)
+  * Low Stock Alerts Count (items below threshold)
+- AI Functions Results:
+  * Next Stock-Out Date Predictions (when each PPE item is likely to run out)
+  * High-Usage Department Identification (departments consuming PPE at high rates)
+  * Auto-Generated Reorder List (recommended items and quantities for reorder)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Consumption Trend Analysis (by department, by PPE type, over time)
+- Upcoming Expiry/Delivery List (items with upcoming delivery dates)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_ppe_report_with_gemini(prompt: str) -> str:
+    """Generate PPE analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating PPE report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_ppe_report(report_content: str, report_path: Path) -> None:
+    """Save the generated PPE report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# PPE (Assets & PPE) Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] PPE Report generated: {report_path}")
+
+
+def create_rca_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Corrective Actions & RCA analysis."""
+    prompt = f"""
+You are a Corrective Actions and Root Cause Analysis (RCA) Management Assistant.
+Analyze the provided corrective actions and RCA data.
+
+Goals:
+1. Analyze open vs closed actions summary and provide statistics.
+2. Track SLA-based closure performance and identify bottlenecks.
+3. Calculate and interpret key KPIs:
+   - Action Closure % = Closed / Total × 100
+   - Overdue Actions = Count(Actions > Due Date)
+   - Avg. Closure Time = Mean(Closed Date – Created Date)
+4. AI Functions:
+   - Flag overdue actions automatically and prioritize them
+   - Recommend preventive measures based on root cause patterns
+   - Identify recurring issues requiring systemic solutions
+5. Provide actionable recommendations for improving corrective action management.
+
+Please provide a comprehensive, detailed report similar to an executive corrective actions analysis report. Include:
+- Executive Summary
+- Open vs Closed Actions Summary (status breakdown, statistics)
+- SLA-Based Closure Tracking (performance against service level agreements)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Action Closure Percentage (Closed / Total actions)
+  * Overdue Actions Count (actions past their due date)
+  * Average Closure Time (time taken to close actions)
+- AI Functions Results:
+  * Overdue Actions Flagging (list of overdue actions with details and priority)
+  * Preventive Measures Recommendations (specific actions to prevent recurring issues)
+  * Root Cause Pattern Analysis (common root causes and their frequency)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Overdue Trend Analysis (trend of overdue actions over time)
+- RCA Closure Gauge Interpretation (closure rate performance)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_rca_report_with_gemini(prompt: str) -> str:
+    """Generate Corrective Actions & RCA analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Corrective Actions & RCA report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_rca_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Corrective Actions & RCA report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Corrective Actions & RCA Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Corrective Actions & RCA Report generated: {report_path}")
+
+
+def create_environmental_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Environmental & Resource Use analysis."""
+    prompt = f"""
+You are an Environmental and Resource Use Analysis Assistant.
+Analyze the provided environmental and resource consumption data.
+
+Goals:
+1. Analyze energy and emission trends over time.
+2. Analyze waste recycling patterns and identify improvement opportunities.
+3. Calculate and interpret key KPIs:
+   - Energy Intensity = kWh / Unit Produced (if production data available)
+   - CO₂ Intensity = tCO₂ / Unit Produced (if production data available)
+   - Recycling % = Recycled / Total Waste × 100
+4. AI Functions:
+   - Detect abnormal resource consumption patterns and flag anomalies
+   - Recommend reduction actions for energy, water, waste, and CO₂ emissions
+   - Identify opportunities for renewable energy adoption
+5. Provide actionable recommendations for improving environmental performance.
+
+Please provide a comprehensive, detailed report similar to an executive environmental analysis report. Include:
+- Executive Summary
+- Energy and Emission Trends (monthly patterns, plant-wise comparison)
+- Waste Recycling Summary (recycling rates, waste distribution, improvement areas)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Energy Intensity (kWh per unit produced)
+  * CO₂ Intensity (tCO₂ per unit produced)
+  * Recycling Percentage (Recycled / Total Waste)
+  * Renewable Energy Percentage
+- AI Functions Results:
+  * Abnormal Resource Consumption Detection (identify spikes, anomalies, unusual patterns)
+  * Reduction Action Recommendations (specific actions to reduce energy, water, waste, CO₂)
+  * Renewable Energy Opportunities (areas where renewable energy can be increased)
+- Dashboard Insights (interpretation of key metrics and trends)
+- ESG Score Analysis (Environmental, Social, Governance scoring)
+- CO₂ Reduction Analysis (trends, targets, achievements)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_environmental_report_with_gemini(prompt: str) -> str:
+    """Generate Environmental & Resource Use analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Environmental & Resource Use report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_environmental_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Environmental & Resource Use report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Environmental & Resource Use Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Environmental & Resource Use Report generated: {report_path}")
+
+
+def create_social_governance_analysis_prompt(numeric_summary: list) -> str:
+    """Create the prompt for Social & Governance analysis."""
+    prompt = f"""
+You are a Social & Governance Analysis Assistant.
+Analyze the provided workforce, social, and governance data.
+
+Goals:
+1. Analyze workforce diversity summary (gender, age groups, departments).
+2. Analyze policy compliance and governance metrics.
+3. Analyze supplier ESG ratings and audit performance.
+4. Calculate and interpret key KPIs:
+   - Turnover Rate = (Employees Left / Total Employees) × 100
+   - Absenteeism % = (Absent Days / Total Working Days) × 100
+   - Policy Compliance % = (Compliant Policies / Total Policies) × 100
+   - Supplier Audit % = (Audited Suppliers / Total Suppliers) × 100
+5. AI Functions:
+   - Predict attrition risk by department based on turnover rates, absenteeism, and survey scores
+   - Analyze sentiment from employee surveys and identify areas of concern
+   - Generate governance score summary combining board diversity, whistleblower reports, and policy compliance
+6. Provide actionable recommendations for improving social and governance performance.
+
+Please provide a comprehensive, detailed report similar to an executive social & governance analysis report. Include:
+- Executive Summary
+- Workforce Diversity Summary (gender distribution, age group breakdown, department diversity)
+- Policy Compliance Report (policy review dates, compliance status, version tracking)
+- Supplier ESG Rating Analysis (supplier audit scores, compliance rates, incident tracking)
+- Key Performance Indicators (KPIs) with calculations and interpretations:
+  * Turnover Rate (department-wise and overall)
+  * Absenteeism Percentage (by department and overall)
+  * Policy Compliance Percentage (based on policy reviews and compliance)
+  * Supplier Audit Percentage (audited vs total suppliers)
+- AI Functions Results:
+  * Attrition Risk Prediction by Department (identify high-risk departments with specific risk factors)
+  * Employee Survey Sentiment Analysis (analyze survey scores, identify trends, highlight concerns)
+  * Governance Score Summary (combine board diversity, whistleblower handling, policy compliance)
+- Dashboard Insights (interpretation of key metrics and trends)
+- Workforce Stability Trend Analysis (turnover and absenteeism trends over time)
+- ESG Radar Chart Interpretation (Social and Governance pillars performance)
+- Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
+- Reference the data whenever and wherever possible.
+
+## Data summaries
+{chr(10).join(numeric_summary)}
+"""
+    return prompt
+
+
+def generate_social_governance_report_with_gemini(prompt: str) -> str:
+    """Generate Social & Governance analysis report using Gemini via Phidata."""
+    gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)
+    agent = Agent(model=gemini, markdown=True)
+    
+    print("[INFO] Generating Social & Governance report with Gemini...")
+    response = agent.run(prompt)
+    
+    report_content = extract_content_from_response(response)
+    return report_content
+
+
+def save_social_governance_report(report_content: str, report_path: Path) -> None:
+    """Save the generated Social & Governance report to a markdown file."""
+    with open(report_path, "w", encoding="utf-8") as f:
+        f.write("# Social & Governance Analysis Report\n\n")
+        f.write(report_content)
+    
+    print(f"[INFO] Social & Governance Report generated: {report_path}")
+
+
 def generate_report_with_gemini(prompt: str) -> str:
     """Generate safety analysis report using Gemini via Phidata."""
     gemini = Gemini(id="gemini-2.5-pro", temperature=0.2)

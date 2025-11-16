@@ -21,6 +21,7 @@ import {
   Sparkles,
   Eye,
   BarChart2,
+  Bot,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -41,6 +42,11 @@ const aiQuotes = [
   "AI is transforming the way we analyze safety data...",
   "Machine learning helps us identify patterns we couldn't see before...",
   "Every dataset tells a story, AI helps us read it...",
+  "Analyzing patterns across thousands of unsafe act observations...",
+  "Turning 'at-risk behaviors' into predictive safety insights...",
+  "Looking beyond individual acts to find systemic root causes...",
+  "Processing your team's observations to build a proactive safety model...",
+  "Pinpointing your highest-priority risks based on behavioral data...",
 ];
 
 // --- Types ---
@@ -369,6 +375,9 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
 // --- Component ---
 export const Unsafety: React.FC = () => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
   const reportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -814,16 +823,91 @@ export const Unsafety: React.FC = () => {
   //
 
   // 1. Upload screen
+// 1. Upload screen (IMPROVED UI)
+// ... (keep all your existing imports and component logic above this)
+
+  // --- RENDER LOGIC ---
+
+  // 1. UPLOAD SCREEN
   if (!showDashboard && !isGenerating) {
     return (
-      <div className="w-full flex items-center justify-center py-10">
+      <div className="w-full py-12">
+        {/* TOP PAGE HEADING */}
+        <div className="text-center mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-extrabold text-[#0B3D91]"
+          >
+            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
+              DATTU AI Safety Analyzer
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
+          >
+            Upload your Excel safety dataset and let DATTU generate a smart,
+            interactive, AI-powered analysis — including charts, trends and a
+            full executive report.
+          </motion.p>
+        </div>
+
+        {/* HOW IT WORKS (ENHANCED HOVER) */}
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+          {[
+            {
+              title: "1. Upload Excel File",
+              icon: Upload,
+              desc: "Upload raw safety observation or incident Excel files.",
+            },
+            {
+              title: "2. AI Analyzes Data",
+              icon: Sparkles,
+              desc: "DATTU processes unsafe acts, trends & generates insights.",
+            },
+            {
+              title: "3. View Dashboard",
+              icon: BarChart2,
+              desc: "Get interactive charts & a detailed AI written report.",
+            },
+          ].map((step, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              // --- NEW HOVER ANIMATION ---
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                {/* --- NEW ICON ANIMATION --- */}
+                <motion.div
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="group-hover:scale-110"
+                >
+                  <step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" />
+                </motion.div>
+                <p className="font-semibold text-gray-800">{step.title}</p>
+              </div>
+              <p className="text-sm text-gray-600">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* UPLOAD CARD */}
         <motion.div
-          className="w-full max-w-2xl"
+          className="w-full flex items-center justify-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ delay: 0.5 }}
         >
-          <Card className="shadow-xl border-t-4 border-[#0B3D91]">
+          <Card className="shadow-xl border-t-4 border-[#0B3D91] w-full max-w-2xl overflow-hidden">
             <CardHeader className="text-center pb-6">
               <motion.div
                 className="flex justify-center mb-4"
@@ -835,29 +919,41 @@ export const Unsafety: React.FC = () => {
                   stiffness: 200,
                 }}
               >
-                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
-                  <Upload className="w-12 h-12 text-[#0B3D91]" />
+                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/15 to-[#00A79D]/15 border border-[#0B3D91]/30">
+                  {/* --- NEW "MOVING" ICON --- */}
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }} // Bobbing animation
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <Upload className="w-12 h-12 text-[#0B3D91]" />
+                  </motion.div>
                 </div>
               </motion.div>
-              <CardTitle className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
                 Upload Unsafe Acts Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Upload the `sample.xlsx` file to generate your AI-powered
-                dashboard.
+                Choose an Excel file (.xlsx / .xls) to begin the analysis.
               </p>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <label
+            <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
+              {/* --- NEW DRAG & DROP HOVER EFFECT --- */}
+              <motion.label
                 htmlFor="file-upload"
+                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
                 className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {selectedFile ? (
                     <>
                       <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         {selectedFile.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -867,7 +963,7 @@ export const Unsafety: React.FC = () => {
                   ) : (
                     <>
                       <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
@@ -877,7 +973,6 @@ export const Unsafety: React.FC = () => {
                   )}
                 </div>
 
-                {/* Use native input so ref works */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -886,16 +981,18 @@ export const Unsafety: React.FC = () => {
                   className="hidden"
                   id="file-upload"
                 />
-              </label>
+              </motion.label>
 
+              {/* --- ENHANCED BUTTON HOVER --- */}
               <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.99 }}
+                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
               >
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
+                             shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   Generate AI Dashboard
@@ -908,55 +1005,97 @@ export const Unsafety: React.FC = () => {
     );
   }
 
+// ... (keep the rest of your file, including the 'isGenerating' and 'showDashboard' blocks)
+
+
   // 2. Loading screen
-  if (isGenerating) {
-    return (
-      <div className="w-full flex items-center justify-center py-20">
+// 2. LOADING SCREEN (ENHANCED)
+if (isGenerating) {
+  return (
+    <div className="w-full flex items-center justify-center py-20">
+      <motion.div
+        className="text-center max-w-2xl"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* --- ENHANCED: "Breathing" AI Icon --- */}
         <motion.div
-          className="text-center max-w-2xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          className="flex justify-center mb-8"
+          animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         >
+          <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+            {/* --- NEW: AI-themed Icon --- */}
+            <Bot className="w-16 h-16 text-[#0B3D91]" />
+          </div>
+        </motion.div>
+
+        {/* Main Title (Unchanged) */}
+        <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+          Analyzing Your Data...
+        </h2>
+
+        {/* Rotating AI Quotes (Using new quotes) */}
+        <AnimatePresence mode="wait">
           <motion.div
-            className="flex justify-center mb-8"
-            animate={{ rotate: 360 }}
+            key={currentQuoteIndex}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.5 }}
+            className="mb-4" // Removed mb-4, will add it to the container
+          >
+            <div className="flex items-center justify-center gap-3">
+              <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+              <p className="text-xl text-gray-600 font-medium">
+                {aiQuotes[currentQuoteIndex]}
+              </p>
+              <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* --- NEW: Dynamic Loading Step Text --- */}
+        <div className="h-6 mt-4"> {/* Height container to prevent layout shift */}
+          <AnimatePresence mode="wait">
+            <motion.p
+               // Keyed to the step
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="text-sm text-gray-500"
+            >
+              
+            </motion.p>
+          </AnimatePresence>
+        </div>
+
+        {/* --- NEW: Indeterminate Progress Bar --- */}
+        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+          <motion.div
+            className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
             transition={{
               duration: 2,
               repeat: Infinity,
               ease: "linear",
             }}
-          >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
-              <Loader2 className="w-16 h-16 text-[#0B3D91]" />
-            </div>
-          </motion.div>
+          />
+        </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentQuoteIndex}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.5 }}
-              className="mb-4"
-            >
-              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Analyzing Your Data...
-              </h2>
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <Sparkles className="w-6 h-6 text-[#0B3D91] animate-pulse" />
-                <p className="text-xl text-gray-600 font-medium">
-                  {aiQuotes[currentQuoteIndex]}
-                </p>
-                <Sparkles className="w-6 h-6 text-[#00A79D] animate-pulse" />
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-      </div>
-    );
-  }
+      </motion.div>
+    </div>
+  );
+}
+
+// ... (keep the rest of your file, especially the 'showDashboard' block)
 
   // 3. Dashboard (results)
   return (
