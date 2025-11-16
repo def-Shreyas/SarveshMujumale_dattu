@@ -412,7 +412,7 @@ export const Environmental: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Brain className="h-5 w-5 text-[#0B3D91]" />
-                  AI Co-Pilot
+                  DATTU AI
                 </CardTitle>
                 <CardDescription>
   {selectedRecord
