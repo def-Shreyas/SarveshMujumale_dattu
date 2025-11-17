@@ -1,22 +1,12 @@
 // src/components/Header.tsx
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Bell, Search, Menu, LogOut } from "lucide-react"; // 2. Import LogOut icon
+import { useNavigate } from "react-router-dom";
+import { Menu, LogOut, Building2, User } from "lucide-react"; // Removed Search and Bell, added Building2 and User icons
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext"; // 3. Import useAuth hook
 
 // Import your custom UI components
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// Avatar components are no longer needed, but keeping import for safety if other files use them
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; 
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 // 4. Import DropdownMenu components
 import {
   DropdownMenu,
@@ -42,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   setIsCollapsed,
 }) => {
   // 5. Initialize hooks
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -85,38 +75,43 @@ export const Header: React.FC<HeaderProps> = ({
         </Link> */}
       </div>
 
-      {/* Center: Search */}
-      <div className="flex-1">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-            type="search"
-            placeholder="Search incident, PTW, KPI…"
-            className="w-full rounded-full bg-gray-100 pl-10"
-          />
-        </div>
+      {/* Center: Company Name and Username */}
+      <div className="flex-1 flex items-center justify-center gap-4 md:gap-6">
+        {user && (
+          <>
+            {/* Company Name */}
+            {user.company_name && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-6 w-6 text-[#0B3D91]" />
+                  <span className="text-base md:text-lg font-semibold text-gray-700 hidden sm:inline-block">
+                    {user.company_name}
+                  </span>
+                  <span className="text-sm font-semibold text-gray-700 sm:hidden">
+                    {user.company_name.length > 15 
+                      ? user.company_name.substring(0, 15) + '...' 
+                      : user.company_name}
+                  </span>
+                </div>
+                {/* Separator */}
+                <div className="h-6 w-px bg-gray-300 hidden sm:block"></div>
+              </>
+            )}
+            
+            {/* Username */}
+            <div className="flex items-center gap-3">
+              <User className="h-6 w-6 text-[#00A79D]" />
+              <span className="text-base md:text-lg font-semibold text-gray-800">
+                {user.username}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Right: Actions (Now incorporating Dattu branding and Logout) */}
       <div className="flex items-center gap-4">
-        {/* Notifications */}
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <Bell className="h-5 w-5" />
-        </Button>
-
-        {/* Plant Selector */}
-        <Select defaultValue="plant-1">
-          <SelectTrigger className="hidden w-[180px] md:flex">
-            <SelectValue placeholder="Select Plant" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="plant-1">All Plants</SelectItem>
-            <SelectItem value="plant-2">Plant A (Manufacturing)</SelectItem>
-            <SelectItem value="plant-3">Plant B (Assembly)</SelectItem>
-          </SelectContent>
-        </Select>
-        
-        {/* 6. DATTU Branding and Logout Dropdown */}
+        {/* DATTU Branding and Logout Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex cursor-pointer items-center gap-2 rounded-full p-1 transition-all hover:bg-gray-100">
@@ -131,9 +126,9 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Executive Co-Pilot</DropdownMenuLabel>
+            <DropdownMenuLabel>DATTU AI Assistant</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>View Report Access</DropdownMenuItem>
+            
             <DropdownMenuItem 
               className="text-red-500 cursor-pointer focus:bg-red-50/50" 
               onClick={handleLogout}

@@ -19,9 +19,11 @@ import {
   FileText,
   Loader2,
   Sparkles,
-  Eye,
+  AlertTriangle,
   BarChart2,
   Bot,
+  ShieldAlert,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,14 +41,14 @@ const BACKEND_URL = "http://localhost:8000";
 
 // --- AI Motivational Quotes ---
 const aiQuotes = [
-  "AI is transforming the way we analyze safety data...",
-  "Machine learning helps us identify patterns we couldn't see before...",
-  "Every dataset tells a story, AI helps us read it...",
-  "Analyzing patterns across thousands of unsafe act observations...",
-  "Turning 'at-risk behaviors' into predictive safety insights...",
-  "Looking beyond individual acts to find systemic root causes...",
-  "Processing your team's observations to build a proactive safety model...",
-  "Pinpointing your highest-priority risks based on behavioral data...",
+  "AI is transforming the way we analyze incident data...",
+  "Machine learning helps us identify patterns in incidents and near misses...",
+  "Every incident tells a story, AI helps us read it...",
+  "Analyzing patterns across thousands of incidents and near misses...",
+  "Turning incident data into predictive safety insights...",
+  "Looking beyond individual incidents to find systemic root causes...",
+  "Processing your team's incident reports to build a proactive safety model...",
+  "Pinpointing your highest-priority risks based on incident patterns...",
 ];
 
 // --- Types ---
@@ -83,6 +85,29 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
   // Simple markdown-to-HTML converter
   const formatMarkdown = (text: string): string => {
+    // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
+    const stripHtmlAttributes = (str: string): string => {
+      // Remove style attributes and other inline attributes from HTML tags
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
+      
+      // Remove any standalone HTML attribute text that might be displayed
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
+      
+      // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
+      
+      // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
+      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      
+      return str;
+    };
+
+    // Clean the text first to remove HTML attributes
+    text = stripHtmlAttributes(text);
+
     // Escape HTML for content (not attributes) - only escape <, >, and & (when not part of valid entities)
     // Quotes don't need to be escaped in HTML content, only in attribute values
     const escapeHtml = (str: string) => {
@@ -379,6 +404,8 @@ export const Unsafety: React.FC = () => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
   const reportRef = useRef<HTMLDivElement | null>(null);
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -470,6 +497,9 @@ export const Unsafety: React.FC = () => {
       console.error("Upload error body:", text);
       throw new Error(`Upload failed (${res.status}): ${text}`);
     }
+
+    // Track API call
+    
   };
 
   // helper: trigger backend to build report.md and charts/*.html
@@ -477,6 +507,7 @@ export const Unsafety: React.FC = () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
+    // Generate report
     const r1 = await fetch(`${BACKEND_URL}/generate-report`, {
       method: "POST",
       headers: {
@@ -484,11 +515,59 @@ export const Unsafety: React.FC = () => {
       },
     });
 
-    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+    if (!r1.ok) {
+      // Extract detailed error message from response
+      let errorMessage = `Report generation failed (${r1.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse = r1.clone();
+      
+      try {
+        const errorData = await r1.json();
+        // FastAPI returns errors in {detail: "message"} format
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch (e) {
+        // If JSON parsing fails, try to get text response from cloned response
+        try {
+          const errorText = await clonedResponse.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          // If both fail, use default message
+          console.error("Failed to parse error response:", e, e2);
+        }
+      }
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+        throw new Error("API key not configured. Please contact the administrator to set up the Google API key.");
+      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        throw new Error("Please upload the Excel file first before generating the report.");
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        throw new Error("Network error. Please check your internet connection and try again.");
+      } else {
+        throw new Error(errorMessage);
+      }
+    }
+
+    // Track API call on success
+    
 
     // 🔥 ADD THIS LINE — prevents race condition
     await new Promise((res) => setTimeout(res, 1200));
 
+    // Generate charts
     const r2 = await fetch(`${BACKEND_URL}/generate-charts`, {
       method: "POST",
       headers: {
@@ -496,7 +575,41 @@ export const Unsafety: React.FC = () => {
       },
     });
 
-    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+    if (!r2.ok) {
+      // Extract detailed error message from response
+      let errorMessage = `Chart generation failed (${r2.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse2 = r2.clone();
+      
+      try {
+        const errorData = await r2.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch (e) {
+        try {
+          const errorText = await clonedResponse2.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          console.error("Failed to parse error response:", e, e2);
+        }
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Track API call on success
+    
   };
 
   // helper: pull AI report text
@@ -552,6 +665,9 @@ export const Unsafety: React.FC = () => {
       throw new Error(raw || `Fetching /report failed (${res.status})`);
     }
 
+    // Track API call on success
+    
+
     // ✅ ENFORCE: Always return a clean string
     // Remove any potential React elements or objects
     if (typeof raw !== "string") {
@@ -588,6 +704,8 @@ export const Unsafety: React.FC = () => {
       throw new Error(`Fetching /charts list failed (${res.status}): ${body}`);
     }
 
+    // Track API call on success
+    
     const data = await res.json().catch(() => null);
     if (!data) return [];
 
@@ -621,6 +739,9 @@ export const Unsafety: React.FC = () => {
       const body = await res.text().catch(() => "");
       throw new Error(`Fetching chart failed (${res.status}): ${body}`);
     }
+
+    // Track API call on success
+    
 
     return await res.text();
   };
@@ -726,9 +847,16 @@ export const Unsafety: React.FC = () => {
       setIsGenerating(false);
       setShowDashboard(false);
 
+      // Clear any pending progress toasts
+      toast.dismiss("upload");
+      toast.dismiss("gen_report");
+      toast.dismiss("gen_charts");
+
+      // Show error with detailed message
+      const errorMessage = error?.message || "Could not process the file. Please try again.";
       toast.error("Generation Failed", {
-        description:
-          error?.message || "Could not process the file. Please try again.",
+        description: errorMessage,
+        duration: 5000, // Show for 5 seconds so user can read it
       });
     }
   };
@@ -749,73 +877,262 @@ export const Unsafety: React.FC = () => {
     }
   };
 
-  // Download PDF of the report tab
+  // Download PDF of both report and charts
   const downloadPDF = async () => {
-    const element = reportRef.current;
-    if (!element) {
+    if (!reportContentRef.current) {
       toast.error("Error", {
-        description: "Cannot find report to download.",
+        description: "Cannot find report content to download.",
       });
       return;
     }
 
-    toast.info("Generating PDF", { description: "Please wait..." });
+    toast.info("Generating PDF", { 
+      description: "Capturing report and charts... This may take a moment." 
+    });
 
     const originalBG = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#FFFFFF";
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#FFFFFF",
-    });
+    // Store original styles to restore later
+    const originalReportStyles: { display?: string; visibility?: string; opacity?: string } = {};
+    const originalChartsStyles: { display?: string; visibility?: string; opacity?: string } = {};
 
-    document.body.style.backgroundColor = originalBG;
+    try {
+      // Temporarily make both tabs visible for capture
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        originalReportStyles.display = reportEl.style.display;
+        originalReportStyles.visibility = reportEl.style.visibility;
+        originalReportStyles.opacity = reportEl.style.opacity;
+        reportEl.style.display = 'block';
+        reportEl.style.visibility = 'visible';
+        reportEl.style.opacity = '1';
+      }
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        originalChartsStyles.display = chartsEl.style.display;
+        originalChartsStyles.visibility = chartsEl.style.visibility;
+        originalChartsStyles.opacity = chartsEl.style.opacity;
+        chartsEl.style.display = 'block';
+        chartsEl.style.visibility = 'visible';
+        chartsEl.style.opacity = '1';
+      }
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+      // Wait a bit for styles to apply and iframes to render
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const pageImgHeight =
-      imgWidth > 0 ? (pdfWidth - 20) * (imgHeight / imgWidth) : 0;
-    let heightLeft = pageImgHeight;
-    let position = 10;
-    const pageMargin = 10;
-    const safePdfHeight = pdfHeight - pageMargin * 2;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
 
-    pdf.addImage(
-      imgData,
-      "PNG",
-      pageMargin,
-      position,
-      pdfWidth - pageMargin * 2,
-      pageImgHeight
-    );
-    heightLeft -= safePdfHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pageMargin = 10;
+      const safePdfHeight = pdfHeight - pageMargin * 2;
+      const safePdfWidth = pdfWidth - pageMargin * 2;
 
-    while (heightLeft > 0) {
-      position = -heightLeft + pageMargin;
-      pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "PNG",
-        pageMargin,
-        position,
-        pdfWidth - pageMargin * 2,
-        pageImgHeight
-      );
-      heightLeft -= safePdfHeight;
+      // Helper function to add canvas to PDF with pagination
+      const addCanvasToPdf = (canvas: HTMLCanvasElement, pdf: jsPDF, startNewPage: boolean = false) => {
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+
+        if (imgWidth === 0 || imgHeight === 0) {
+          return;
+        }
+
+        if (startNewPage) {
+          pdf.addPage();
+        }
+
+        const pageImgHeight = (safePdfWidth * imgHeight) / imgWidth;
+        let heightLeft = pageImgHeight;
+        let position = pageMargin;
+
+        // Add first page
+        pdf.addImage(
+          imgData,
+          "PNG",
+          pageMargin,
+          position,
+          safePdfWidth,
+          pageImgHeight
+        );
+        heightLeft -= safePdfHeight;
+
+        // Add additional pages if needed
+        while (heightLeft > 0) {
+          position = -heightLeft + pageMargin;
+          pdf.addPage();
+          pdf.addImage(
+            imgData,
+            "PNG",
+            pageMargin,
+            position,
+            safePdfWidth,
+            pageImgHeight
+          );
+          heightLeft -= safePdfHeight;
+        }
+      };
+
+      // 1. Capture Report Tab
+      toast.info("Capturing report...", { id: "pdf-progress" });
+      
+      // Scroll to top of report content
+      if (reportContentRef.current) {
+        reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      const reportCanvas = await html2canvas(reportContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#FFFFFF",
+        logging: false,
+        allowTaint: false,
+        removeContainer: false,
+        imageTimeout: 15000,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          // Ensure colors are preserved in cloned document
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
+                               clonedDoc.body.querySelector('.shadow-lg');
+          if (clonedElement) {
+            (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
+          }
+        },
+      });
+
+      addCanvasToPdf(reportCanvas, pdf);
+
+      // 2. Capture Charts Tab (if charts exist)
+      if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
+        toast.info("Capturing charts...", { id: "pdf-progress" });
+        
+        // Scroll to top of charts content
+        if (chartsContentRef.current) {
+          chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Wait a bit more for iframe to fully render
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Capture the charts container
+        const chartsCanvas = await html2canvas(chartsContentRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#FFFFFF",
+          logging: false,
+          allowTaint: false,
+          removeContainer: false,
+          imageTimeout: 15000,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            // Ensure iframe content is visible
+            const iframes = clonedDoc.querySelectorAll('iframe');
+            iframes.forEach((iframe) => {
+              iframe.style.display = 'block';
+              iframe.style.visibility = 'visible';
+              iframe.style.opacity = '1';
+            });
+          },
+        });
+
+        // Add charts section with title
+        pdf.addPage();
+        pdf.setFontSize(18);
+        pdf.setTextColor(11, 61, 145); // #0B3D91
+        pdf.text("Interactive Charts", pageMargin, pageMargin + 10);
+
+        // Add charts image below title
+        const chartsImgData = chartsCanvas.toDataURL("image/png", 1.0);
+        const chartsImgWidth = chartsCanvas.width;
+        const chartsImgHeight = chartsCanvas.height;
+
+        if (chartsImgWidth > 0 && chartsImgHeight > 0) {
+          const chartsPageImgHeight = (safePdfWidth * chartsImgHeight) / chartsImgWidth;
+          let chartsHeightLeft = chartsPageImgHeight;
+          let chartsPosition = pageMargin + 15; // Offset for title
+
+          // Add first page of charts
+          pdf.addImage(
+            chartsImgData,
+            "PNG",
+            pageMargin,
+            chartsPosition,
+            safePdfWidth,
+            chartsPageImgHeight
+          );
+          chartsHeightLeft -= (safePdfHeight - 15);
+
+          // Add additional pages if needed
+          while (chartsHeightLeft > 0) {
+            chartsPosition = -chartsHeightLeft + pageMargin;
+            pdf.addPage();
+            pdf.addImage(
+              chartsImgData,
+              "PNG",
+              pageMargin,
+              chartsPosition,
+              safePdfWidth,
+              chartsPageImgHeight
+            );
+            chartsHeightLeft -= safePdfHeight;
+          }
+        }
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `Dattu_Incident_NearMiss_Report_${timestamp}.pdf`;
+
+      // Save PDF - this will trigger the file explorer dialog
+      pdf.save(filename);
+      
+      toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF", {
+        description: error?.message || "An error occurred while generating the PDF.",
+        id: "pdf-progress",
+      });
+    } finally {
+      // Restore original styles
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        if (originalReportStyles.display !== undefined) {
+          reportEl.style.display = originalReportStyles.display;
+        }
+        if (originalReportStyles.visibility !== undefined) {
+          reportEl.style.visibility = originalReportStyles.visibility;
+        }
+        if (originalReportStyles.opacity !== undefined) {
+          reportEl.style.opacity = originalReportStyles.opacity;
+        }
+      }
+
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        if (originalChartsStyles.display !== undefined) {
+          chartsEl.style.display = originalChartsStyles.display;
+        }
+        if (originalChartsStyles.visibility !== undefined) {
+          chartsEl.style.visibility = originalChartsStyles.visibility;
+        }
+        if (originalChartsStyles.opacity !== undefined) {
+          chartsEl.style.opacity = originalChartsStyles.opacity;
+        }
+      }
+
+      document.body.style.backgroundColor = originalBG;
     }
-
-    pdf.save("Dattu_AI_Report.pdf");
   };
 
   //
@@ -841,7 +1158,7 @@ export const Unsafety: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI Safety Analyzer
+              DATTU AI Incident & Near Miss Analyzer
             </span>
           </motion.h1>
 
@@ -851,7 +1168,7 @@ export const Unsafety: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
           >
-            Upload your Excel safety dataset and let DATTU generate a smart,
+            Upload your Excel incident and near miss dataset and let DATTU generate a smart,
             interactive, AI-powered analysis — including charts, trends and a
             full executive report.
           </motion.p>
@@ -863,12 +1180,12 @@ export const Unsafety: React.FC = () => {
             {
               title: "1. Upload Excel File",
               icon: Upload,
-              desc: "Upload raw safety observation or incident Excel files.",
+              desc: "Upload raw incident reports and near miss data in Excel format.",
             },
             {
               title: "2. AI Analyzes Data",
               icon: Sparkles,
-              desc: "DATTU processes unsafe acts, trends & generates insights.",
+              desc: "DATTU processes incidents, near misses, trends & generates insights.",
             },
             {
               title: "3. View Dashboard",
@@ -929,16 +1246,16 @@ export const Unsafety: React.FC = () => {
                       ease: "easeInOut",
                     }}
                   >
-                    <Upload className="w-12 h-12 text-[#0B3D91]" />
+                    <AlertTriangle className="w-12 h-12 text-[#0B3D91]" />
                   </motion.div>
                 </div>
               </motion.div>
 
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Upload Unsafe Acts Report
+                Upload Incidents & Near Misses Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing incident and near miss data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -962,7 +1279,7 @@ export const Unsafety: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                      <AlertTriangle className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
@@ -1035,9 +1352,9 @@ if (isGenerating) {
           </div>
         </motion.div>
 
-        {/* Main Title (Unchanged) */}
+        {/* Main Title */}
         <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-          Analyzing Your Data...
+          Analyzing Your Incidents & Near Misses...
         </h2>
 
         {/* Rotating AI Quotes (Using new quotes) */}
@@ -1108,8 +1425,8 @@ if (isGenerating) {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <Eye className="w-8 h-8 text-[#0B3D91]" />
-            AI Vision Report
+            <ShieldAlert className="w-8 h-8 text-[#0B3D91]" />
+            AI Incident & Near Miss Report
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1137,7 +1454,7 @@ if (isGenerating) {
               value="report"
               className="flex items-center gap-2 text-base data-[state=active]:bg-white"
             >
-              <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
+              <AlertCircle className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
               Report
             </TabsTrigger>
             <TabsTrigger
@@ -1157,28 +1474,29 @@ if (isGenerating) {
               transition={{ delay: 0.2 }}
             >
               <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-2xl font-bold text-gray-800">
-                    <span className="text-4xl text-[#0B3D91] font-extrabold underline">
-                      DATTU
-                    </span>{" "}
-                    AI Analysis
-                  </CardTitle>
+                <div ref={reportContentRef}>
+                  <CardHeader>
+                    <CardTitle className="text-2xl font-bold text-gray-800">
+                      <span className="text-4xl text-[#0B3D91] font-extrabold underline">
+                        DATTU
+                      </span>{" "}
+                      Incident & Near Miss Analysis
+                    </CardTitle>
 
-                  <CardDescription className="text-lg text-gray-600">
-                    This is the full report generated by the AI based on your
-                    uploaded data.
-                  </CardDescription>
-                </CardHeader>
+                    <CardDescription className="text-lg text-gray-600">
+                      This is the full incident and near miss analysis report generated by the AI based on your
+                      uploaded data.
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardContent
-                  className={cn(
-                    "prose prose-slate max-w-none",
-                    "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
-                    "prose-table:border prose-th:p-2 prose-td:p-2"
-                  )}
-                >
-                  {(() => {
+                  <CardContent
+                    className={cn(
+                      "prose prose-slate max-w-none",
+                      "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
+                      "prose-table:border prose-th:p-2 prose-td:p-2"
+                    )}
+                  >
+                    {(() => {
                     // ✅ SAFE RENDERER: Validate before rendering
                     // Enforce string type one more time before rendering
                     const safeContent: string =
@@ -1212,7 +1530,8 @@ if (isGenerating) {
                       );
                     }
                   })()}
-                </CardContent>
+                  </CardContent>
+                </div>
               </Card>
             </motion.div>
           </TabsContent>
@@ -1225,15 +1544,16 @@ if (isGenerating) {
               transition={{ delay: 0.2 }}
             >
               <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>Interactive Charts</CardTitle>
-                  <CardDescription>
-                    Select a chart to view the interactive (Plotly) HTML report
-                    generated by the backend.
-                  </CardDescription>
-                </CardHeader>
+                <div ref={chartsContentRef}>
+                  <CardHeader>
+                    <CardTitle>Interactive Charts</CardTitle>
+                    <CardDescription>
+                      Select a chart to view the interactive (Plotly) HTML report
+                      generated by the backend.
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardContent className="space-y-4">
+                  <CardContent className="space-y-4">
                   <Select
                     onValueChange={handleChartSelect}
                     value={selectedChartName || undefined}
@@ -1275,7 +1595,8 @@ if (isGenerating) {
                       </div>
                     )}
                   </div>
-                </CardContent>
+                  </CardContent>
+                </div>
               </Card>
             </motion.div>
           </TabsContent>

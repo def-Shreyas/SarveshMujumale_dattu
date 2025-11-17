@@ -1,0 +1,301 @@
+ppe_id,ppe_item,supplier,purchase_date,quantity_purchased,department,issue_date,quantity_issued,balance_stock,next_delivery_due,usage_level,reorder_flag
+PPE-1001,Apron,UltraSafe Equipments,2025-05-27 00:00:00,82,Maintenance,2025-06-05 00:00:00,16,66,2025-06-26 00:00:00,Low Usage,Sufficient
+PPE-1002,Ear Plug,Guardian Safety,2025-03-14 00:00:00,51,Electrical,2025-03-17 00:00:00,42,9,2025-04-13 00:00:00,High Usage,Reorder Needed
+PPE-1003,Apron,SafeWear Pvt Ltd,2025-05-19 00:00:00,203,Maintenance,2025-06-02 00:00:00,157,46,2025-06-18 00:00:00,Medium Usage,Reorder Needed
+PPE-1004,Safety Shoes,Guardian Safety,2025-03-22 00:00:00,215,Production,2025-03-31 00:00:00,75,140,2025-04-21 00:00:00,Low Usage,Sufficient
+PPE-1005,Safety Shoes,SafeWear Pvt Ltd,2025-07-06 00:00:00,105,Admin,2025-08-02 00:00:00,97,8,2025-08-05 00:00:00,High Usage,Reorder Needed
+PPE-1006,Ear Plug,SafePro Industries,2025-09-25 00:00:00,216,Electrical,2025-10-23 00:00:00,205,11,2025-10-25 00:00:00,High Usage,Reorder Needed
+PPE-1007,Hand Gloves,UltraSafe Equipments,2025-09-18 00:00:00,207,Paint Shop,2025-09-26 00:00:00,131,76,2025-10-18 00:00:00,Medium Usage,Sufficient
+PPE-1008,Face Shield,UltraSafe Equipments,2025-02-23 00:00:00,64,Warehouse,2025-02-28 00:00:00,42,22,2025-03-25 00:00:00,Medium Usage,Reorder Needed
+PPE-1009,Safety Helmet,ProShield India,2025-02-23 00:00:00,290,Paint Shop,2025-03-17 00:00:00,62,228,2025-03-25 00:00:00,Low Usage,Sufficient
+PPE-1010,Apron,ProShield India,2025-04-28 00:00:00,292,Warehouse,2025-05-05 00:00:00,287,5,2025-05-28 00:00:00,High Usage,Reorder Needed
+PPE-1011,Safety Helmet,ProShield India,2025-08-03 00:00:00,178,Maintenance,2025-08-11 00:00:00,36,142,2025-09-02 00:00:00,Low Usage,Sufficient
+PPE-1012,Safety Helmet,ProShield India,2025-07-22 00:00:00,298,Production,2025-07-28 00:00:00,58,240,2025-08-21 00:00:00,Low Usage,Sufficient
+PPE-1013,Apron,ProShield India,2025-04-09 00:00:00,298,Paint Shop,2025-05-05 00:00:00,88,210,2025-05-09 00:00:00,Low Usage,Sufficient
+PPE-1014,Hand Gloves,UltraSafe Equipments,2025-07-19 00:00:00,99,Paint Shop,2025-08-16 00:00:00,92,7,2025-08-18 00:00:00,High Usage,Reorder Needed
+PPE-1015,Safety Shoes,ProShield India,2025-10-21 00:00:00,201,Electrical,2025-11-14 00:00:00,69,132,2025-11-20 00:00:00,Low Usage,Sufficient
+PPE-1016,Safety Helmet,ProShield India,2025-11-26 00:00:00,122,Admin,2025-12-23 00:00:00,78,44,2025-12-26 00:00:00,Medium Usage,Reorder Needed
+PPE-1017,Face Shield,ProShield India,2025-01-03 00:00:00,200,Admin,2025-01-23 00:00:00,195,5,2025-02-02 00:00:00,High Usage,Reorder Needed
+PPE-1018,Apron,SafeWear Pvt Ltd,2025-07-18 00:00:00,218,Paint Shop,2025-08-01 00:00:00,96,122,2025-08-17 00:00:00,Low Usage,Sufficient
+PPE-1019,Hand Gloves,SafeWear Pvt Ltd,2025-03-07 00:00:00,159,Maintenance,2025-03-26 00:00:00,145,14,2025-04-06 00:00:00,High Usage,Reorder Needed
+PPE-1020,Apron,ProShield India,2025-09-14 00:00:00,222,Admin,2025-10-06 00:00:00,105,117,2025-10-14 00:00:00,Low Usage,Sufficient
+PPE-1021,Safety Shoes,SafeWear Pvt Ltd,2025-10-05 00:00:00,140,Admin,2025-10-17 00:00:00,80,60,2025-11-04 00:00:00,Medium Usage,Sufficient
+PPE-1022,Safety Shoes,UltraSafe Equipments,2025-01-17 00:00:00,140,Warehouse,2025-02-06 00:00:00,69,71,2025-02-16 00:00:00,Low Usage,Sufficient
+PPE-1023,Ear Plug,Guardian Safety,2025-02-11 00:00:00,259,Production,2025-02-26 00:00:00,122,137,2025-03-13 00:00:00,Low Usage,Sufficient
+PPE-1024,Hand Gloves,SafePro Industries,2025-07-26 00:00:00,277,Paint Shop,2025-07-30 00:00:00,20,257,2025-08-25 00:00:00,Low Usage,Sufficient
+PPE-1025,Safety Goggles,SafeWear Pvt Ltd,2025-01-15 00:00:00,206,Paint Shop,2025-01-24 00:00:00,40,166,2025-02-14 00:00:00,Low Usage,Sufficient
+PPE-1026,Safety Shoes,SafePro Industries,2025-07-28 00:00:00,108,Admin,2025-08-25 00:00:00,108,0,2025-08-27 00:00:00,High Usage,Reorder Needed
+PPE-1027,Safety Goggles,SafePro Industries,2025-11-24 00:00:00,55,Maintenance,2025-12-18 00:00:00,52,3,2025-12-24 00:00:00,High Usage,Reorder Needed
+PPE-1028,Ear Plug,SafeWear Pvt Ltd,2025-09-01 00:00:00,261,Warehouse,2025-09-30 00:00:00,180,81,2025-10-01 00:00:00,Medium Usage,Sufficient
+PPE-1029,Ear Plug,Guardian Safety,2025-01-28 00:00:00,171,Maintenance,2025-02-19 00:00:00,66,105,2025-02-27 00:00:00,Low Usage,Sufficient
+PPE-1030,Hand Gloves,SafePro Industries,2025-07-26 00:00:00,280,Admin,2025-08-22 00:00:00,30,250,2025-08-25 00:00:00,Low Usage,Sufficient
+PPE-1031,Safety Shoes,ProShield India,2025-06-04 00:00:00,180,Maintenance,2025-06-20 00:00:00,28,152,2025-07-04 00:00:00,Low Usage,Sufficient
+PPE-1032,Safety Helmet,SafePro Industries,2025-05-04 00:00:00,166,Admin,2025-05-20 00:00:00,79,87,2025-06-03 00:00:00,Low Usage,Sufficient
+PPE-1033,Safety Goggles,Guardian Safety,2025-01-06 00:00:00,115,Maintenance,2025-01-25 00:00:00,97,18,2025-02-05 00:00:00,High Usage,Reorder Needed
+PPE-1034,Face Shield,Guardian Safety,2025-09-04 00:00:00,239,Production,2025-09-15 00:00:00,126,113,2025-10-04 00:00:00,Medium Usage,Sufficient
+PPE-1035,Safety Shoes,SafeWear Pvt Ltd,2025-01-25 00:00:00,204,Electrical,2025-02-22 00:00:00,165,39,2025-02-24 00:00:00,High Usage,Reorder Needed
+PPE-1036,Ear Plug,UltraSafe Equipments,2025-03-07 00:00:00,268,Warehouse,2025-03-23 00:00:00,206,62,2025-04-06 00:00:00,Medium Usage,Sufficient
+PPE-1037,Safety Shoes,SafePro Industries,2025-07-26 00:00:00,245,Electrical,2025-08-17 00:00:00,83,162,2025-08-25 00:00:00,Low Usage,Sufficient
+PPE-1038,Ear Plug,ProShield India,2025-06-20 00:00:00,149,Electrical,2025-07-04 00:00:00,58,91,2025-07-20 00:00:00,Low Usage,Sufficient
+PPE-1039,Ear Plug,UltraSafe Equipments,2025-06-14 00:00:00,248,Warehouse,2025-06-26 00:00:00,89,159,2025-07-14 00:00:00,Low Usage,Sufficient
+PPE-1040,Face Shield,UltraSafe Equipments,2025-08-08 00:00:00,252,Maintenance,2025-08-28 00:00:00,155,97,2025-09-07 00:00:00,Medium Usage,Sufficient
+PPE-1041,Hand Gloves,SafePro Industries,2025-01-16 00:00:00,52,Paint Shop,2025-02-12 00:00:00,28,24,2025-02-15 00:00:00,Medium Usage,Reorder Needed
+PPE-1042,Safety Goggles,UltraSafe Equipments,2025-02-02 00:00:00,119,Paint Shop,2025-02-20 00:00:00,24,95,2025-03-04 00:00:00,Low Usage,Sufficient
+PPE-1043,Apron,Guardian Safety,2025-02-22 00:00:00,127,Production,2025-03-15 00:00:00,98,29,2025-03-24 00:00:00,Medium Usage,Reorder Needed
+PPE-1044,Hand Gloves,UltraSafe Equipments,2025-06-27 00:00:00,52,Production,2025-07-19 00:00:00,47,5,2025-07-27 00:00:00,High Usage,Reorder Needed
+PPE-1045,Ear Plug,SafeWear Pvt Ltd,2025-11-26 00:00:00,52,Electrical,2025-12-14 00:00:00,14,38,2025-12-26 00:00:00,Low Usage,Reorder Needed
+PPE-1046,Safety Goggles,Guardian Safety,2025-02-17 00:00:00,248,Admin,2025-03-07 00:00:00,71,177,2025-03-19 00:00:00,Low Usage,Sufficient
+PPE-1047,Safety Goggles,Guardian Safety,2025-01-20 00:00:00,155,Electrical,2025-02-19 00:00:00,83,72,2025-02-19 00:00:00,Medium Usage,Sufficient
+PPE-1048,Safety Goggles,ProShield India,2025-06-10 00:00:00,86,Production,2025-06-29 00:00:00,42,44,2025-07-10 00:00:00,Low Usage,Reorder Needed
+PPE-1049,Hand Gloves,SafePro Industries,2025-09-07 00:00:00,135,Electrical,2025-09-26 00:00:00,110,25,2025-10-07 00:00:00,High Usage,Reorder Needed
+PPE-1050,Safety Shoes,SafeWear Pvt Ltd,2025-03-09 00:00:00,287,Warehouse,2025-03-22 00:00:00,80,207,2025-04-08 00:00:00,Low Usage,Sufficient
+PPE-1051,Ear Plug,Guardian Safety,2025-04-13 00:00:00,228,Production,2025-04-22 00:00:00,186,42,2025-05-13 00:00:00,High Usage,Reorder Needed
+PPE-1052,Ear Plug,SafeWear Pvt Ltd,2025-01-06 00:00:00,199,Warehouse,2025-01-27 00:00:00,32,167,2025-02-05 00:00:00,Low Usage,Sufficient
+PPE-1053,Face Shield,Guardian Safety,2025-08-15 00:00:00,262,Electrical,2025-08-21 00:00:00,29,233,2025-09-14 00:00:00,Low Usage,Sufficient
+PPE-1054,Hand Gloves,ProShield India,2025-03-02 00:00:00,213,Production,2025-03-26 00:00:00,38,175,2025-04-01 00:00:00,Low Usage,Sufficient
+PPE-1055,Ear Plug,Guardian Safety,2025-01-09 00:00:00,274,Paint Shop,2025-01-27 00:00:00,181,93,2025-02-08 00:00:00,Medium Usage,Sufficient
+PPE-1056,Safety Helmet,Guardian Safety,2025-11-27 00:00:00,275,Warehouse,2025-12-19 00:00:00,51,224,2025-12-27 00:00:00,Low Usage,Sufficient
+PPE-1057,Apron,Guardian Safety,2025-07-09 00:00:00,186,Electrical,2025-08-05 00:00:00,145,41,2025-08-08 00:00:00,Medium Usage,Reorder Needed
+PPE-1058,Safety Goggles,SafePro Industries,2025-05-20 00:00:00,186,Paint Shop,2025-06-10 00:00:00,40,146,2025-06-19 00:00:00,Low Usage,Sufficient
+PPE-1059,Apron,SafePro Industries,2025-02-22 00:00:00,115,Warehouse,2025-03-12 00:00:00,99,16,2025-03-24 00:00:00,High Usage,Reorder Needed
+PPE-1060,Ear Plug,Guardian Safety,2025-06-26 00:00:00,134,Paint Shop,2025-07-22 00:00:00,80,54,2025-07-26 00:00:00,Medium Usage,Sufficient
+PPE-1061,Safety Shoes,Guardian Safety,2025-04-28 00:00:00,262,Production,2025-05-25 00:00:00,123,139,2025-05-28 00:00:00,Low Usage,Sufficient
+PPE-1062,Safety Goggles,Guardian Safety,2025-05-15 00:00:00,180,Paint Shop,2025-06-10 00:00:00,118,62,2025-06-14 00:00:00,Medium Usage,Sufficient
+PPE-1063,Safety Shoes,SafeWear Pvt Ltd,2025-02-02 00:00:00,61,Electrical,2025-02-19 00:00:00,61,0,2025-03-04 00:00:00,High Usage,Reorder Needed
+PPE-1064,Hand Gloves,SafePro Industries,2025-09-20 00:00:00,238,Electrical,2025-09-27 00:00:00,236,2,2025-10-20 00:00:00,High Usage,Reorder Needed
+PPE-1065,Safety Helmet,ProShield India,2025-11-01 00:00:00,226,Admin,2025-11-12 00:00:00,101,125,2025-12-01 00:00:00,Low Usage,Sufficient
+PPE-1066,Apron,Guardian Safety,2025-10-22 00:00:00,99,Warehouse,2025-10-28 00:00:00,52,47,2025-11-21 00:00:00,Medium Usage,Reorder Needed
+PPE-1067,Hand Gloves,ProShield India,2025-09-07 00:00:00,162,Electrical,2025-09-27 00:00:00,93,69,2025-10-07 00:00:00,Medium Usage,Sufficient
+PPE-1068,Safety Helmet,SafeWear Pvt Ltd,2025-11-06 00:00:00,253,Production,2025-11-21 00:00:00,241,12,2025-12-06 00:00:00,High Usage,Reorder Needed
+PPE-1069,Hand Gloves,UltraSafe Equipments,2025-10-03 00:00:00,141,Admin,2025-10-23 00:00:00,88,53,2025-11-02 00:00:00,Medium Usage,Sufficient
+PPE-1070,Safety Shoes,UltraSafe Equipments,2025-06-01 00:00:00,267,Maintenance,2025-06-22 00:00:00,215,52,2025-07-01 00:00:00,High Usage,Sufficient
+PPE-1071,Safety Shoes,SafePro Industries,2025-11-06 00:00:00,293,Production,2025-11-11 00:00:00,111,182,2025-12-06 00:00:00,Low Usage,Sufficient
+PPE-1072,Safety Goggles,Guardian Safety,2025-02-23 00:00:00,278,Maintenance,2025-02-24 00:00:00,20,258,2025-03-25 00:00:00,Low Usage,Sufficient
+PPE-1073,Safety Helmet,Guardian Safety,2025-09-02 00:00:00,136,Maintenance,2025-09-14 00:00:00,13,123,2025-10-02 00:00:00,Low Usage,Sufficient
+PPE-1074,Hand Gloves,Guardian Safety,2025-04-25 00:00:00,114,Admin,2025-05-23 00:00:00,103,11,2025-05-25 00:00:00,High Usage,Reorder Needed
+PPE-1075,Safety Goggles,SafePro Industries,2025-10-16 00:00:00,229,Admin,2025-10-19 00:00:00,70,159,2025-11-15 00:00:00,Low Usage,Sufficient
+PPE-1076,Face Shield,UltraSafe Equipments,2025-07-28 00:00:00,108,Maintenance,2025-08-11 00:00:00,10,98,2025-08-27 00:00:00,Low Usage,Sufficient
+PPE-1077,Safety Helmet,ProShield India,2025-05-12 00:00:00,282,Warehouse,2025-06-09 00:00:00,142,140,2025-06-11 00:00:00,Medium Usage,Sufficient
+PPE-1078,Face Shield,SafeWear Pvt Ltd,2025-09-17 00:00:00,242,Maintenance,2025-10-15 00:00:00,144,98,2025-10-17 00:00:00,Medium Usage,Sufficient
+PPE-1079,Hand Gloves,Guardian Safety,2025-06-23 00:00:00,166,Admin,2025-07-16 00:00:00,82,84,2025-07-23 00:00:00,Low Usage,Sufficient
+PPE-1080,Apron,SafeWear Pvt Ltd,2025-06-26 00:00:00,292,Electrical,2025-07-20 00:00:00,278,14,2025-07-26 00:00:00,High Usage,Reorder Needed
+PPE-1081,Safety Shoes,ProShield India,2025-04-14 00:00:00,184,Paint Shop,2025-05-02 00:00:00,19,165,2025-05-14 00:00:00,Low Usage,Sufficient
+PPE-1082,Apron,ProShield India,2025-07-21 00:00:00,266,Admin,2025-08-02 00:00:00,237,29,2025-08-20 00:00:00,High Usage,Reorder Needed
+PPE-1083,Safety Shoes,ProShield India,2025-03-16 00:00:00,268,Warehouse,2025-03-29 00:00:00,107,161,2025-04-15 00:00:00,Low Usage,Sufficient
+PPE-1084,Safety Shoes,SafePro Industries,2025-07-27 00:00:00,255,Maintenance,2025-08-25 00:00:00,136,119,2025-08-26 00:00:00,Medium Usage,Sufficient
+PPE-1085,Ear Plug,ProShield India,2025-03-27 00:00:00,199,Warehouse,2025-03-28 00:00:00,96,103,2025-04-26 00:00:00,Low Usage,Sufficient
+PPE-1086,Safety Shoes,SafePro Industries,2025-04-02 00:00:00,240,Maintenance,2025-04-04 00:00:00,111,129,2025-05-02 00:00:00,Low Usage,Sufficient
+PPE-1087,Safety Shoes,ProShield India,2025-07-10 00:00:00,131,Paint Shop,2025-07-13 00:00:00,122,9,2025-08-09 00:00:00,High Usage,Reorder Needed
+PPE-1088,Ear Plug,SafeWear Pvt Ltd,2025-03-21 00:00:00,168,Production,2025-03-25 00:00:00,84,84,2025-04-20 00:00:00,Low Usage,Sufficient
+PPE-1089,Safety Helmet,Guardian Safety,2025-07-16 00:00:00,201,Maintenance,2025-08-07 00:00:00,66,135,2025-08-15 00:00:00,Low Usage,Sufficient
+PPE-1090,Safety Shoes,SafePro Industries,2025-01-21 00:00:00,285,Warehouse,2025-02-04 00:00:00,230,55,2025-02-20 00:00:00,High Usage,Sufficient
+PPE-1091,Face Shield,UltraSafe Equipments,2025-06-28 00:00:00,86,Paint Shop,2025-07-26 00:00:00,77,9,2025-07-28 00:00:00,High Usage,Reorder Needed
+PPE-1092,Hand Gloves,Guardian Safety,2025-11-10 00:00:00,190,Paint Shop,2025-12-02 00:00:00,146,44,2025-12-10 00:00:00,Medium Usage,Reorder Needed
+PPE-1093,Apron,SafePro Industries,2025-11-13 00:00:00,60,Maintenance,2025-11-24 00:00:00,24,36,2025-12-13 00:00:00,Low Usage,Reorder Needed
+PPE-1094,Safety Shoes,SafePro Industries,2025-02-03 00:00:00,275,Warehouse,2025-02-19 00:00:00,238,37,2025-03-05 00:00:00,High Usage,Reorder Needed
+PPE-1095,Apron,SafeWear Pvt Ltd,2025-07-14 00:00:00,229,Admin,2025-08-06 00:00:00,163,66,2025-08-13 00:00:00,Medium Usage,Sufficient
+PPE-1096,Hand Gloves,SafeWear Pvt Ltd,2025-02-27 00:00:00,225,Paint Shop,2025-03-28 00:00:00,100,125,2025-03-29 00:00:00,Low Usage,Sufficient
+PPE-1097,Hand Gloves,Guardian Safety,2025-05-14 00:00:00,266,Admin,2025-06-05 00:00:00,220,46,2025-06-13 00:00:00,High Usage,Reorder Needed
+PPE-1098,Safety Helmet,UltraSafe Equipments,2025-07-02 00:00:00,203,Electrical,2025-07-10 00:00:00,148,55,2025-08-01 00:00:00,Medium Usage,Sufficient
+PPE-1099,Hand Gloves,UltraSafe Equipments,2025-05-22 00:00:00,51,Maintenance,2025-06-14 00:00:00,37,14,2025-06-21 00:00:00,Medium Usage,Reorder Needed
+PPE-1100,Safety Shoes,ProShield India,2025-10-02 00:00:00,117,Electrical,2025-10-29 00:00:00,16,101,2025-11-01 00:00:00,Low Usage,Sufficient
+PPE-1101,Hand Gloves,UltraSafe Equipments,2025-01-04 00:00:00,175,Maintenance,2025-01-14 00:00:00,167,8,2025-02-03 00:00:00,High Usage,Reorder Needed
+PPE-1102,Face Shield,Guardian Safety,2025-08-03 00:00:00,214,Electrical,2025-08-05 00:00:00,14,200,2025-09-02 00:00:00,Low Usage,Sufficient
+PPE-1103,Safety Helmet,Guardian Safety,2025-01-16 00:00:00,183,Paint Shop,2025-01-23 00:00:00,11,172,2025-02-15 00:00:00,Low Usage,Sufficient
+PPE-1104,Safety Helmet,UltraSafe Equipments,2025-06-17 00:00:00,260,Admin,2025-06-21 00:00:00,178,82,2025-07-17 00:00:00,Medium Usage,Sufficient
+PPE-1105,Face Shield,SafeWear Pvt Ltd,2025-10-12 00:00:00,62,Admin,2025-10-28 00:00:00,56,6,2025-11-11 00:00:00,High Usage,Reorder Needed
+PPE-1106,Hand Gloves,UltraSafe Equipments,2025-06-20 00:00:00,154,Warehouse,2025-07-15 00:00:00,149,5,2025-07-20 00:00:00,High Usage,Reorder Needed
+PPE-1107,Safety Shoes,ProShield India,2025-04-16 00:00:00,187,Admin,2025-04-22 00:00:00,32,155,2025-05-16 00:00:00,Low Usage,Sufficient
+PPE-1108,Apron,SafePro Industries,2025-08-06 00:00:00,136,Admin,2025-08-28 00:00:00,103,33,2025-09-05 00:00:00,Medium Usage,Reorder Needed
+PPE-1109,Safety Goggles,SafeWear Pvt Ltd,2025-05-07 00:00:00,223,Maintenance,2025-05-29 00:00:00,73,150,2025-06-06 00:00:00,Low Usage,Sufficient
+PPE-1110,Apron,SafeWear Pvt Ltd,2025-10-17 00:00:00,131,Paint Shop,2025-11-15 00:00:00,52,79,2025-11-16 00:00:00,Low Usage,Sufficient
+PPE-1111,Safety Shoes,Guardian Safety,2025-11-13 00:00:00,291,Production,2025-11-18 00:00:00,157,134,2025-12-13 00:00:00,Medium Usage,Sufficient
+PPE-1112,Safety Shoes,SafeWear Pvt Ltd,2025-05-26 00:00:00,105,Admin,2025-06-20 00:00:00,45,60,2025-06-25 00:00:00,Low Usage,Sufficient
+PPE-1113,Safety Shoes,UltraSafe Equipments,2025-09-27 00:00:00,244,Paint Shop,2025-10-08 00:00:00,163,81,2025-10-27 00:00:00,Medium Usage,Sufficient
+PPE-1114,Ear Plug,UltraSafe Equipments,2025-02-24 00:00:00,150,Admin,2025-03-20 00:00:00,134,16,2025-03-26 00:00:00,High Usage,Reorder Needed
+PPE-1115,Hand Gloves,SafeWear Pvt Ltd,2025-08-20 00:00:00,125,Paint Shop,2025-09-17 00:00:00,113,12,2025-09-19 00:00:00,High Usage,Reorder Needed
+PPE-1116,Safety Goggles,Guardian Safety,2025-07-23 00:00:00,163,Electrical,2025-08-11 00:00:00,110,53,2025-08-22 00:00:00,Medium Usage,Sufficient
+PPE-1117,Safety Shoes,SafePro Industries,2025-05-04 00:00:00,121,Maintenance,2025-05-13 00:00:00,30,91,2025-06-03 00:00:00,Low Usage,Sufficient
+PPE-1118,Safety Goggles,SafeWear Pvt Ltd,2025-08-20 00:00:00,295,Electrical,2025-09-07 00:00:00,92,203,2025-09-19 00:00:00,Low Usage,Sufficient
+PPE-1119,Face Shield,Guardian Safety,2025-10-18 00:00:00,261,Maintenance,2025-10-31 00:00:00,152,109,2025-11-17 00:00:00,Medium Usage,Sufficient
+PPE-1120,Safety Goggles,SafeWear Pvt Ltd,2025-08-08 00:00:00,293,Paint Shop,2025-08-17 00:00:00,64,229,2025-09-07 00:00:00,Low Usage,Sufficient
+PPE-1121,Face Shield,SafePro Industries,2025-01-18 00:00:00,257,Warehouse,2025-02-14 00:00:00,170,87,2025-02-17 00:00:00,Medium Usage,Sufficient
+PPE-1122,Safety Goggles,SafePro Industries,2025-07-02 00:00:00,254,Admin,2025-07-11 00:00:00,10,244,2025-08-01 00:00:00,Low Usage,Sufficient
+PPE-1123,Safety Helmet,SafeWear Pvt Ltd,2025-05-04 00:00:00,296,Admin,2025-06-01 00:00:00,99,197,2025-06-03 00:00:00,Low Usage,Sufficient
+PPE-1124,Safety Shoes,Guardian Safety,2025-04-25 00:00:00,149,Production,2025-05-12 00:00:00,146,3,2025-05-25 00:00:00,High Usage,Reorder Needed
+PPE-1125,Face Shield,Guardian Safety,2025-02-25 00:00:00,115,Production,2025-03-26 00:00:00,97,18,2025-03-27 00:00:00,High Usage,Reorder Needed
+PPE-1126,Safety Goggles,UltraSafe Equipments,2025-03-12 00:00:00,133,Electrical,2025-04-11 00:00:00,38,95,2025-04-11 00:00:00,Low Usage,Sufficient
+PPE-1127,Hand Gloves,Guardian Safety,2025-10-28 00:00:00,257,Maintenance,2025-11-07 00:00:00,123,134,2025-11-27 00:00:00,Low Usage,Sufficient
+PPE-1128,Face Shield,UltraSafe Equipments,2025-10-26 00:00:00,280,Electrical,2025-11-16 00:00:00,205,75,2025-11-25 00:00:00,Medium Usage,Sufficient
+PPE-1129,Safety Helmet,UltraSafe Equipments,2025-11-16 00:00:00,75,Electrical,2025-12-15 00:00:00,36,39,2025-12-16 00:00:00,Low Usage,Reorder Needed
+PPE-1130,Hand Gloves,Guardian Safety,2025-07-21 00:00:00,235,Electrical,2025-08-19 00:00:00,153,82,2025-08-20 00:00:00,Medium Usage,Sufficient
+PPE-1131,Apron,SafePro Industries,2025-02-27 00:00:00,234,Paint Shop,2025-03-08 00:00:00,15,219,2025-03-29 00:00:00,Low Usage,Sufficient
+PPE-1132,Ear Plug,ProShield India,2025-10-02 00:00:00,196,Production,2025-10-23 00:00:00,71,125,2025-11-01 00:00:00,Low Usage,Sufficient
+PPE-1133,Safety Helmet,UltraSafe Equipments,2025-07-01 00:00:00,146,Admin,2025-07-05 00:00:00,145,1,2025-07-31 00:00:00,High Usage,Reorder Needed
+PPE-1134,Hand Gloves,UltraSafe Equipments,2025-02-13 00:00:00,203,Paint Shop,2025-02-21 00:00:00,84,119,2025-03-15 00:00:00,Low Usage,Sufficient
+PPE-1135,Face Shield,UltraSafe Equipments,2025-03-17 00:00:00,252,Production,2025-03-18 00:00:00,41,211,2025-04-16 00:00:00,Low Usage,Sufficient
+PPE-1136,Hand Gloves,ProShield India,2025-11-23 00:00:00,72,Warehouse,2025-12-03 00:00:00,19,53,2025-12-23 00:00:00,Low Usage,Sufficient
+PPE-1137,Hand Gloves,UltraSafe Equipments,2025-06-09 00:00:00,262,Warehouse,2025-06-11 00:00:00,234,28,2025-07-09 00:00:00,High Usage,Reorder Needed
+PPE-1138,Safety Goggles,ProShield India,2025-07-04 00:00:00,175,Paint Shop,2025-07-25 00:00:00,14,161,2025-08-03 00:00:00,Low Usage,Sufficient
+PPE-1139,Safety Shoes,SafePro Industries,2025-09-05 00:00:00,268,Production,2025-09-23 00:00:00,90,178,2025-10-05 00:00:00,Low Usage,Sufficient
+PPE-1140,Safety Helmet,SafePro Industries,2025-01-12 00:00:00,295,Production,2025-01-31 00:00:00,131,164,2025-02-11 00:00:00,Low Usage,Sufficient
+PPE-1141,Apron,Guardian Safety,2025-02-11 00:00:00,60,Production,2025-03-04 00:00:00,49,11,2025-03-13 00:00:00,High Usage,Reorder Needed
+PPE-1142,Hand Gloves,UltraSafe Equipments,2025-03-09 00:00:00,86,Paint Shop,2025-04-03 00:00:00,28,58,2025-04-08 00:00:00,Low Usage,Sufficient
+PPE-1143,Ear Plug,SafeWear Pvt Ltd,2025-09-18 00:00:00,170,Paint Shop,2025-09-28 00:00:00,28,142,2025-10-18 00:00:00,Low Usage,Sufficient
+PPE-1144,Face Shield,ProShield India,2025-06-25 00:00:00,76,Warehouse,2025-07-19 00:00:00,31,45,2025-07-25 00:00:00,Low Usage,Reorder Needed
+PPE-1145,Face Shield,UltraSafe Equipments,2025-09-28 00:00:00,188,Production,2025-10-25 00:00:00,171,17,2025-10-28 00:00:00,High Usage,Reorder Needed
+PPE-1146,Apron,SafeWear Pvt Ltd,2025-04-15 00:00:00,114,Warehouse,2025-05-13 00:00:00,76,38,2025-05-15 00:00:00,Medium Usage,Reorder Needed
+PPE-1147,Ear Plug,SafePro Industries,2025-09-28 00:00:00,228,Admin,2025-10-13 00:00:00,200,28,2025-10-28 00:00:00,High Usage,Reorder Needed
+PPE-1148,Ear Plug,UltraSafe Equipments,2025-01-19 00:00:00,284,Production,2025-02-01 00:00:00,49,235,2025-02-18 00:00:00,Low Usage,Sufficient
+PPE-1149,Safety Helmet,UltraSafe Equipments,2025-05-14 00:00:00,217,Admin,2025-05-24 00:00:00,101,116,2025-06-13 00:00:00,Low Usage,Sufficient
+PPE-1150,Safety Helmet,Guardian Safety,2025-11-05 00:00:00,121,Electrical,2025-11-26 00:00:00,18,103,2025-12-05 00:00:00,Low Usage,Sufficient
+PPE-1151,Safety Shoes,UltraSafe Equipments,2025-07-11 00:00:00,59,Electrical,2025-08-06 00:00:00,17,42,2025-08-10 00:00:00,Low Usage,Reorder Needed
+PPE-1152,Safety Helmet,SafeWear Pvt Ltd,2025-06-12 00:00:00,86,Admin,2025-06-15 00:00:00,30,56,2025-07-12 00:00:00,Low Usage,Sufficient
+PPE-1153,Face Shield,SafePro Industries,2025-04-07 00:00:00,149,Maintenance,2025-04-12 00:00:00,23,126,2025-05-07 00:00:00,Low Usage,Sufficient
+PPE-1154,Hand Gloves,ProShield India,2025-09-01 00:00:00,163,Production,2025-09-11 00:00:00,156,7,2025-10-01 00:00:00,High Usage,Reorder Needed
+PPE-1155,Face Shield,UltraSafe Equipments,2025-04-27 00:00:00,120,Paint Shop,2025-04-28 00:00:00,104,16,2025-05-27 00:00:00,High Usage,Reorder Needed
+PPE-1156,Apron,ProShield India,2025-06-28 00:00:00,54,Maintenance,2025-07-12 00:00:00,44,10,2025-07-28 00:00:00,High Usage,Reorder Needed
+PPE-1157,Face Shield,ProShield India,2025-09-24 00:00:00,217,Admin,2025-10-11 00:00:00,205,12,2025-10-24 00:00:00,High Usage,Reorder Needed
+PPE-1158,Safety Helmet,SafeWear Pvt Ltd,2025-11-11 00:00:00,126,Warehouse,2025-11-23 00:00:00,31,95,2025-12-11 00:00:00,Low Usage,Sufficient
+PPE-1159,Safety Helmet,ProShield India,2025-11-22 00:00:00,287,Warehouse,2025-12-03 00:00:00,208,79,2025-12-22 00:00:00,Medium Usage,Sufficient
+PPE-1160,Safety Helmet,SafeWear Pvt Ltd,2025-01-21 00:00:00,122,Paint Shop,2025-02-16 00:00:00,120,2,2025-02-20 00:00:00,High Usage,Reorder Needed
+PPE-1161,Safety Helmet,SafeWear Pvt Ltd,2025-01-22 00:00:00,170,Paint Shop,2025-02-04 00:00:00,33,137,2025-02-21 00:00:00,Low Usage,Sufficient
+PPE-1162,Ear Plug,SafePro Industries,2025-09-18 00:00:00,167,Maintenance,2025-10-15 00:00:00,34,133,2025-10-18 00:00:00,Low Usage,Sufficient
+PPE-1163,Safety Helmet,ProShield India,2025-07-13 00:00:00,167,Paint Shop,2025-08-07 00:00:00,77,90,2025-08-12 00:00:00,Low Usage,Sufficient
+PPE-1164,Safety Helmet,SafeWear Pvt Ltd,2025-08-16 00:00:00,178,Paint Shop,2025-08-27 00:00:00,19,159,2025-09-15 00:00:00,Low Usage,Sufficient
+PPE-1165,Face Shield,ProShield India,2025-06-20 00:00:00,157,Warehouse,2025-07-18 00:00:00,97,60,2025-07-20 00:00:00,Medium Usage,Sufficient
+PPE-1166,Safety Helmet,ProShield India,2025-02-24 00:00:00,207,Maintenance,2025-03-11 00:00:00,130,77,2025-03-26 00:00:00,Medium Usage,Sufficient
+PPE-1167,Safety Shoes,ProShield India,2025-07-14 00:00:00,139,Paint Shop,2025-07-20 00:00:00,134,5,2025-08-13 00:00:00,High Usage,Reorder Needed
+PPE-1168,Safety Goggles,UltraSafe Equipments,2025-03-05 00:00:00,129,Paint Shop,2025-03-28 00:00:00,78,51,2025-04-04 00:00:00,Medium Usage,Sufficient
+PPE-1169,Safety Goggles,SafePro Industries,2025-01-27 00:00:00,176,Production,2025-02-04 00:00:00,113,63,2025-02-26 00:00:00,Medium Usage,Sufficient
+PPE-1170,Safety Goggles,Guardian Safety,2025-02-05 00:00:00,107,Maintenance,2025-03-02 00:00:00,40,67,2025-03-07 00:00:00,Low Usage,Sufficient
+PPE-1171,Ear Plug,ProShield India,2025-08-26 00:00:00,215,Maintenance,2025-09-01 00:00:00,168,47,2025-09-25 00:00:00,Medium Usage,Reorder Needed
+PPE-1172,Apron,UltraSafe Equipments,2025-02-01 00:00:00,265,Electrical,2025-02-09 00:00:00,214,51,2025-03-03 00:00:00,High Usage,Sufficient
+PPE-1173,Hand Gloves,SafeWear Pvt Ltd,2025-09-25 00:00:00,58,Admin,2025-10-09 00:00:00,54,4,2025-10-25 00:00:00,High Usage,Reorder Needed
+PPE-1174,Hand Gloves,Guardian Safety,2025-10-12 00:00:00,169,Paint Shop,2025-11-10 00:00:00,112,57,2025-11-11 00:00:00,Medium Usage,Sufficient
+PPE-1175,Apron,UltraSafe Equipments,2025-08-07 00:00:00,252,Paint Shop,2025-08-16 00:00:00,221,31,2025-09-06 00:00:00,High Usage,Reorder Needed
+PPE-1176,Hand Gloves,UltraSafe Equipments,2025-07-28 00:00:00,198,Maintenance,2025-08-04 00:00:00,132,66,2025-08-27 00:00:00,Medium Usage,Sufficient
+PPE-1177,Ear Plug,ProShield India,2025-10-23 00:00:00,280,Maintenance,2025-11-12 00:00:00,180,100,2025-11-22 00:00:00,Medium Usage,Sufficient
+PPE-1178,Hand Gloves,UltraSafe Equipments,2025-04-15 00:00:00,196,Paint Shop,2025-05-13 00:00:00,48,148,2025-05-15 00:00:00,Low Usage,Sufficient
+PPE-1179,Safety Shoes,Guardian Safety,2025-10-05 00:00:00,69,Maintenance,2025-10-23 00:00:00,23,46,2025-11-04 00:00:00,Low Usage,Reorder Needed
+PPE-1180,Safety Shoes,UltraSafe Equipments,2025-10-12 00:00:00,202,Production,2025-11-03 00:00:00,34,168,2025-11-11 00:00:00,Low Usage,Sufficient
+PPE-1181,Safety Helmet,Guardian Safety,2025-11-27 00:00:00,113,Warehouse,2025-12-25 00:00:00,31,82,2025-12-27 00:00:00,Low Usage,Sufficient
+PPE-1182,Face Shield,ProShield India,2025-03-24 00:00:00,73,Electrical,2025-04-23 00:00:00,49,24,2025-04-23 00:00:00,Medium Usage,Reorder Needed
+PPE-1183,Ear Plug,ProShield India,2025-09-28 00:00:00,114,Admin,2025-10-20 00:00:00,60,54,2025-10-28 00:00:00,Medium Usage,Sufficient
+PPE-1184,Hand Gloves,UltraSafe Equipments,2025-08-20 00:00:00,140,Maintenance,2025-09-08 00:00:00,76,64,2025-09-19 00:00:00,Medium Usage,Sufficient
+PPE-1185,Hand Gloves,Guardian Safety,2025-03-07 00:00:00,100,Warehouse,2025-03-19 00:00:00,90,10,2025-04-06 00:00:00,High Usage,Reorder Needed
+PPE-1186,Safety Goggles,SafePro Industries,2025-05-12 00:00:00,193,Maintenance,2025-05-24 00:00:00,178,15,2025-06-11 00:00:00,High Usage,Reorder Needed
+PPE-1187,Safety Goggles,ProShield India,2025-02-18 00:00:00,62,Production,2025-03-20 00:00:00,12,50,2025-03-20 00:00:00,Low Usage,Sufficient
+PPE-1188,Safety Helmet,SafePro Industries,2025-05-07 00:00:00,250,Electrical,2025-05-16 00:00:00,246,4,2025-06-06 00:00:00,High Usage,Reorder Needed
+PPE-1189,Ear Plug,Guardian Safety,2025-08-19 00:00:00,85,Admin,2025-08-31 00:00:00,80,5,2025-09-18 00:00:00,High Usage,Reorder Needed
+PPE-1190,Safety Helmet,UltraSafe Equipments,2025-07-20 00:00:00,116,Electrical,2025-08-05 00:00:00,36,80,2025-08-19 00:00:00,Low Usage,Sufficient
+PPE-1191,Ear Plug,ProShield India,2025-11-21 00:00:00,136,Electrical,2025-12-10 00:00:00,40,96,2025-12-21 00:00:00,Low Usage,Sufficient
+PPE-1192,Safety Helmet,Guardian Safety,2025-01-05 00:00:00,80,Paint Shop,2025-01-12 00:00:00,38,42,2025-02-04 00:00:00,Low Usage,Reorder Needed
+PPE-1193,Face Shield,Guardian Safety,2025-05-12 00:00:00,114,Paint Shop,2025-05-25 00:00:00,61,53,2025-06-11 00:00:00,Medium Usage,Sufficient
+PPE-1194,Ear Plug,SafePro Industries,2025-04-08 00:00:00,224,Electrical,2025-05-06 00:00:00,116,108,2025-05-08 00:00:00,Medium Usage,Sufficient
+PPE-1195,Safety Helmet,SafePro Industries,2025-01-06 00:00:00,254,Paint Shop,2025-01-18 00:00:00,36,218,2025-02-05 00:00:00,Low Usage,Sufficient
+PPE-1196,Apron,ProShield India,2025-01-13 00:00:00,178,Electrical,2025-01-28 00:00:00,25,153,2025-02-12 00:00:00,Low Usage,Sufficient
+PPE-1197,Hand Gloves,SafeWear Pvt Ltd,2025-08-26 00:00:00,74,Warehouse,2025-08-28 00:00:00,17,57,2025-09-25 00:00:00,Low Usage,Sufficient
+PPE-1198,Ear Plug,SafeWear Pvt Ltd,2025-10-17 00:00:00,58,Admin,2025-11-05 00:00:00,50,8,2025-11-16 00:00:00,High Usage,Reorder Needed
+PPE-1199,Safety Goggles,SafePro Industries,2025-05-12 00:00:00,256,Electrical,2025-06-08 00:00:00,209,47,2025-06-11 00:00:00,High Usage,Reorder Needed
+PPE-1200,Safety Helmet,UltraSafe Equipments,2025-09-11 00:00:00,121,Paint Shop,2025-09-17 00:00:00,86,35,2025-10-11 00:00:00,Medium Usage,Reorder Needed
+PPE-1201,Face Shield,UltraSafe Equipments,2025-06-11 00:00:00,242,Admin,2025-06-14 00:00:00,18,224,2025-07-11 00:00:00,Low Usage,Sufficient
+PPE-1202,Safety Helmet,SafeWear Pvt Ltd,2025-11-08 00:00:00,163,Paint Shop,2025-11-09 00:00:00,65,98,2025-12-08 00:00:00,Low Usage,Sufficient
+PPE-1203,Apron,SafePro Industries,2025-07-16 00:00:00,230,Paint Shop,2025-07-29 00:00:00,133,97,2025-08-15 00:00:00,Medium Usage,Sufficient
+PPE-1204,Hand Gloves,ProShield India,2025-08-19 00:00:00,53,Production,2025-08-24 00:00:00,40,13,2025-09-18 00:00:00,Medium Usage,Reorder Needed
+PPE-1205,Safety Helmet,SafeWear Pvt Ltd,2025-07-05 00:00:00,196,Maintenance,2025-07-24 00:00:00,88,108,2025-08-04 00:00:00,Low Usage,Sufficient
+PPE-1206,Face Shield,SafePro Industries,2025-09-28 00:00:00,117,Electrical,2025-10-05 00:00:00,102,15,2025-10-28 00:00:00,High Usage,Reorder Needed
+PPE-1207,Apron,Guardian Safety,2025-11-20 00:00:00,86,Admin,2025-12-18 00:00:00,12,74,2025-12-20 00:00:00,Low Usage,Sufficient
+PPE-1208,Safety Shoes,SafeWear Pvt Ltd,2025-06-21 00:00:00,224,Electrical,2025-07-21 00:00:00,190,34,2025-07-21 00:00:00,High Usage,Reorder Needed
+PPE-1209,Face Shield,Guardian Safety,2025-09-02 00:00:00,266,Admin,2025-10-01 00:00:00,186,80,2025-10-02 00:00:00,Medium Usage,Sufficient
+PPE-1210,Ear Plug,UltraSafe Equipments,2025-06-09 00:00:00,164,Electrical,2025-07-06 00:00:00,61,103,2025-07-09 00:00:00,Low Usage,Sufficient
+PPE-1211,Hand Gloves,SafePro Industries,2025-06-24 00:00:00,174,Maintenance,2025-07-18 00:00:00,112,62,2025-07-24 00:00:00,Medium Usage,Sufficient
+PPE-1212,Face Shield,UltraSafe Equipments,2025-07-01 00:00:00,221,Admin,2025-07-10 00:00:00,126,95,2025-07-31 00:00:00,Medium Usage,Sufficient
+PPE-1213,Hand Gloves,Guardian Safety,2025-03-17 00:00:00,103,Warehouse,2025-04-13 00:00:00,52,51,2025-04-16 00:00:00,Medium Usage,Sufficient
+PPE-1214,Safety Goggles,UltraSafe Equipments,2025-02-08 00:00:00,90,Admin,2025-02-09 00:00:00,44,46,2025-03-10 00:00:00,Low Usage,Reorder Needed
+PPE-1215,Apron,ProShield India,2025-01-15 00:00:00,97,Maintenance,2025-01-16 00:00:00,82,15,2025-02-14 00:00:00,High Usage,Reorder Needed
+PPE-1216,Safety Helmet,ProShield India,2025-01-07 00:00:00,93,Warehouse,2025-01-15 00:00:00,60,33,2025-02-06 00:00:00,Medium Usage,Reorder Needed
+PPE-1217,Safety Shoes,UltraSafe Equipments,2025-03-17 00:00:00,299,Admin,2025-03-24 00:00:00,283,16,2025-04-16 00:00:00,High Usage,Reorder Needed
+PPE-1218,Apron,UltraSafe Equipments,2025-01-25 00:00:00,155,Paint Shop,2025-02-05 00:00:00,69,86,2025-02-24 00:00:00,Low Usage,Sufficient
+PPE-1219,Ear Plug,SafeWear Pvt Ltd,2025-03-20 00:00:00,257,Maintenance,2025-04-01 00:00:00,175,82,2025-04-19 00:00:00,Medium Usage,Sufficient
+PPE-1220,Ear Plug,SafePro Industries,2025-10-08 00:00:00,73,Electrical,2025-10-19 00:00:00,59,14,2025-11-07 00:00:00,High Usage,Reorder Needed
+PPE-1221,Hand Gloves,SafeWear Pvt Ltd,2025-09-24 00:00:00,219,Electrical,2025-10-02 00:00:00,121,98,2025-10-24 00:00:00,Medium Usage,Sufficient
+PPE-1222,Safety Helmet,ProShield India,2025-05-27 00:00:00,137,Admin,2025-06-15 00:00:00,53,84,2025-06-26 00:00:00,Low Usage,Sufficient
+PPE-1223,Face Shield,SafePro Industries,2025-06-08 00:00:00,141,Electrical,2025-06-26 00:00:00,26,115,2025-07-08 00:00:00,Low Usage,Sufficient
+PPE-1224,Safety Helmet,SafePro Industries,2025-09-24 00:00:00,274,Maintenance,2025-10-11 00:00:00,154,120,2025-10-24 00:00:00,Medium Usage,Sufficient
+PPE-1225,Ear Plug,SafePro Industries,2025-08-04 00:00:00,203,Electrical,2025-08-11 00:00:00,10,193,2025-09-03 00:00:00,Low Usage,Sufficient
+PPE-1226,Face Shield,UltraSafe Equipments,2025-07-10 00:00:00,258,Warehouse,2025-07-12 00:00:00,174,84,2025-08-09 00:00:00,Medium Usage,Sufficient
+PPE-1227,Safety Shoes,Guardian Safety,2025-05-12 00:00:00,278,Maintenance,2025-05-17 00:00:00,80,198,2025-06-11 00:00:00,Low Usage,Sufficient
+PPE-1228,Hand Gloves,ProShield India,2025-09-12 00:00:00,132,Production,2025-09-21 00:00:00,34,98,2025-10-12 00:00:00,Low Usage,Sufficient
+PPE-1229,Safety Helmet,ProShield India,2025-04-16 00:00:00,95,Admin,2025-04-17 00:00:00,21,74,2025-05-16 00:00:00,Low Usage,Sufficient
+PPE-1230,Apron,Guardian Safety,2025-10-12 00:00:00,137,Electrical,2025-10-29 00:00:00,84,53,2025-11-11 00:00:00,Medium Usage,Sufficient
+PPE-1231,Safety Shoes,Guardian Safety,2025-07-11 00:00:00,179,Electrical,2025-07-31 00:00:00,137,42,2025-08-10 00:00:00,Medium Usage,Reorder Needed
+PPE-1232,Hand Gloves,SafePro Industries,2025-11-22 00:00:00,235,Admin,2025-11-23 00:00:00,198,37,2025-12-22 00:00:00,High Usage,Reorder Needed
+PPE-1233,Face Shield,SafePro Industries,2025-10-13 00:00:00,126,Electrical,2025-11-12 00:00:00,122,4,2025-11-12 00:00:00,High Usage,Reorder Needed
+PPE-1234,Apron,SafePro Industries,2025-02-01 00:00:00,114,Admin,2025-02-20 00:00:00,61,53,2025-03-03 00:00:00,Medium Usage,Sufficient
+PPE-1235,Hand Gloves,SafePro Industries,2025-01-05 00:00:00,62,Production,2025-02-01 00:00:00,40,22,2025-02-04 00:00:00,Medium Usage,Reorder Needed
+PPE-1236,Safety Helmet,ProShield India,2025-10-23 00:00:00,163,Production,2025-11-17 00:00:00,153,10,2025-11-22 00:00:00,High Usage,Reorder Needed
+PPE-1237,Ear Plug,ProShield India,2025-11-10 00:00:00,54,Paint Shop,2025-12-01 00:00:00,26,28,2025-12-10 00:00:00,Low Usage,Reorder Needed
+PPE-1238,Safety Shoes,ProShield India,2025-06-18 00:00:00,186,Production,2025-07-17 00:00:00,134,52,2025-07-18 00:00:00,Medium Usage,Sufficient
+PPE-1239,Safety Helmet,ProShield India,2025-07-23 00:00:00,288,Paint Shop,2025-08-15 00:00:00,253,35,2025-08-22 00:00:00,High Usage,Reorder Needed
+PPE-1240,Hand Gloves,Guardian Safety,2025-03-04 00:00:00,50,Admin,2025-03-16 00:00:00,35,15,2025-04-03 00:00:00,Medium Usage,Reorder Needed
+PPE-1241,Safety Goggles,ProShield India,2025-04-24 00:00:00,131,Paint Shop,2025-05-23 00:00:00,72,59,2025-05-24 00:00:00,Medium Usage,Sufficient
+PPE-1242,Hand Gloves,SafePro Industries,2025-01-19 00:00:00,90,Production,2025-02-02 00:00:00,87,3,2025-02-18 00:00:00,High Usage,Reorder Needed
+PPE-1243,Hand Gloves,SafeWear Pvt Ltd,2025-08-11 00:00:00,178,Production,2025-08-27 00:00:00,148,30,2025-09-10 00:00:00,High Usage,Reorder Needed
+PPE-1244,Safety Shoes,SafeWear Pvt Ltd,2025-02-25 00:00:00,188,Paint Shop,2025-03-27 00:00:00,173,15,2025-03-27 00:00:00,High Usage,Reorder Needed
+PPE-1245,Safety Goggles,SafeWear Pvt Ltd,2025-11-17 00:00:00,192,Warehouse,2025-11-22 00:00:00,129,63,2025-12-17 00:00:00,Medium Usage,Sufficient
+PPE-1246,Hand Gloves,ProShield India,2025-03-03 00:00:00,260,Admin,2025-03-22 00:00:00,246,14,2025-04-02 00:00:00,High Usage,Reorder Needed
+PPE-1247,Face Shield,SafePro Industries,2025-10-06 00:00:00,249,Admin,2025-10-20 00:00:00,141,108,2025-11-05 00:00:00,Medium Usage,Sufficient
+PPE-1248,Safety Helmet,SafePro Industries,2025-02-28 00:00:00,211,Maintenance,2025-03-02 00:00:00,156,55,2025-03-30 00:00:00,Medium Usage,Sufficient
+PPE-1249,Face Shield,SafePro Industries,2025-11-15 00:00:00,67,Electrical,2025-12-13 00:00:00,48,19,2025-12-15 00:00:00,Medium Usage,Reorder Needed
+PPE-1250,Safety Shoes,SafePro Industries,2025-07-23 00:00:00,151,Warehouse,2025-08-20 00:00:00,16,135,2025-08-22 00:00:00,Low Usage,Sufficient
+PPE-1251,Apron,Guardian Safety,2025-01-10 00:00:00,243,Electrical,2025-01-26 00:00:00,217,26,2025-02-09 00:00:00,High Usage,Reorder Needed
+PPE-1252,Face Shield,SafeWear Pvt Ltd,2025-10-28 00:00:00,198,Maintenance,2025-11-24 00:00:00,142,56,2025-11-27 00:00:00,Medium Usage,Sufficient
+PPE-1253,Ear Plug,SafeWear Pvt Ltd,2025-10-15 00:00:00,235,Electrical,2025-10-20 00:00:00,20,215,2025-11-14 00:00:00,Low Usage,Sufficient
+PPE-1254,Face Shield,ProShield India,2025-06-26 00:00:00,280,Paint Shop,2025-07-08 00:00:00,103,177,2025-07-26 00:00:00,Low Usage,Sufficient
+PPE-1255,Safety Helmet,UltraSafe Equipments,2025-11-11 00:00:00,115,Warehouse,2025-12-05 00:00:00,64,51,2025-12-11 00:00:00,Medium Usage,Sufficient
+PPE-1256,Apron,UltraSafe Equipments,2025-11-01 00:00:00,272,Paint Shop,2025-11-03 00:00:00,267,5,2025-12-01 00:00:00,High Usage,Reorder Needed
+PPE-1257,Hand Gloves,UltraSafe Equipments,2025-02-11 00:00:00,183,Production,2025-03-08 00:00:00,70,113,2025-03-13 00:00:00,Low Usage,Sufficient
+PPE-1258,Face Shield,Guardian Safety,2025-07-13 00:00:00,99,Production,2025-08-12 00:00:00,46,53,2025-08-12 00:00:00,Low Usage,Sufficient
+PPE-1259,Apron,SafePro Industries,2025-01-28 00:00:00,205,Admin,2025-02-24 00:00:00,90,115,2025-02-27 00:00:00,Low Usage,Sufficient
+PPE-1260,Face Shield,ProShield India,2025-02-21 00:00:00,63,Paint Shop,2025-03-05 00:00:00,30,33,2025-03-23 00:00:00,Low Usage,Reorder Needed
+PPE-1261,Safety Helmet,ProShield India,2025-09-22 00:00:00,163,Paint Shop,2025-09-28 00:00:00,50,113,2025-10-22 00:00:00,Low Usage,Sufficient
+PPE-1262,Safety Shoes,ProShield India,2025-04-15 00:00:00,188,Warehouse,2025-05-01 00:00:00,151,37,2025-05-15 00:00:00,High Usage,Reorder Needed
+PPE-1263,Face Shield,SafePro Industries,2025-11-06 00:00:00,153,Maintenance,2025-11-20 00:00:00,133,20,2025-12-06 00:00:00,High Usage,Reorder Needed
+PPE-1264,Safety Goggles,Guardian Safety,2025-04-19 00:00:00,68,Maintenance,2025-05-16 00:00:00,34,34,2025-05-19 00:00:00,Low Usage,Reorder Needed
+PPE-1265,Safety Shoes,SafeWear Pvt Ltd,2025-04-13 00:00:00,218,Electrical,2025-04-26 00:00:00,138,80,2025-05-13 00:00:00,Medium Usage,Sufficient
+PPE-1266,Hand Gloves,ProShield India,2025-06-19 00:00:00,170,Production,2025-07-03 00:00:00,163,7,2025-07-19 00:00:00,High Usage,Reorder Needed
+PPE-1267,Face Shield,SafeWear Pvt Ltd,2025-04-15 00:00:00,91,Warehouse,2025-04-21 00:00:00,33,58,2025-05-15 00:00:00,Low Usage,Sufficient
+PPE-1268,Safety Shoes,SafePro Industries,2025-02-25 00:00:00,222,Admin,2025-03-21 00:00:00,152,70,2025-03-27 00:00:00,Medium Usage,Sufficient
+PPE-1269,Ear Plug,SafeWear Pvt Ltd,2025-05-10 00:00:00,201,Maintenance,2025-05-22 00:00:00,144,57,2025-06-09 00:00:00,Medium Usage,Sufficient
+PPE-1270,Hand Gloves,ProShield India,2025-05-21 00:00:00,201,Warehouse,2025-05-26 00:00:00,157,44,2025-06-20 00:00:00,Medium Usage,Reorder Needed
+PPE-1271,Safety Goggles,SafeWear Pvt Ltd,2025-05-06 00:00:00,51,Admin,2025-06-05 00:00:00,29,22,2025-06-05 00:00:00,Medium Usage,Reorder Needed
+PPE-1272,Safety Goggles,SafePro Industries,2025-09-18 00:00:00,227,Admin,2025-09-23 00:00:00,141,86,2025-10-18 00:00:00,Medium Usage,Sufficient
+PPE-1273,Face Shield,Guardian Safety,2025-06-09 00:00:00,140,Admin,2025-07-04 00:00:00,36,104,2025-07-09 00:00:00,Low Usage,Sufficient
+PPE-1274,Safety Helmet,ProShield India,2025-03-11 00:00:00,77,Production,2025-03-25 00:00:00,47,30,2025-04-10 00:00:00,Medium Usage,Reorder Needed
+PPE-1275,Ear Plug,SafeWear Pvt Ltd,2025-05-11 00:00:00,178,Warehouse,2025-06-01 00:00:00,16,162,2025-06-10 00:00:00,Low Usage,Sufficient
+PPE-1276,Safety Shoes,UltraSafe Equipments,2025-10-28 00:00:00,139,Maintenance,2025-11-10 00:00:00,90,49,2025-11-27 00:00:00,Medium Usage,Reorder Needed
+PPE-1277,Apron,Guardian Safety,2025-07-26 00:00:00,241,Warehouse,2025-08-08 00:00:00,140,101,2025-08-25 00:00:00,Medium Usage,Sufficient
+PPE-1278,Apron,ProShield India,2025-10-21 00:00:00,271,Maintenance,2025-11-08 00:00:00,39,232,2025-11-20 00:00:00,Low Usage,Sufficient
+PPE-1279,Safety Shoes,UltraSafe Equipments,2025-09-02 00:00:00,158,Production,2025-10-02 00:00:00,154,4,2025-10-02 00:00:00,High Usage,Reorder Needed
+PPE-1280,Safety Shoes,SafePro Industries,2025-11-17 00:00:00,116,Production,2025-12-13 00:00:00,62,54,2025-12-17 00:00:00,Medium Usage,Sufficient
+PPE-1281,Safety Helmet,UltraSafe Equipments,2025-02-14 00:00:00,115,Electrical,2025-03-03 00:00:00,29,86,2025-03-16 00:00:00,Low Usage,Sufficient
+PPE-1282,Safety Goggles,ProShield India,2025-10-09 00:00:00,234,Production,2025-10-22 00:00:00,163,71,2025-11-08 00:00:00,Medium Usage,Sufficient
+PPE-1283,Apron,SafePro Industries,2025-11-11 00:00:00,190,Maintenance,2025-11-28 00:00:00,23,167,2025-12-11 00:00:00,Low Usage,Sufficient
+PPE-1284,Face Shield,UltraSafe Equipments,2025-07-05 00:00:00,115,Paint Shop,2025-08-04 00:00:00,77,38,2025-08-04 00:00:00,Medium Usage,Reorder Needed
+PPE-1285,Safety Shoes,Guardian Safety,2025-10-17 00:00:00,254,Warehouse,2025-10-31 00:00:00,87,167,2025-11-16 00:00:00,Low Usage,Sufficient
+PPE-1286,Safety Goggles,ProShield India,2025-05-01 00:00:00,62,Admin,2025-05-07 00:00:00,27,35,2025-05-31 00:00:00,Low Usage,Reorder Needed
+PPE-1287,Apron,SafeWear Pvt Ltd,2025-02-05 00:00:00,90,Warehouse,2025-03-04 00:00:00,26,64,2025-03-07 00:00:00,Low Usage,Sufficient
+PPE-1288,Hand Gloves,SafePro Industries,2025-03-22 00:00:00,122,Paint Shop,2025-04-16 00:00:00,91,31,2025-04-21 00:00:00,Medium Usage,Reorder Needed
+PPE-1289,Safety Goggles,UltraSafe Equipments,2025-06-25 00:00:00,178,Paint Shop,2025-07-23 00:00:00,10,168,2025-07-25 00:00:00,Low Usage,Sufficient
+PPE-1290,Ear Plug,SafeWear Pvt Ltd,2025-09-11 00:00:00,204,Maintenance,2025-10-05 00:00:00,180,24,2025-10-11 00:00:00,High Usage,Reorder Needed
+PPE-1291,Apron,UltraSafe Equipments,2025-08-22 00:00:00,172,Maintenance,2025-09-06 00:00:00,76,96,2025-09-21 00:00:00,Low Usage,Sufficient
+PPE-1292,Safety Goggles,UltraSafe Equipments,2025-03-24 00:00:00,74,Paint Shop,2025-04-02 00:00:00,29,45,2025-04-23 00:00:00,Low Usage,Reorder Needed
+PPE-1293,Face Shield,UltraSafe Equipments,2025-11-22 00:00:00,238,Production,2025-12-13 00:00:00,41,197,2025-12-22 00:00:00,Low Usage,Sufficient
+PPE-1294,Safety Shoes,UltraSafe Equipments,2025-04-13 00:00:00,247,Production,2025-04-19 00:00:00,83,164,2025-05-13 00:00:00,Low Usage,Sufficient
+PPE-1295,Ear Plug,Guardian Safety,2025-09-25 00:00:00,253,Paint Shop,2025-09-26 00:00:00,20,233,2025-10-25 00:00:00,Low Usage,Sufficient
+PPE-1296,Safety Shoes,SafeWear Pvt Ltd,2025-01-03 00:00:00,219,Warehouse,2025-01-14 00:00:00,85,134,2025-02-02 00:00:00,Low Usage,Sufficient
+PPE-1297,Face Shield,Guardian Safety,2025-11-12 00:00:00,179,Admin,2025-11-21 00:00:00,99,80,2025-12-12 00:00:00,Medium Usage,Sufficient
+PPE-1298,Safety Helmet,SafeWear Pvt Ltd,2025-11-25 00:00:00,280,Warehouse,2025-12-02 00:00:00,124,156,2025-12-25 00:00:00,Low Usage,Sufficient
+PPE-1299,Safety Helmet,Guardian Safety,2025-01-06 00:00:00,153,Paint Shop,2025-01-26 00:00:00,124,29,2025-02-05 00:00:00,High Usage,Reorder Needed
+PPE-1300,Face Shield,SafePro Industries,2025-07-09 00:00:00,112,Electrical,2025-07-24 00:00:00,104,8,2025-08-08 00:00:00,High Usage,Reorder Needed

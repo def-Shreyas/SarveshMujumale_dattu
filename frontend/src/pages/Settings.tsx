@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Card,
@@ -25,20 +25,25 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Settings as SettingsIcon,
   User,
-  Key,
   LogOut,
-  Building,
-  Check,
   RefreshCw,
   AlertTriangle,
   Loader2,
-  Zap,
   UserPlus,
   Users as UsersIcon,
   Star,
   CreditCard,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -133,26 +138,50 @@ const UserApiUsage: React.FC = () => {
   const [usage, setUsage] = useState<ApiUsage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple concurrent fetches
+    if (hasFetchedRef.current) return;
+    
+    let isMounted = true;
+    hasFetchedRef.current = true;
+    const abortController = new AbortController();
+
     const fetchUsage = async () => {
+      if (!isMounted || abortController.signal.aborted) return;
+      
       setIsLoading(true); 
       setApiError(null);
       try {
         const data = await apiClient.get("/auth/rate-limit");
+        if (!isMounted || abortController.signal.aborted) return;
+        
         if (data && typeof data.api_calls_month !== 'undefined') {
           setUsage(data); 
         } else {
           throw new Error("Invalid usage data received from server.");
         }
       } catch (error: any) {
+        // Ignore abort errors
+        if (abortController.signal.aborted) return;
+        if (!isMounted) return;
         console.error("Failed to fetch API usage:", error);
         setApiError(error.message || "Failed to fetch API usage.");
       } finally {
-        setIsLoading(false);
+        if (isMounted && !abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
+    
     fetchUsage();
+    
+    return () => {
+      isMounted = false;
+      abortController.abort();
+      hasFetchedRef.current = false;
+    };
   }, []);
 
   // This is the CRASH GUARD (fixes blank page)
@@ -335,6 +364,17 @@ const AdminUserManagement: React.FC = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      // Calls DELETE /auth/admin/users/{user_id}
+      await apiClient.delete(`/auth/admin/users/${userId}`);
+      await fetchUsers(); // Refresh the user list after deletion
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      throw error; // Re-throw to let the dialog handle the error display
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -360,7 +400,7 @@ const AdminUserManagement: React.FC = () => {
             <Input id="email" type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="password">Temporary Password</Label>
+            <Label htmlFor="password"> Password</Label>
             <Input id="password" type="text" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} />
           </div>
           <div className="space-y-1">
@@ -423,7 +463,7 @@ const AdminUserManagement: React.FC = () => {
         title="Manage Existing Users"
         description="View and manage all user accounts in the system."
       >
-        <UserListTable users={users} />
+        <UserListTable users={users} onDelete={handleDeleteUser} />
       </SectionCard>
     </div>
   );
@@ -563,44 +603,148 @@ const SubscriptionManager: React.FC = () => {
   );
 };
 
-const UserListTable: React.FC<{ users: AuthUser[] }> = ({ users }) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Username</TableHead>
-        <TableHead>Email</TableHead>
-        <TableHead>Role</TableHead>
-        <TableHead>Status</TableHead>
-        <TableHead>Sub Tier</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {users.map((user) => (
-        <TableRow key={user.id}>
-          <TableCell className="font-medium">{user.username}</TableCell>
-          <TableCell>{user.email}</TableCell>
-          <TableCell>
-            <Badge 
-              className={cn("text-white capitalize", user.role === 'admin' ? "bg-[#0B3D91]" : "bg-gray-500")}
+const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) => Promise<void> }> = ({ users, onDelete }) => {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<AuthUser | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (user: AuthUser) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(userToDelete.id);
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      toast.success("User Deleted", { description: `User ${userToDelete.username} has been permanently deleted.` });
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      toast.error("Delete Failed", { description: error.message || "Failed to delete user. Please try again." });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Username</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Sub Tier</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {users.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell className="font-medium">{user.username}</TableCell>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>
+                <Badge 
+                  className={cn("text-white capitalize", user.role === 'admin' ? "bg-[#0B3D91]" : "bg-gray-500")}
+                >
+                  {user.role}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <Badge 
+                  className={cn("text-white capitalize", user.status === 'active' ? "bg-green-600" : "bg-red-600")}
+                >
+                  {user.status}
+                </Badge>
+              </TableCell>
+              <TableCell className="capitalize">
+                {user.subscription_tier}
+              </TableCell>
+              <TableCell className="text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteClick(user)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Delete User
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              You are about to permanently delete the user account. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          {userToDelete && (
+            <div className="py-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="font-semibold text-gray-900">User Details:</p>
+                <ul className="mt-2 space-y-1 text-sm text-gray-700">
+                  <li><strong>Username:</strong> {userToDelete.username}</li>
+                  <li><strong>Email:</strong> {userToDelete.email}</li>
+                  <li><strong>Role:</strong> <span className="capitalize">{userToDelete.role}</span></li>
+                  {userToDelete.company_name && (
+                    <li><strong>Company:</strong> {userToDelete.company_name}</li>
+                  )}
+                </ul>
+              </div>
+              <p className="mt-4 text-sm text-red-600 font-medium">
+                ⚠️ This will remove the user from the frontend, backend, and database completely.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setUserToDelete(null);
+              }}
+              disabled={isDeleting}
             >
-              {user.role}
-            </Badge>
-          </TableCell>
-          <TableCell>
-            <Badge 
-              className={cn("text-white capitalize", user.status === 'active' ? "bg-green-600" : "bg-red-600")}
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
             >
-              {user.status}
-            </Badge>
-          </TableCell>
-           <TableCell className="capitalize">
-            {user.subscription_tier}
-          </TableCell>
-        </TableRow>
-      ))}
-    </TableBody>
-  </Table>
-);
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete User
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
 
 // --- Logout Section Component (For all users) ---

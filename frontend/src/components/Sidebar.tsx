@@ -27,11 +27,10 @@ import DattuAvatar from "/logo dattu.png"; // Make sure this path is correct
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "AI Vision Report", href: "/unsafety", icon: Eye },
+  { name: "Incidents & Near-Misses", href: "/unsafety", icon:ShieldAlert  },
   { name: "Permit-to-Work (PTW)", href: "/ptw", icon: FileText },
   { name: "Inspections & Audits", href: "/audits", icon: CheckSquare },
   { name: "Medical & First-Aid", href: "/medical", icon: HeartPulse },
-  { name: "Incidents & Near-Misses", href: "/incidents", icon: ShieldAlert },
   { name: "Training & Competency", href: "/training", icon: Users },
   { name: "Assets & PPE Management", href: "/ppe", icon: HardHat },
   { name: "Corrective Actions & RCA", href: "/rca", icon: Target },

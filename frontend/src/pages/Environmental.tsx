@@ -1,6 +1,7 @@
-// src/pages/Environmental.tsx
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { getAuthToken } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -9,23 +10,24 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Upload,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  Sparkles,
+  Leaf,
+  BarChart2,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -33,653 +35,927 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Label } from "@/components/ui/label";
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  Leaf,
-  PlusCircle,
-  FileText,
-  TrendingUp,
-  Brain,
-  Info,
-  Filter,
-  Check,
-  Zap,
-  Factory,
-  Bolt,
-  Droplet,
-  Recycle,
-  Wind,
-} from "lucide-react";
-import type {
-  EnvironmentalRecord,
-  EnvironmentalKpi,
-  ResourceTrendData,
-  WasteSummaryData,
-} from "@/types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { format } from "date-fns";
 
-// --- Mock Data (Replace with API calls) ---
+// Backend URL
+const BACKEND_URL = "http://localhost:8000";
 
-const mockKpis: EnvironmentalKpi[] = [
-  {
-    title: "Energy Intensity",
-    value: "0.45 kWh/unit",
-    formula: "Total kWh / Units Produced",
-  },
-  {
-    title: "CO₂ Intensity",
-    value: "0.08 tCO₂/unit",
-    formula: "Total tCO₂ / Units Produced",
-  },
-  {
-    title: "Recycling %",
-    value: "75%",
-    formula: "(Recycled / Total Waste) × 100",
-    progress: 75,
-  },
-  {
-    title: "Renewable Energy %",
-    value: "22%",
-    formula: "Renewable kWh / Total kWh",
-    progress: 22,
-  },
+// AI Quotes
+const aiQuotes = [
+  "AI is analyzing your environmental and medical data...",
+  "Machine learning helps identify resource consumption patterns...",
+  "Every data point tells an environmental story, AI helps us read it...",
 ];
 
-const mockEnvRecords: EnvironmentalRecord[] = [
-  {
-    id: "ENV-001",
-    plant: "Plant A",
-    month: new Date("2025-10-01"),
-    energyKwh: 50000,
-    waterM3: 1200,
-    wasteTotalT: 50,
-    wasteRecycledT: 35,
-    co2T: 25,
-    renewablePercent: 20,
-    unitsProduced: 110000,
-  },
-  {
-    id: "ENV-002",
-    plant: "Plant B",
-    month: new Date("2025-10-01"),
-    energyKwh: 75000,
-    waterM3: 1800,
-    wasteTotalT: 60,
-    wasteRecycledT: 50,
-    co2T: 38,
-    renewablePercent: 15,
-    unitsProduced: 150000,
-  },
-  {
-    id: "ENV-003",
-    plant: "Plant A",
-    month: new Date("2025-09-01"),
-    energyKwh: 48000,
-    waterM3: 1150,
-    wasteTotalT: 48,
-    wasteRecycledT: 30,
-    co2T: 24,
-    renewablePercent: 20,
-    unitsProduced: 105000,
-  },
-  {
-    id: "ENV-004", // Added a zero waste record to test the fix
-    plant: "Plant A",
-    month: new Date("2025-08-01"),
-    energyKwh: 47000,
-    waterM3: 1100,
-    wasteTotalT: 0,
-    wasteRecycledT: 0,
-    co2T: 22,
-    renewablePercent: 18,
-    unitsProduced: 102000,
-  },
-];
+// Types for backend integration
+interface ChartFile {
+  name: string;
+  path?: string;
+}
 
-const mockTrendData: ResourceTrendData[] = [
-  { month: "May", "Energy (kWh)": 52000, "Water (m³)": 1250 },
-  { month: "Jun", "Energy (kWh)": 51000, "Water (m³)": 1200 },
-  { month: "Jul", "Energy (kWh)": 53000, "Water (m³)": 1300 },
-  { month: "Aug", "Energy (kWh)": 55000, "Water (m³)": 1350 }, // Anomaly
-  { month: "Sep", "Energy (kWh)": 48000, "Water (m³)": 1150 },
-  { month: "Oct", "Energy (kWh)": 50000, "Water (m³)": 1200 },
-];
+// Safe Markdown Renderer Component
+interface SafeMarkdownProps {
+  content: string;
+}
 
-// Based on Oct data for Plant A
-const mockWasteData: WasteSummaryData[] = [
-  { name: "Recycled", value: 35, fill: "#00A79D" },
-  { name: "Landfill", value: 15, fill: "#64748b" }, // 50 total - 35 recycled
-];
+const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
+  if (typeof content !== "string") {
+    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
+    return (
+      <div className="text-red-500 p-4">
+        <p>Invalid content type: {typeof content}</p>
+      </div>
+    );
+  }
 
-// --- Main Environmental Page Component ---
+  if (!content || content.length === 0) {
+    return <p className="text-gray-500">No content to display</p>;
+  }
 
-export const Environmental: React.FC = () => {
-  const [kpis, setKpis] = useState<EnvironmentalKpi[]>([]);
-  const [records, setRecords] = useState<EnvironmentalRecord[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<EnvironmentalRecord | null>(
-    null
-  );
+  const formatMarkdown = (text: string): string => {
+    // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
+    const stripHtmlAttributes = (str: string): string => {
+      // Remove style attributes and other inline attributes from HTML tags
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
+      
+      // Remove any standalone HTML attribute text that might be displayed
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
+      
+      // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
+      
+      // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
+      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      
+      return str;
+    };
 
-  // --- Data Fetching (Backend Logic) ---
-  useEffect(() => {
-    // TODO: Replace with API calls
-    setKpis(mockKpis);
-    setRecords(mockEnvRecords);
-  }, []);
+    // Clean the text first to remove HTML attributes
+    text = stripHtmlAttributes(text);
 
-  const handleFilterChange = () => {
-    // TODO: Add filter state and re-fetch data
-    // const query = new URLSearchParams({ plant, month }).toString();
-    // fetch(`/api/env/filter?${query}`)
-    //   .then(res => res.json())
-    //   .then(data => setRecords(data));
-    console.log("Filtering data...");
-  };
-
-  const handleFormSubmit = async (formData: Partial<EnvironmentalRecord>) => {
-    console.log("Submitting new env record:", formData);
-    // TODO: Replace with API call
-    /*
-    try {
-      const response = await fetch('/api/env/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+    const escapeHtml = (str: string) => {
+      const entityPlaceholders: { [key: string]: string } = {};
+      let placeholderIndex = 0;
+      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
+        const placeholder = `__ENTITY_${placeholderIndex++}__`;
+        entityPlaceholders[placeholder] = match;
+        return placeholder;
       });
-      if (!response.ok) throw new Error('Failed to submit');
-      const newRecord = await response.json();
-      setRecords([newRecord, ...records]);
-      setIsModalOpen(false);
-      toast.success("Success", { description: "New monthly data logged." });
-    } catch (error) {
-      toast.error("Error", { description: "Could not log data." });
-    }
-    */
-    // Mock success
-    const newRecord: EnvironmentalRecord = {
-      id: `ENV-${Math.floor(Math.random() * 1000)}`,
-      ...formData,
-    } as EnvironmentalRecord;
-    setRecords([newRecord, ...records]);
-    setIsModalOpen(false);
-    toast.success("Success", { description: "New monthly data logged." });
-  };
+      protectedStr = protectedStr.replace(/&/g, '&amp;');
+      protectedStr = protectedStr.replace(/</g, '&lt;');
+      protectedStr = protectedStr.replace(/>/g, '&gt;');
+      Object.keys(entityPlaceholders).forEach(placeholder => {
+        protectedStr = protectedStr.replace(new RegExp(placeholder, 'g'), entityPlaceholders[placeholder]);
+      });
+      return protectedStr;
+    };
 
-  const handleGenerateAI = () => {
-    // TODO: API call to AI backend
-    // fetch(`/api/env/ai-summary`)
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     // display summary
-    //   })
-    toast.info("AI Co-Pilot", {
-      description: "Generating environmental summary...",
+    const decodeHtmlEntities = (str: string): string => {
+      return str
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&apos;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+        .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    };
+
+    const BR_PLACEHOLDER = '___BR_TAG_PLACEHOLDER___';
+    const safeHtmlTags = [
+      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER }
+    ];
+
+    let processedText = decodeHtmlEntities(text);
+    safeHtmlTags.forEach(({ pattern, replacement }) => {
+      processedText = processedText.replace(pattern, replacement);
     });
+
+    const processTables = (str: string): string => {
+      const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
+      return str.replace(tableRegex, (match) => {
+        const lines = match.trim().split(/\r?\n/).filter(line => line.trim() && line.includes('|'));
+        if (lines.length < 2) return match;
+        const headerLine = lines[0];
+        const dataLines = lines.slice(2);
+        const headers = headerLine.split('|').map(h => h.trim()).filter(h => h && !h.match(/^[-:|\s]+$/));
+        if (headers.length === 0) return match;
+        let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+        tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
+        headers.forEach(header => {
+          let escapedHeader = escapeHtml(header);
+          escapedHeader = escapedHeader.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
+        });
+        tableHtml += '</tr></thead><tbody>';
+        dataLines.forEach((line, idx) => {
+          const cells = line.split('|').map(c => c.trim()).filter(c => c && !c.match(/^[-:|\s]+$/));
+          if (cells.length === headers.length) {
+            tableHtml += `<tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100">`;
+            cells.forEach(cell => {
+              let cellContent = escapeHtml(cell);
+              cellContent = cellContent.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+              cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+              cellContent = cellContent.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+              cellContent = cellContent.replace(/\n/g, '<br />');
+              tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
+            });
+            tableHtml += '</tr>';
+          }
+        });
+        tableHtml += '</tbody></table></div>';
+        return tableHtml;
+      });
+    };
+
+    let html = processTables(processedText);
+    const escapeNonHtml = (str: string): string => {
+      const parts = str.split(/(<[^>]+>)/);
+      return parts.map((part) => {
+        if (part.startsWith('<') && part.endsWith('>')) {
+          return part;
+        }
+        return escapeHtml(part);
+      }).join('');
+    };
+    html = escapeNonHtml(html);
+    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
+    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
+    html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+      const beforeMatch = html.substring(0, html.indexOf(match));
+      const lastTable = beforeMatch.lastIndexOf('<table');
+      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      if (lastTable > lastTableClose) {
+        return match;
+      }
+      return `<pre class="bg-gray-100 p-4 rounded my-4 overflow-x-auto border"><code>${code}</code></pre>`;
+    });
+    html = html.replace(/`([^`]+)`/g, (match, code) => {
+      const beforeMatch = html.substring(0, html.indexOf(match));
+      const lastTable = beforeMatch.lastIndexOf('<table');
+      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      if (lastTable > lastTableClose) {
+        return match;
+      }
+      return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
+    });
+    html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
+      if (match.includes('<td') || match.includes('</td>')) {
+        return match;
+      }
+      return `<strong class="font-bold text-gray-800">${text}</strong>`;
+    });
+    html = html.replace(/\*(.*?)\*/g, (match, text) => {
+      if (match.includes('<td') || match.includes('</td>') || match.includes('<strong>')) {
+        return match;
+      }
+      return `<em class="italic">${text}</em>`;
+    });
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
+    html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
+    html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
+    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
+    html = html.split(/\n\n+/).map(para => {
+      if (para.trim()) {
+        if (para.trim().startsWith('<h') || 
+            para.trim().startsWith('<ul') || 
+            para.trim().startsWith('<pre') ||
+            para.trim().startsWith('<div') && para.includes('<table')) {
+          return para;
+        }
+        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
+      }
+      return '';
+    }).join('');
+    html = html.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+    return html;
   };
 
   return (
-    <TooltipProvider>
-      <motion.div
-        className="space-y-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-800">
-            Environmental & Resource Use
-          </h1>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-            <DialogTrigger asChild>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button className="gap-2 bg-[#0B3D91] hover:bg-[#082f70]">
-                  <PlusCircle className="h-5 w-5" />
-                  Add Monthly Data
-                </Button>
-              </motion.div>
-            </DialogTrigger>
-            <AddDataModal
-              onSubmit={handleFormSubmit}
-              onClose={() => setIsModalOpen(false)}
-            />
-          </Dialog>
+    <div 
+      className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
+      dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
+    />
+  );
+};
+
+// --- Main Environmental Page Component ---
+export const Environmental: React.FC = () => {
+  const reportRef = useRef<HTMLDivElement | null>(null);
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+
+  // backend data
+  const [aiReport, setAiReport] = useState<string>("");
+  const [chartList, setChartList] = useState<ChartFile[]>([]);
+  const [selectedChartName, setSelectedChartName] = useState<string>("");
+  const [selectedChartHtml, setSelectedChartHtml] = useState<string>("");
+
+  // rotate quotes while generating
+  useEffect(() => {
+    if (isGenerating) {
+      const quoteInterval = setInterval(() => {
+        setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
+      }, 3000);
+      return () => clearInterval(quoteInterval);
+    }
+  }, [isGenerating]);
+
+  // handle file pick
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (file) {
+      const validExtensions = [".xlsx", ".xls"];
+      const fileExtension = file.name
+        .substring(file.name.lastIndexOf("."))
+        .toLowerCase();
+
+      if (validExtensions.includes(fileExtension)) {
+        setSelectedFile(file);
+        setShowDashboard(false);
+      } else {
+        toast.error("Invalid File Type", {
+          description: "Please upload a valid Excel (.xlsx, .xls) file.",
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    }
+  };
+
+  // Upload file to backend
+  const uploadMedicalFile = async (file: File) => {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error("User not authenticated — no token found.");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch(`${BACKEND_URL}/upload-medical`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => `${res.statusText}`);
+      console.error("Upload error body:", text);
+      throw new Error(`Upload failed (${res.status}): ${text}`);
+    }
+  };
+
+  // Trigger backend to build report and charts
+  const triggerGeneration = async () => {
+    const token = getAuthToken();
+    if (!token) throw new Error("Authentication required");
+
+    const r1 = await fetch(`${BACKEND_URL}/generate-medical-report`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+
+    await new Promise((res) => setTimeout(res, 1200));
+
+    const r2 = await fetch(`${BACKEND_URL}/generate-medical-charts`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+  };
+
+  // Fetch AI report text
+  const fetchReportText = async (): Promise<string> => {
+    const token = getAuthToken();
+    if (!token) throw new Error("Authentication required");
+
+    const res = await fetch(`${BACKEND_URL}/medical-report`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    let raw: string;
+    try {
+      raw = await res.text();
+    } catch (error) {
+      console.error("Failed to read response as text:", error);
+      throw new Error("Failed to read report response");
+    }
+
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const detail = parsed.detail || parsed.message || JSON.stringify(parsed);
+        throw new Error(detail);
+      } catch {
+        if (!res.ok) {
+          throw new Error(raw || `Fetch /medical-report failed (${res.status})`);
+        }
+      }
+    }
+
+    if (!res.ok) {
+      throw new Error(raw || `Fetching /medical-report failed (${res.status})`);
+    }
+
+    if (typeof raw !== "string") {
+      console.error("❌ CRITICAL: fetchReportText received non-string:", typeof raw, raw);
+      return "";
+    }
+
+    return String(raw).trim();
+  };
+
+  // Fetch charts list
+  const fetchChartsList = async () => {
+    const token = getAuthToken();
+    if (!token) throw new Error("Authentication required");
+
+    const res = await fetch(`${BACKEND_URL}/medical-charts`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Fetching /medical-charts list failed (${res.status}): ${body}`);
+    }
+
+    const data = await res.json().catch(() => null);
+    if (!data) return [];
+
+    if (Array.isArray(data)) {
+      return data.map((name: string) => ({ name }));
+    }
+
+    if (Array.isArray(data.charts)) {
+      return data.charts.map((chart: { name?: string; path?: string }) => ({
+        name: chart.name ?? "",
+        path: chart.path,
+      }));
+    }
+
+    return [];
+  };
+
+  // Fetch individual chart HTML
+  const fetchChartHtml = async (chartName: string) => {
+    const token = getAuthToken();
+    if (!token) throw new Error("Authentication required");
+
+    const res = await fetch(`${BACKEND_URL}/charts/${chartName}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`Fetching chart failed (${res.status}): ${body}`);
+    }
+
+    return await res.text();
+  };
+
+  // Main generate button flow
+  const handleGenerate = async () => {
+    if (!selectedFile) {
+      toast.error("No File Selected");
+      return;
+    }
+
+    setIsGenerating(true);
+    setShowDashboard(false);
+    setCurrentQuoteIndex(0);
+
+    try {
+      toast.info("Uploading file...", { id: "upload" });
+      await uploadMedicalFile(selectedFile);
+      toast.success("File Uploaded!", { id: "upload" });
+
+      toast.info("Generating AI report...", { id: "gen_report" });
+      toast.info("Generating charts...", { id: "gen_charts" });
+      await triggerGeneration();
+      toast.success("AI Report Generated!", { id: "gen_report" });
+      toast.success("Charts Generated!", { id: "gen_charts" });
+
+      toast.info("Loading results...");
+      const [reportText, chartsArr] = await Promise.all([
+        fetchReportText(),
+        fetchChartsList(),
+      ]);
+
+      let safeReport: string;
+      if (typeof reportText === "string") {
+        safeReport = reportText.trim();
+      } else {
+        console.error("❌ CRITICAL: reportText is not a string!");
+        safeReport = "";
+      }
+
+      if (typeof safeReport === "string") {
+        setAiReport(safeReport);
+      } else {
+        setAiReport("");
+      }
+
+      if (chartsArr && chartsArr.length > 0) {
+        setChartList(chartsArr);
+        const firstChartName = chartsArr[0].name;
+        setSelectedChartName(firstChartName);
+
+        try {
+          const firstHtml = await fetchChartHtml(firstChartName);
+          setSelectedChartHtml(firstHtml);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Unknown error";
+          console.error("Failed to auto-load first chart:", err);
+          toast.error("Failed to load first chart", {
+            description: errorMessage,
+          });
+          setSelectedChartHtml("<p>Error loading chart.</p>");
+        }
+      } else {
+        toast.error("No charts were generated by the backend.");
+        setChartList([]);
+        setSelectedChartName("");
+        setSelectedChartHtml("");
+      }
+
+      setIsGenerating(false);
+      setShowDashboard(true);
+      toast.success("Dashboard is ready!");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Could not process the file. Please try again.";
+      console.error("Error generating dashboard:", error);
+      setIsGenerating(false);
+      setShowDashboard(false);
+
+      toast.error("Generation Failed", {
+        description: errorMessage,
+      });
+    }
+  };
+
+  // Handle chart selection
+  const handleChartSelect = async (chartName: string) => {
+    setSelectedChartName(chartName);
+
+    try {
+      const html = await fetchChartHtml(chartName);
+      setSelectedChartHtml(html);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      console.error("Failed to load chart:", error);
+      toast.error("Failed to load chart", {
+        description: errorMessage,
+      });
+      setSelectedChartHtml("<p>Error loading chart.</p>");
+    }
+  };
+
+  // Download PDF
+  const downloadPDF = async () => {
+    const element = reportRef.current;
+    if (!element) {
+      toast.error("Error", {
+        description: "Cannot find report to download.",
+      });
+      return;
+    }
+
+    toast.info("Generating PDF", { description: "Please wait..." });
+
+    const originalBG = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = "#FFFFFF";
+
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#FFFFFF",
+    });
+
+    document.body.style.backgroundColor = originalBG;
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+
+    const pageImgHeight =
+      imgWidth > 0 ? (pdfWidth - 20) * (imgHeight / imgWidth) : 0;
+    let heightLeft = pageImgHeight;
+    let position = 10;
+    const pageMargin = 10;
+    const safePdfHeight = pdfHeight - pageMargin * 2;
+
+    pdf.addImage(
+      imgData,
+      "PNG",
+      pageMargin,
+      position,
+      pdfWidth - pageMargin * 2,
+      pageImgHeight
+    );
+    heightLeft -= safePdfHeight;
+
+    while (heightLeft > 0) {
+      position = -heightLeft + pageMargin;
+      pdf.addPage();
+      pdf.addImage(
+        imgData,
+        "PNG",
+        pageMargin,
+        position,
+        pdfWidth - pageMargin * 2,
+        pageImgHeight
+      );
+      heightLeft -= safePdfHeight;
+    }
+
+    pdf.save("DATTU_Environmental_Report.pdf");
+  };
+
+  // Upload screen
+  if (!showDashboard && !isGenerating) {
+    return (
+      <div className="w-full py-12">
+        {/* TOP PAGE HEADING */}
+        <div className="text-center mb-10">
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-extrabold text-[#0B3D91]"
+          >
+            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
+              DATTU AI Environmental Analyzer
+            </span>
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
+          >
+            Upload your Excel environmental and medical data and let DATTU generate
+            a smart, interactive dashboard of resource consumption, wellness trends, and AI insights.
+          </motion.p>
         </div>
 
-        {/* KPIs Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.title} {...kpi} />
+        {/* HOW IT WORKS */}
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+          {[
+            {
+              title: "1. Upload Environmental Excel",
+              icon: Upload,
+              desc: "Upload your raw environmental & medical records Excel files.",
+            },
+            {
+              title: "2. AI Analyzes Data",
+              icon: Sparkles,
+              desc: "DATTU processes resource usage, emissions & medical trends.",
+            },
+            {
+              title: "3. View Dashboard",
+              icon: BarChart2,
+              desc: "Get interactive charts on sustainability & wellness insights.",
+            },
+          ].map((step, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <motion.div
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="group-hover:scale-110"
+                >
+                  <step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" />
+                </motion.div>
+                <p className="font-semibold text-gray-800">{step.title}</p>
+              </div>
+              <p className="text-sm text-gray-600">{step.desc}</p>
+            </motion.div>
           ))}
         </div>
 
-        {/* Main Content Area */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left/Main Panel */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="ledger">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="ledger">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Data Ledger
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Trend Analytics
-                </TabsTrigger>
-              </TabsList>
+        {/* UPLOAD CARD */}
+        <motion.div
+          className="w-full flex items-center justify-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <Card className="shadow-xl border-t-4 border-[#0B3D91] w-full max-w-2xl overflow-hidden">
+            <CardHeader className="text-center pb-6">
+              <motion.div
+                className="flex justify-center mb-4"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{
+                  delay: 0.2,
+                  type: "spring",
+                  stiffness: 200,
+                }}
+              >
+                <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/15 to-[#00A79D]/15 border border-[#0B3D91]/30">
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <Leaf className="w-12 h-12 text-[#0B3D91]" />
+                  </motion.div>
+                </div>
+              </motion.div>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                Upload Environmental & Medical Report
+              </CardTitle>
+              <p className="text-gray-600 text-lg">
+                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+              </p>
+            </CardHeader>
 
-              {/* Ledger Tab */}
-              <TabsContent value="ledger" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Monthly Resource Ledger</CardTitle>
-                    <CardDescription>
-                      Track all resource consumption data by plant and month.
-                    </CardDescription>
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-center gap-2 pt-4">
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <Select onValueChange={handleFilterChange}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select Plant" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="plant-a">Plant A</SelectItem>
-                          <SelectItem value="plant-b">Plant B</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <DatePicker
-                        date={undefined} // TODO: Connect to filter state
-                        onSelect={handleFilterChange}
-                      />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <EnvironmentalTable
-                      records={records}
-                      onRowClick={(rec) => setSelectedRecord(rec)}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
+            <CardContent className="space-y-6">
+              <label
+                htmlFor="file-upload"
+                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
+              >
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  {selectedFile ? (
+                    <>
+                      <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
+                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Click to change file
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Leaf className="w-12 h-12 text-gray-400 mb-3" />
+                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Excel (.xlsx, .xls) files only
+                      </p>
+                    </>
+                  )}
+                </div>
 
-              {/* Analytics Tab */}
-              <TabsContent value="analytics" className="mt-4">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="grid grid-cols-1 gap-6"
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="file-upload"
+                />
+              </label>
+
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }}>
+                <Button
+                  onClick={handleGenerate}
+                  disabled={!selectedFile}
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
                 >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Energy & Water Trend (6 Months)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={mockTrendData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" fontSize={12} />
-                          <YAxis yAxisId="left" unit=" kWh" fontSize={12} />
-                          <YAxis yAxisId="right" orientation="right" unit=" m³" fontSize={12} />
-                          <RechartsTooltip />
-                          <Legend />
-                          <Line
-                            yAxisId="left"
-                            type="monotone"
-                            dataKey="Energy (kWh)"
-                            stroke="#0B3D91"
-                            strokeWidth={2}
-                          />
-                          <Line
-                            yAxisId="right"
-                            type="monotone"
-                            dataKey="Water (m³)"
-                            stroke="#00A79D"
-                            strokeWidth={2}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Waste Recycling Summary (This Month)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={mockWasteData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={(entry) => `${entry.name} (${entry.value}t)`}
-                          >
-                            {mockWasteData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <Legend />
-                          <RechartsTooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Right AI Panel */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-[#0B3D91]" />
-                  DATTU AI
-                </CardTitle>
-                <CardDescription>
-  {selectedRecord
-    ? `Insights for ${selectedRecord.plant} (${
-        selectedRecord.month
-          ? format(selectedRecord.month, "MMM yyyy")
-          : "Invalid Date"
-      })`
-    : "Select a record to see AI insights"}
-</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedRecord ? (
-                  <>
-                    <div>
-                      <h4 className="font-semibold">Abnormal Consumption</h4>
-                      <p className="flex items-center gap-1 text-sm text-yellow-600">
-                        <Bolt className="h-4 w-4" />
-                        {/* TODO: Populate from AI API */}
-                        Energy use is 15% above 6-month average for this plant.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Reduction Recommendation</h4>
-                      <p className="text-sm text-gray-600">
-                        {/* TODO: Populate from AI API */}
-                        Anomaly detected in 'Energy (kWh)'. Recommend checking compressor bank 2 for air leaks, as this was the root cause in Aug 2025.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Environmental Summary</h4>
-                      <p className="text-sm text-gray-600">
-                        {/* TODO: Populate from AI API */}
-                        This month saw a 5% increase in energy intensity, while recycling rates improved by 2%.
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
-                    <p>Select a data record from the table</p>
-                  </div>
-                )}
-                <Button className="w-full gap-2" onClick={handleGenerateAI}>
-                  <Zap className="h-4 w-4" />
-                  Generate Full Summary
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Generate AI Dashboard
                 </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </motion.div>
-    </TooltipProvider>
-  );
-};
-
-// --- Sub-component: KPI Card ---
-const KpiCard: React.FC<EnvironmentalKpi> = ({
-  title,
-  value,
-  formula,
-  progress,
-  invertProgressColor = false,
-}) => {
-  let progressColor = "bg-blue-600"; // Default
-  if (progress !== undefined) {
-    if (invertProgressColor) {
-      progressColor = progress > 15 ? "bg-red-500" : (progress > 5 ? "bg-yellow-500" : "bg-green-600");
-    } else {
-      progressColor = progress < 30 ? "bg-yellow-500" : (progress < 60 ? "bg-teal-500" : "bg-green-600");
-    }
+              </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
   }
 
-  return (
-    <motion.div whileHover={{ scale: 1.03 }}>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="h-4 w-4 text-gray-400" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{formula}</p>
-            </TooltipContent>
-          </Tooltip>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">{value}</div>
-          {progress !== undefined && (
-            <Progress
-              value={progress}
-              className="mt-2 h-2"
-              indicatorClassName={cn("!bg-primary", progressColor)}
-            />
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-// --- Sub-component: Environmental Table ---
-interface EnvironmentalTableProps {
-  records: EnvironmentalRecord[];
-  onRowClick: (record: EnvironmentalRecord) => void;
-}
-
-const EnvironmentalTable: React.FC<EnvironmentalTableProps> = ({ records, onRowClick }) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Plant</TableHead>
-        <TableHead>Month</TableHead>
-        <TableHead>Energy (kWh)</TableHead>
-        <TableHead>Water (m³)</TableHead>
-        <TableHead>CO₂ (t)</TableHead>
-        <TableHead>Recycling %</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {records.map((rec) => (
-        <motion.tr
-          key={rec.id}
-          className="cursor-pointer"
-          onClick={() => onRowClick(rec)}
-          whileHover={{ backgroundColor: "#F7F9FB" }}
+  // Loading screen
+  if (isGenerating) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <TableCell className="font-medium">{rec.plant}</TableCell>
-          <TableCell>
-  {rec.month ? format(rec.month, "MMM yyyy") : "Invalid Date"}
-</TableCell>
-          <TableCell>{rec.energyKwh.toLocaleString()}</TableCell>
-          <TableCell>{rec.waterM3.toLocaleString()}</TableCell>
-          <TableCell>{rec.co2T}</TableCell>
-          {/* --- FIX 1: ADDED DIVIDE-BY-ZERO CHECK --- */}
-          <TableCell>
-            {rec.wasteTotalT > 0
-              ? `${((rec.wasteRecycledT / rec.wasteTotalT) * 100).toFixed(0)}%`
-              : "N/A"}
-          </TableCell>
-        </motion.tr>
-      ))}
-    </TableBody>
-  </Table>
-);
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
+              <Loader2 className="w-16 h-16 text-[#0B3D91]" />
+            </div>
+          </motion.div>
 
-// --- Sub-component: Add Monthly Data Modal ---
-interface AddDataModalProps {
-  onSubmit: (formData: Partial<EnvironmentalRecord>) => void;
-  onClose: () => void;
-}
-
-const AddDataModal: React.FC<AddDataModalProps> = ({ onSubmit, onClose }) => {
-  const [formData, setFormData] = useState<Partial<EnvironmentalRecord>>({});
-
-  const handleSubmit = () => {
-    // --- FIX 2: CORRECTED VALIDATION LOGIC ---
-    if (
-      !formData.plant ||
-      !formData.month ||
-      formData.energyKwh === undefined ||
-      formData.waterM3 === undefined ||
-      formData.wasteTotalT === undefined ||
-      formData.wasteRecycledT === undefined ||
-      formData.co2T === undefined ||
-      formData.renewablePercent === undefined ||
-      formData.unitsProduced === undefined
-    ) {
-      toast.error("Error", { description: "Please fill in all fields." });
-      return;
-    }
-    onSubmit(formData);
-  };
-
-  const handleChange = (key: keyof EnvironmentalRecord, value: any) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  return (
-    <DialogContent className="sm:max-w-2xl">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Leaf className="h-6 w-6" /> Add Monthly Environmental Data
-        </DialogTitle>
-        <DialogDescription>
-          Enter all resource consumption data for the specified plant and month.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid max-h-[70vh] grid-cols-1 gap-x-6 gap-y-4 overflow-y-auto p-1 md:grid-cols-2">
-        {/* Plant & Month */}
-        <Select onValueChange={(val) => handleChange("plant", val)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Plant" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Plant A">Plant A</SelectItem>
-            <SelectItem value="Plant B">Plant B</SelectItem>
-          </SelectContent>
-        </Select>
-        <div>
-          <DatePicker
-            date={formData.month as Date | undefined}
-            onSelect={(date) => handleChange("month", date)}
-          />
-           <p className="text-xs text-muted-foreground">Select any day in the month you are reporting for.</p>
-        </div>
-        
-        <div className="md:col-span-2 border-t pt-4">
-           <h4 className="text-sm font-medium text-gray-500">Resource Consumption</h4>
-        </div>
-        
-        <div>
-          <Label htmlFor="energyKwh">Energy (kWh)</Label>
-          <Input id="energyKwh" type="number" placeholder="e.g., 50000"
-            onChange={(e) => handleChange("energyKwh", parseFloat(e.target.value) || 0)} />
-        </div>
-        <div>
-          <Label htmlFor="waterM3">Water (m³)</Label>
-          <Input id="waterM3" type="number" placeholder="e.g., 1200"
-            onChange={(e) => handleChange("waterM3", parseFloat(e.target.value) || 0)} />
-        </div>
-        
-         <div className="md:col-span-2 border-t pt-4">
-           <h4 className="text-sm font-medium text-gray-500">Waste & Emissions</h4>
-        </div>
-        
-         <div>
-          <Label htmlFor="wasteTotalT">Total Waste (t)</Label>
-          <Input id="wasteTotalT" type="number" placeholder="e.g., 50"
-            onChange={(e) => handleChange("wasteTotalT", parseFloat(e.target.value) || 0)} />
-        </div>
-         <div>
-          <Label htmlFor="wasteRecycledT">Recycled Waste (t)</Label>
-          <Input id="wasteRecycledT" type="number" placeholder="e.g., 35"
-            onChange={(e) => handleChange("wasteRecycledT", parseFloat(e.target.value) || 0)} />
-        </div>
-        <div>
-          <Label htmlFor="co2T">CO₂ (t)</Label>
-          <Input id="co2T" type="number" placeholder="e.g., 25"
-            onChange={(e) => handleChange("co2T", parseFloat(e.target.value) || 0)} />
-        </div>
-        <div>
-          <Label htmlFor="renewablePercent">Renewable %</Label>
-          <Input id="renewablePercent" type="number" placeholder="e.g., 20"
-            onChange={(e) => handleChange("renewablePercent", parseFloat(e.target.value) || 0)} />
-        </div>
-        
-         <div className="md:col-span-2 border-t pt-4">
-           <h4 className="text-sm font-medium text-gray-500">Production (for KPIs)</h4>
-        </div>
-        
-        <div className="md:col-span-2">
-          <Label htmlFor="unitsProduced">Total Units Produced</Label>
-          <Input id="unitsProduced" type="number" placeholder="e.g., 110000"
-            onChange={(e) => handleChange("unitsProduced", parseFloat(e.target.value) || 0)} />
-        </div>
-        
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                Analyzing Your Data...
+              </h2>
+              <div className="flex items-center justify-center gap-3 mb-6">
+                <Sparkles className="w-6 h-6 text-[#0B3D91] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-6 h-6 text-[#00A79D] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
       </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button className="bg-[#0B3D91] hover:bg-[#082f70]" onClick={handleSubmit}>
-          <Check className="mr-2 h-4 w-4" />
-          Log Data
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+    );
+  }
+
+  // Dashboard (results)
+  return (
+    <div className="w-full space-y-6">
+      <motion.div
+        className="flex flex-wrap justify-between items-center gap-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <Leaf className="w-8 h-8 text-[#0B3D91]" />
+            Environmental & Resource Use
+          </h1>
+          <p className="text-lg text-gray-600 max-w-3xl">
+            Analysis of: {selectedFile?.name}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button onClick={downloadPDF} className="bg-[#0B3D91] hover:bg-[#082f70]">
+            <FileText className="w-4 h-4 mr-2" />
+            Download Report (PDF)
+          </Button>
+          <Button onClick={() => setShowDashboard(false)} variant="outline">
+            Upload New File
+          </Button>
+        </div>
+      </motion.div>
+
+      {/* PDF capture region */}
+      <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">
+        <Tabs defaultValue="report">
+          <TabsList className="w-full justify-start h-12 bg-gray-100">
+            <TabsTrigger
+              value="report"
+              className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+            >
+              <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+            </TabsTrigger>
+            <TabsTrigger
+              value="charts"
+              className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+            >
+              <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Report tab */}
+          <TabsContent value="report" className="mt-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle>DATTU AI Analysis</CardTitle>
+                  <CardDescription>
+                    This is the full report generated by the DATTU based on your uploaded data.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent
+                  className={cn(
+                    "prose prose-slate max-w-none",
+                    "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
+                    "prose-table:border prose-th:p-2 prose-td:p-2"
+                  )}
+                >
+                  {(() => {
+                    const safeContent: string = typeof aiReport === "string" ? aiReport : String(aiReport || "");
+                    if (typeof safeContent === "string" && safeContent.length > 0) {
+                      return <SafeMarkdown content={safeContent} />;
+                    } else {
+                      return (
+                        <p className="text-red-500">
+                          {aiReport ? "Invalid report format received from backend." : "No report loaded yet."}
+                        </p>
+                      );
+                    }
+                  })()}
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+
+          {/* Charts tab */}
+          <TabsContent value="charts" className="mt-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+              <Card className="shadow-lg">
+                <CardHeader>
+                  <CardTitle>Interactive Charts</CardTitle>
+                  <CardDescription>
+                    Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4">
+                  <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
+                    <SelectTrigger className="w-full md:w-1/2">
+                      <SelectValue placeholder="Select a chart to display" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {chartList.map((chart) => (
+                        <SelectItem key={chart.name} value={chart.name}>
+                          {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="w-full h-[600px] border rounded-md overflow-hidden bg-white">
+                    {selectedChartHtml ? (
+                      <iframe
+                        srcDoc={selectedChartHtml}
+                        title="Interactive Chart"
+                        width="100%"
+                        height="100%"
+                        frameBorder="0"
+                        sandbox="allow-scripts"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-gray-500">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <p className="ml-2">{selectedChartName ? "Loading Chart..." : "Select a chart from the dropdown"}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 };

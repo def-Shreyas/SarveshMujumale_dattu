@@ -206,6 +206,15 @@ export const apiClient = {
     });
     return handleResponse(response);
   },
+
+  delete: async (endpoint: string) => {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "DELETE",
+      mode: "cors",
+      headers: getAuthHeader(false),
+    });
+    return handleResponse(response);
+  },
 };
 
 /**

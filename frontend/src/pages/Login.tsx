@@ -177,7 +177,7 @@ export default function Login() {
                 className="text-xl mt-1 opacity-90 font-light"
                 variants={formItemVariant}
               >
-                Your Safety Assistant
+                Your Safety AI Assistant
               </motion.p>
             </div>
           </div>

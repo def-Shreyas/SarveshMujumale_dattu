@@ -80,6 +80,29 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
   // Simple markdown-to-HTML converter
   const formatMarkdown = (text: string): string => {
+    // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
+    const stripHtmlAttributes = (str: string): string => {
+      // Remove style attributes and other inline attributes from HTML tags
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
+      
+      // Remove any standalone HTML attribute text that might be displayed
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
+      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
+      
+      // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
+      
+      // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
+      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      
+      return str;
+    };
+
+    // Clean the text first to remove HTML attributes
+    text = stripHtmlAttributes(text);
+
     // Escape HTML for content (not attributes) - only escape <, >, and & (when not part of valid entities)
     // Quotes don't need to be escaped in HTML content, only in attribute values
     const escapeHtml = (str: string) => {
@@ -305,6 +328,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 // --- Component ---
 export const Audits: React.FC = () => {
   const reportRef = useRef<HTMLDivElement | null>(null);
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -682,72 +707,262 @@ export const Audits: React.FC = () => {
   };
 
   // Download PDF of the report tab
+  // Download PDF of both report and charts
   const downloadPDF = async () => {
-    const element = reportRef.current;
-    if (!element) {
+    if (!reportContentRef.current) {
       toast.error("Error", {
-        description: "Cannot find report to download.",
+        description: "Cannot find report content to download.",
       });
       return;
     }
 
-    toast.info("Generating PDF", { description: "Please wait..." });
+    toast.info("Generating PDF", { 
+      description: "Capturing report and charts... This may take a moment." 
+    });
 
     const originalBG = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#FFFFFF";
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#FFFFFF",
-    });
+    // Store original styles to restore later
+    const originalReportStyles: { display?: string; visibility?: string; opacity?: string } = {};
+    const originalChartsStyles: { display?: string; visibility?: string; opacity?: string } = {};
 
-    document.body.style.backgroundColor = originalBG;
+    try {
+      // Temporarily make both tabs visible for capture
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        originalReportStyles.display = reportEl.style.display;
+        originalReportStyles.visibility = reportEl.style.visibility;
+        originalReportStyles.opacity = reportEl.style.opacity;
+        reportEl.style.display = 'block';
+        reportEl.style.visibility = 'visible';
+        reportEl.style.opacity = '1';
+      }
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        originalChartsStyles.display = chartsEl.style.display;
+        originalChartsStyles.visibility = chartsEl.style.visibility;
+        originalChartsStyles.opacity = chartsEl.style.opacity;
+        chartsEl.style.display = 'block';
+        chartsEl.style.visibility = 'visible';
+        chartsEl.style.opacity = '1';
+      }
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+      // Wait a bit for styles to apply and iframes to render
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const pageImgHeight =
-      imgWidth > 0 ? (pdfWidth - 20) * (imgHeight / imgWidth) : 0;
-    let heightLeft = pageImgHeight;
-    let position = 10;
-    const pageMargin = 10;
-    const safePdfHeight = pdfHeight - pageMargin * 2;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
 
-    pdf.addImage(
-      imgData,
-      "PNG",
-      pageMargin,
-      position,
-      pdfWidth - pageMargin * 2,
-      pageImgHeight
-    );
-    heightLeft -= safePdfHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pageMargin = 10;
+      const safePdfHeight = pdfHeight - pageMargin * 2;
+      const safePdfWidth = pdfWidth - pageMargin * 2;
 
-    while (heightLeft > 0) {
-      position = -heightLeft + pageMargin;
-      pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "PNG",
-        pageMargin,
-        position,
-        pdfWidth - pageMargin * 2,
-        pageImgHeight
-      );
-      heightLeft -= safePdfHeight;
+      // Helper function to add canvas to PDF with pagination
+      const addCanvasToPdf = (canvas: HTMLCanvasElement, pdf: jsPDF, startNewPage: boolean = false) => {
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+
+        if (imgWidth === 0 || imgHeight === 0) {
+          return;
+        }
+
+        if (startNewPage) {
+          pdf.addPage();
+        }
+
+        const pageImgHeight = (safePdfWidth * imgHeight) / imgWidth;
+        let heightLeft = pageImgHeight;
+        let position = pageMargin;
+
+        // Add first page
+        pdf.addImage(
+          imgData,
+          "PNG",
+          pageMargin,
+          position,
+          safePdfWidth,
+          pageImgHeight
+        );
+        heightLeft -= safePdfHeight;
+
+        // Add additional pages if needed
+        while (heightLeft > 0) {
+          position = -heightLeft + pageMargin;
+          pdf.addPage();
+          pdf.addImage(
+            imgData,
+            "PNG",
+            pageMargin,
+            position,
+            safePdfWidth,
+            pageImgHeight
+          );
+          heightLeft -= safePdfHeight;
+        }
+      };
+
+      // 1. Capture Report Tab
+      toast.info("Capturing report...", { id: "pdf-progress" });
+      
+      // Scroll to top of report content
+      if (reportContentRef.current) {
+        reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      const reportCanvas = await html2canvas(reportContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#FFFFFF",
+        logging: false,
+        allowTaint: false,
+        removeContainer: false,
+        imageTimeout: 15000,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          // Ensure colors are preserved in cloned document
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
+                               clonedDoc.body.querySelector('.shadow-lg');
+          if (clonedElement) {
+            (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
+          }
+        },
+      });
+
+      addCanvasToPdf(reportCanvas, pdf);
+
+      // 2. Capture Charts Tab (if charts exist)
+      if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
+        toast.info("Capturing charts...", { id: "pdf-progress" });
+        
+        // Scroll to top of charts content
+        if (chartsContentRef.current) {
+          chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Wait a bit more for iframe to fully render
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Capture the charts container
+        const chartsCanvas = await html2canvas(chartsContentRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#FFFFFF",
+          logging: false,
+          allowTaint: false,
+          removeContainer: false,
+          imageTimeout: 15000,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            // Ensure iframe content is visible
+            const iframes = clonedDoc.querySelectorAll('iframe');
+            iframes.forEach((iframe) => {
+              iframe.style.display = 'block';
+              iframe.style.visibility = 'visible';
+              iframe.style.opacity = '1';
+            });
+          },
+        });
+
+        // Add charts section with title
+        pdf.addPage();
+        pdf.setFontSize(18);
+        pdf.setTextColor(11, 61, 145); // #0B3D91
+        pdf.text("Interactive Charts", pageMargin, pageMargin + 10);
+
+        // Add charts image below title
+        const chartsImgData = chartsCanvas.toDataURL("image/png", 1.0);
+        const chartsImgWidth = chartsCanvas.width;
+        const chartsImgHeight = chartsCanvas.height;
+
+        if (chartsImgWidth > 0 && chartsImgHeight > 0) {
+          const chartsPageImgHeight = (safePdfWidth * chartsImgHeight) / chartsImgWidth;
+          let chartsHeightLeft = chartsPageImgHeight;
+          let chartsPosition = pageMargin + 15; // Offset for title
+
+          // Add first page of charts
+          pdf.addImage(
+            chartsImgData,
+            "PNG",
+            pageMargin,
+            chartsPosition,
+            safePdfWidth,
+            chartsPageImgHeight
+          );
+          chartsHeightLeft -= (safePdfHeight - 15);
+
+          // Add additional pages if needed
+          while (chartsHeightLeft > 0) {
+            chartsPosition = -chartsHeightLeft + pageMargin;
+            pdf.addPage();
+            pdf.addImage(
+              chartsImgData,
+              "PNG",
+              pageMargin,
+              chartsPosition,
+              safePdfWidth,
+              chartsPageImgHeight
+            );
+            chartsHeightLeft -= safePdfHeight;
+          }
+        }
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `Dattu_Audit_Report_${timestamp}.pdf`;
+
+      // Save PDF - this will trigger the file explorer dialog
+      pdf.save(filename);
+      
+      toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF", {
+        description: error?.message || "An error occurred while generating the PDF.",
+        id: "pdf-progress",
+      });
+    } finally {
+      // Restore original styles
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        if (originalReportStyles.display !== undefined) {
+          reportEl.style.display = originalReportStyles.display;
+        }
+        if (originalReportStyles.visibility !== undefined) {
+          reportEl.style.visibility = originalReportStyles.visibility;
+        }
+        if (originalReportStyles.opacity !== undefined) {
+          reportEl.style.opacity = originalReportStyles.opacity;
+        }
+      }
+
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        if (originalChartsStyles.display !== undefined) {
+          chartsEl.style.display = originalChartsStyles.display;
+        }
+        if (originalChartsStyles.visibility !== undefined) {
+          chartsEl.style.visibility = originalChartsStyles.visibility;
+        }
+        if (originalChartsStyles.opacity !== undefined) {
+          chartsEl.style.opacity = originalChartsStyles.opacity;
+        }
+      }
+
+      document.body.style.backgroundColor = originalBG;
     }
-
-    pdf.save("Dattu_Inspections_Audit_Report.pdf");
   };
 
   //
@@ -880,7 +1095,7 @@ export const Audits: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                      <ClipboardCheck className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
@@ -1112,14 +1327,15 @@ export const Audits: React.FC = () => {
           <TabsContent value="report" className="mt-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
               <Card className="shadow-lg">
-                <CardHeader>
-                  <CardTitle>DATTU AI Analysis</CardTitle>
-                  <CardDescription>
-                    This is the full report generated by the AI based on your uploaded inspections and audit data.
-                  </CardDescription>
-                </CardHeader>
+                <div ref={reportContentRef}>
+                  <CardHeader>
+                    <CardTitle>DATTU AI Analysis</CardTitle>
+                    <CardDescription>
+                      This is the full report generated by the AI based on your uploaded inspections and audit data.
+                    </CardDescription>
+                  </CardHeader>
 
-                <CardContent
+                  <CardContent
                   className={cn(
                     "prose prose-slate max-w-none",
                     "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
@@ -1148,6 +1364,7 @@ export const Audits: React.FC = () => {
                     }
                   })()}
                 </CardContent>
+                </div>
               </Card>
             </motion.div>
           </TabsContent>
@@ -1156,7 +1373,8 @@ export const Audits: React.FC = () => {
           <TabsContent value="charts" className="mt-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
               <Card className="shadow-lg">
-                <CardHeader>
+                <div ref={chartsContentRef}>
+                  <CardHeader>
                   <CardTitle>Interactive Charts</CardTitle>
                   <CardDescription>
                     Select a chart to view the interactive (Plotly) HTML report generated by the backend.
@@ -1195,7 +1413,8 @@ export const Audits: React.FC = () => {
                       </div>
                     )}
                   </div>
-                </CardContent>
+                  </CardContent>
+                </div>
               </Card>
             </motion.div>
           </TabsContent>
