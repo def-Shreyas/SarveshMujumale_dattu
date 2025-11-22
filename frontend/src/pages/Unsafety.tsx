@@ -35,24 +35,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 // 👇 change this if your backend runs on a different URL/port
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-// --- API Usage Interface ---
-interface ApiUsage {
-  api_calls_limit: number;
-  api_calls_used: number;
-  api_calls_remaining: number;
-  daily_limit: number;
-  daily_used: number;
-  daily_remaining: number;
-  monthly_limit: number;
-  monthly_used: number;
-  monthly_remaining: number;
-  subscription_tier: string;
-}
 
 // --- AI Motivational Quotes ---
 const aiQuotes = [
@@ -413,83 +398,6 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   );
 };
 
-// --- API Limits Notification Component ---
-const ApiLimitsNotification: React.FC = () => {
-  const [apiUsage, setApiUsage] = useState<ApiUsage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchApiUsage = async () => {
-    try {
-      const data = await apiClient.get("/auth/rate-limit");
-      if (data && typeof data.api_calls_limit !== 'undefined') {
-        setApiUsage(data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch API usage:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApiUsage();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchApiUsage, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (isLoading || !apiUsage) {
-    return null;
-  }
-
-  const remaining = apiUsage.api_calls_remaining;
-  const usagePercent = apiUsage.api_calls_limit > 0 
-    ? (apiUsage.api_calls_used / apiUsage.api_calls_limit) * 100 
-    : 0;
-
-  const formatRemaining = (val: number) => {
-    if (val === -1) return "Unlimited";
-    return val.toLocaleString();
-  };
-
-  const getStatusColor = () => {
-    if (usagePercent >= 90) return "bg-red-500";
-    if (usagePercent >= 75) return "bg-yellow-500";
-    return "bg-green-500";
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="fixed top-4 right-4 z-50"
-    >
-      <Card className="shadow-lg border-t-4 border-[#0B3D91] min-w-[280px]">
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">API Calls Remaining</span>
-              <Badge className={cn("text-white", getStatusColor())}>
-                {formatRemaining(remaining)}
-              </Badge>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className={cn("h-2 rounded-full transition-all", getStatusColor())}
-                style={{ width: `${Math.min(usagePercent, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>Used: {apiUsage.api_calls_used.toLocaleString()}</span>
-              <span>Limit: {formatRemaining(apiUsage.api_calls_limit)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
 // --- Component ---
 export const Unsafety: React.FC = () => {
   useEffect(() => {
@@ -661,6 +569,9 @@ export const Unsafety: React.FC = () => {
 
     setIsGeneratingCharts(true);
     setCurrentQuoteIndex(0);
+    // Reset chart state - don't show charts until user selects one
+    setSelectedChartName("");
+    setSelectedChartHtml("");
 
     try {
       const response = await apiClient.post("/generate-charts");
@@ -668,26 +579,12 @@ export const Unsafety: React.FC = () => {
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
-
-        if (charts.length > 0) {
-          // Auto-load first chart
-          const firstChartName = charts[0].name;
-          setSelectedChartName(firstChartName);
-          
-          try {
-            const chartHtml = await fetchChartHtml(firstChartName);
-            setSelectedChartHtml(chartHtml);
-          } catch (err: any) {
-            console.error("Failed to load first chart:", err);
-            toast.error("Failed to load first chart", {
-              description: err.message,
-            });
-          }
-        }
         
+        // Don't auto-load first chart - let user select from dropdown
+        // Only set showCharts to true so the dropdown appears
         setShowCharts(true);
         toast.success("Charts Generated!", {
-          description: `${charts.length} chart(s) generated successfully`,
+          description: `${charts.length} chart(s) generated successfully. Please select a chart to view.`,
         });
       } else {
         throw new Error("Invalid response from server: missing chart_files");
@@ -1279,7 +1176,6 @@ export const Unsafety: React.FC = () => {
   if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
     return (
       <div className="w-full py-12">
-        <ApiLimitsNotification />
         <motion.div
           className="text-center mb-10"
           initial={{ opacity: 0, y: -10 }}
@@ -1391,89 +1287,140 @@ export const Unsafety: React.FC = () => {
 
   // 4. Loading screen for report generation
   if (isGeneratingReport) {
-  return (
-    <div className="w-full flex items-center justify-center py-20">
-      <motion.div
-        className="text-center max-w-2xl"
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* --- ENHANCED: "Breathing" AI Icon --- */}
+    return (
+      <div className="w-full flex items-center justify-center py-20">
         <motion.div
-          className="flex justify-center mb-8"
-          animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
         >
-          <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
-            {/* --- NEW: AI-themed Icon --- */}
-            <Bot className="w-16 h-16 text-[#0B3D91]" />
-          </div>
-        </motion.div>
-
-        {/* Main Title */}
-        <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-          Analyzing Your Incidents & Near Misses...
-        </h2>
-
-        {/* Rotating AI Quotes (Using new quotes) */}
-        <AnimatePresence mode="wait">
+          {/* --- ENHANCED: "Breathing" AI Icon --- */}
           <motion.div
-            key={currentQuoteIndex}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5 }}
-            className="mb-4" // Removed mb-4, will add it to the container
-          >
-            <div className="flex items-center justify-center gap-3">
-              <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
-              <p className="text-xl text-gray-600 font-medium">
-                {aiQuotes[currentQuoteIndex]}
-              </p>
-              <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* --- NEW: Dynamic Loading Step Text --- */}
-        <div className="h-6 mt-4"> {/* Height container to prevent layout shift */}
-          <AnimatePresence mode="wait">
-            <motion.p
-               // Keyed to the step
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="text-sm text-gray-500"
-            >
-              
-            </motion.p>
-          </AnimatePresence>
-        </div>
-
-        {/* --- NEW: Indeterminate Progress Bar --- */}
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
-          <motion.div
-            className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
-            initial={{ x: "-100%" }}
-            animate={{ x: "100%" }}
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "linear",
+              ease: "easeInOut",
             }}
-          />
-        </div>
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              {/* --- NEW: AI-themed Icon --- */}
+              <Bot className="w-16 h-16 text-[#0B3D91]" />
+            </div>
+          </motion.div>
 
-      </motion.div>
-    </div>
-  );
-}
+          {/* Main Title */}
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Generating AI Report...
+          </h2>
+
+          {/* Rotating AI Quotes (Using new quotes) */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* --- NEW: Indeterminate Progress Bar --- */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 5. Loading screen for chart generation
+  if (isGeneratingCharts) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* --- ENHANCED: "Breathing" Chart Icon --- */}
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#00A79D]/20 to-[#0B3D91]/20 border-2 border-[#00A79D]/30 shadow-lg">
+              <BarChart2 className="w-16 h-16 text-[#00A79D]" />
+            </div>
+          </motion.div>
+
+          {/* Main Title */}
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#00A79D] to-[#0B3D91] bg-clip-text text-transparent">
+            Generating Interactive Charts...
+          </h2>
+
+          {/* Rotating AI Quotes */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {/* --- Indeterminate Progress Bar --- */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#00A79D] to-[#0B3D91] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
 // ... (keep the rest of your file, especially the 'showDashboard' block)
 
@@ -1595,12 +1542,12 @@ export const Unsafety: React.FC = () => {
                     sandbox="allow-scripts"
                   />
                 ) : (
-                  <div className="h-full w-full flex items-center justify-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <p className="ml-2">
-                      {selectedChartName
-                        ? "Loading Chart..."
-                        : "Select a chart from the dropdown"}
+                  <div className="h-full w-full flex flex-col items-center justify-center text-gray-500">
+                    <BarChart2 className="h-12 w-12 mb-4 text-gray-400" />
+                    <p className="text-lg font-medium">
+                      {chartList.length > 0
+                        ? "Please select a chart from the dropdown above to view it"
+                        : "No charts available"}
                     </p>
                   </div>
                 )}
@@ -1615,7 +1562,6 @@ export const Unsafety: React.FC = () => {
   // 6. Dashboard (results) - Show Report or Charts
   return (
     <div className="w-full space-y-6">
-      <ApiLimitsNotification />
       <motion.div
         className="flex flex-wrap justify-between items-center gap-4"
         initial={{ opacity: 0, y: -10 }}

@@ -179,41 +179,89 @@ async function handleResponse(response: Response) {
  */
 export const apiClient = {
   get: async (endpoint: string) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: "GET",
-      mode: "cors",
-      headers: getAuthHeader(false),
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "GET",
+        mode: "cors",
+        headers: getAuthHeader(false),
+      });
+      return handleResponse(response);
+    } catch (error: any) {
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("ERR_CONNECTION_REFUSED")) {
+        const friendlyError = new Error(
+          `Cannot connect to backend server at ${API_URL}. Please ensure the backend is running.`
+        );
+        console.error("Network Error:", friendlyError.message);
+        throw friendlyError;
+      }
+      throw error;
+    }
   },
 
   post: async (endpoint: string, body?: any) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: "POST",
-      mode: "cors",
-      headers: getAuthHeader(true),
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        mode: "cors",
+        headers: getAuthHeader(true),
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return handleResponse(response);
+    } catch (error: any) {
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("ERR_CONNECTION_REFUSED")) {
+        const friendlyError = new Error(
+          `Cannot connect to backend server at ${API_URL}. Please ensure the backend is running.`
+        );
+        console.error("Network Error:", friendlyError.message);
+        throw friendlyError;
+      }
+      throw error;
+    }
   },
 
   put: async (endpoint: string, body: any) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: "PUT",
-      mode: "cors",
-      headers: getAuthHeader(true),
-      body: JSON.stringify(body),
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "PUT",
+        mode: "cors",
+        headers: getAuthHeader(true),
+        body: JSON.stringify(body),
+      });
+      return handleResponse(response);
+    } catch (error: any) {
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("ERR_CONNECTION_REFUSED")) {
+        const friendlyError = new Error(
+          `Cannot connect to backend server at ${API_URL}. Please ensure the backend is running.`
+        );
+        console.error("Network Error:", friendlyError.message);
+        throw friendlyError;
+      }
+      throw error;
+    }
   },
 
   delete: async (endpoint: string) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: "DELETE",
-      mode: "cors",
-      headers: getAuthHeader(false),
-    });
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "DELETE",
+        mode: "cors",
+        headers: getAuthHeader(false),
+      });
+      return handleResponse(response);
+    } catch (error: any) {
+      // Handle network errors (connection refused, timeout, etc.)
+      if (error.message?.includes("Failed to fetch") || error.message?.includes("ERR_CONNECTION_REFUSED")) {
+        const friendlyError = new Error(
+          `Cannot connect to backend server at ${API_URL}. Please ensure the backend is running.`
+        );
+        console.error("Network Error:", friendlyError.message);
+        throw friendlyError;
+      }
+      throw error;
+    }
   },
 };
 

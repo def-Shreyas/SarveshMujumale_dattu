@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAuthToken } from "@/lib/api";
+import { getAuthToken, apiClient } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -49,41 +49,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  PlusCircle,
-  Brain,
   Info,
   Filter,
-  Check,
-  Zap,
-  AlertTriangle,
 } from "lucide-react";
 import type { RcaAction, RcaKpi } from "@/types";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
 
 // Backend URL
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // AI Quotes
 const aiQuotes = [
   "AI is analyzing root causes and corrective actions...",
   "Machine learning helps identify patterns in incidents...",
   "Every incident tells a safety story, AI helps us prevent it...",
+  "Analyzing corrective actions and root cause patterns...",
+  "Processing RCA data to identify systemic issues...",
+  "Turning corrective actions into preventive insights...",
 ];
 
 // Types for backend integration
@@ -352,28 +338,32 @@ export const RCA: React.FC = () => {
 
   const [kpis, setKpis] = useState<RcaKpi[]>([]);
   const [actions, setActions] = useState<RcaAction[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedAction, setSelectedAction] = useState<RcaAction | null>(null);
 
   // Backend integration state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
+  const [fileUploaded, setFileUploaded] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [aiReport, setAiReport] = useState<string>("");
   const [chartList, setChartList] = useState<ChartFile[]>([]);
   const [selectedChartName, setSelectedChartName] = useState<string>("");
   const [selectedChartHtml, setSelectedChartHtml] = useState<string>("");
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
 
   // Rotate quotes while generating
   useEffect(() => {
-    if (isGenerating) {
+    if (isGeneratingReport || isGeneratingCharts) {
       const quoteInterval = setInterval(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
       }, 3000);
       return () => clearInterval(quoteInterval);
     }
-  }, [isGenerating]);
+  }, [isGeneratingReport, isGeneratingCharts]);
 
   // --- Data Fetching (Backend Logic) ---
   useEffect(() => {
@@ -393,7 +383,11 @@ export const RCA: React.FC = () => {
 
       if (validExtensions.includes(fileExtension)) {
         setSelectedFile(file);
-        setShowDashboard(false);
+        setFileUploaded(false);
+        setShowReport(false);
+        setShowCharts(false);
+        setAiReport("");
+        setChartList([]);
       } else {
         toast.error("Invalid File Type", {
           description: "Please upload a valid Excel (.xlsx, .xls) file.",
@@ -406,7 +400,7 @@ export const RCA: React.FC = () => {
   };
 
   // Upload file to backend
-  const uploadSafetyFile = async (file: File) => {
+  const uploadExcelFile = async (file: File) => {
     const token = getAuthToken();
     if (!token) {
       throw new Error("User not authenticated — no token found.");
@@ -415,7 +409,7 @@ export const RCA: React.FC = () => {
     const formData = new FormData();
     formData.append("file", file);
 
-    const res = await fetch(`${BACKEND_URL}/upload`, {
+    const res = await fetch(`${BACKEND_URL}/upload-rca`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -428,189 +422,100 @@ export const RCA: React.FC = () => {
       console.error("Upload error body:", text);
       throw new Error(`Upload failed (${res.status}): ${text}`);
     }
+
+    const data = await res.json();
+    return data;
   };
 
-  // Trigger backend to build report and charts
-  const triggerGeneration = async () => {
+  // Generate report
+  const generateReport = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
-    // Generate report
-    const r1 = await fetch(`${BACKEND_URL}/generate-report`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setIsGeneratingReport(true);
+    setCurrentQuoteIndex(0);
 
-    if (!r1.ok) {
-      // Extract detailed error message from response
-      let errorMessage = `Report generation failed (${r1.status})`;
-      
-      // Clone response to read it multiple times if needed
-      const clonedResponse = r1.clone();
-      
-      try {
-        const errorData = await r1.json();
-        // FastAPI returns errors in {detail: "message"} format
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch (e) {
-        // If JSON parsing fails, try to get text response from cloned response
-        try {
-          const errorText = await clonedResponse.text();
-          if (errorText && errorText.trim()) {
-            // Try to parse as JSON if it looks like JSON
-            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
-              try {
-                const parsed = JSON.parse(errorText);
-                errorMessage = parsed.detail || parsed.message || errorText;
-              } catch {
-                errorMessage = errorText;
-              }
-            } else {
-              errorMessage = errorText;
-            }
-          }
-        } catch (e2) {
-          // If both fail, use default message
-          console.error("Failed to parse error response:", e, e2);
-        }
-      }
-      
-      // Provide user-friendly error messages
-      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
-        throw new Error("API key not configured. Please contact the administrator to set up the Google API key.");
-      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
-        throw new Error("Please upload the Excel file first before generating the report.");
-      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
-        throw new Error("Network error. Please check your internet connection and try again.");
-      } else {
-        throw new Error(errorMessage);
-      }
-    }
-
-    // 🔥 ADD THIS LINE — prevents race condition
-    await new Promise((res) => setTimeout(res, 1200));
-
-    // Generate charts
-    const r2 = await fetch(`${BACKEND_URL}/generate-charts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!r2.ok) {
-      // Extract detailed error message from response
-      let errorMessage = `Chart generation failed (${r2.status})`;
-      
-      // Clone response to read it multiple times if needed
-      const clonedResponse2 = r2.clone();
-      
-      try {
-        const errorData = await r2.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch (e) {
-        try {
-          const errorText = await clonedResponse2.text();
-          if (errorText && errorText.trim()) {
-            // Try to parse as JSON if it looks like JSON
-            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
-              try {
-                const parsed = JSON.parse(errorText);
-                errorMessage = parsed.detail || parsed.message || errorText;
-              } catch {
-                errorMessage = errorText;
-              }
-            } else {
-              errorMessage = errorText;
-            }
-          }
-        } catch (e2) {
-          console.error("Failed to parse error response:", e, e2);
-        }
-      }
-      throw new Error(errorMessage);
-    }
-  };
-
-  // Fetch AI report text
-  const fetchReportText = async (): Promise<string> => {
-    const token = getAuthToken();
-    if (!token) throw new Error("Authentication required");
-
-    const res = await fetch(`${BACKEND_URL}/report`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    let raw: string;
     try {
-      raw = await res.text();
-    } catch (error) {
-      console.error("Failed to read response as text:", error);
-      throw new Error("Failed to read report response");
-    }
-
-    const trimmed = raw.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        const detail = parsed.detail || parsed.message || JSON.stringify(parsed);
-        throw new Error(detail);
-      } catch {
-        if (!res.ok) {
-          throw new Error(raw || `Fetch /report failed (${res.status})`);
-        }
+      const response = await apiClient.post("/generate-rca-report");
+      
+      if (response && response.report_content) {
+        const reportContent = typeof response.report_content === "string" 
+          ? response.report_content 
+          : String(response.report_content || "");
+        
+        setAiReport(reportContent);
+        setShowReport(true);
+        toast.success("Report Generated!", {
+          description: `Report generated successfully (${response.report_length || 0} characters)`,
+        });
+      } else {
+        throw new Error("Invalid response from server: missing report_content");
       }
+    } catch (error: any) {
+      console.error("Error generating report:", error);
+      const errorMessage = error?.message || "Failed to generate report. Please try again.";
+      
+      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+        toast.error("API Configuration Error", {
+          description: "API key not configured. Please contact the administrator.",
+        });
+      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        toast.error("Upload Required", {
+          description: "Please upload the Excel file first before generating the report.",
+        });
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        toast.error("Network Error", {
+          description: "Please check your internet connection and try again.",
+        });
+      } else {
+        toast.error("Report Generation Failed", {
+          description: errorMessage,
+        });
+      }
+    } finally {
+      setIsGeneratingReport(false);
     }
-
-    if (!res.ok) {
-      throw new Error(raw || `Fetching /report failed (${res.status})`);
-    }
-
-    if (typeof raw !== "string") {
-      console.error("❌ CRITICAL: fetchReportText received non-string:", typeof raw, raw);
-      return "";
-    }
-
-    return String(raw).trim();
   };
 
-  // Fetch charts list
-  const fetchChartsList = async () => {
+  // Generate charts
+  const generateCharts = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
-    const res = await fetch(`${BACKEND_URL}/charts`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setIsGeneratingCharts(true);
+    setCurrentQuoteIndex(0);
+    setSelectedChartName("");
+    setSelectedChartHtml("");
 
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Fetching /charts list failed (${res.status}): ${body}`);
+    try {
+      const response = await apiClient.post("/generate-rca-charts");
+      
+      if (response && response.chart_files && Array.isArray(response.chart_files)) {
+        const charts = response.chart_files.map((name: string) => ({ name }));
+        setChartList(charts);
+        setShowCharts(true);
+        toast.success("Charts Generated!", {
+          description: `${charts.length} chart(s) generated successfully. Please select a chart to view.`,
+        });
+      } else {
+        throw new Error("Invalid response from server: missing chart_files");
+      }
+    } catch (error: any) {
+      console.error("Error generating charts:", error);
+      const errorMessage = error?.message || "Failed to generate charts. Please try again.";
+      
+      if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        toast.error("Upload Required", {
+          description: "Please upload the Excel file first before generating charts.",
+        });
+      } else {
+        toast.error("Chart Generation Failed", {
+          description: errorMessage,
+        });
+      }
+    } finally {
+      setIsGeneratingCharts(false);
     }
-
-    const data = await res.json().catch(() => null);
-    if (!data) return [];
-
-    if (Array.isArray(data)) {
-      return data.map((name: string) => ({ name }));
-    }
-
-    if (Array.isArray(data.charts)) {
-      return data.charts.map((chart: { name?: string; path?: string }) => ({
-        name: chart.name ?? "",
-        path: chart.path,
-      }));
-    }
-
-    return [];
   };
 
   // Fetch individual chart HTML
@@ -633,90 +538,34 @@ export const RCA: React.FC = () => {
     return await res.text();
   };
 
-  // Main generate button flow
-  const handleGenerate = async () => {
+  // Main upload button flow
+  const handleUpload = async () => {
     if (!selectedFile) {
       toast.error("No File Selected");
       return;
     }
 
-    setIsGenerating(true);
-    setShowDashboard(false);
-    setCurrentQuoteIndex(0);
+    setIsUploading(true);
+    setFileUploaded(false);
+    setShowReport(false);
+    setShowCharts(false);
+    setAiReport("");
+    setChartList([]);
 
     try {
       toast.info("Uploading file...", { id: "upload" });
-      await uploadSafetyFile(selectedFile);
-      toast.success("File Uploaded!", { id: "upload" });
-
-      toast.info("Generating AI report...", { id: "gen_report" });
-      toast.info("Generating charts...", { id: "gen_charts" });
-      await triggerGeneration();
-      toast.success("AI Report Generated!", { id: "gen_report" });
-      toast.success("Charts Generated!", { id: "gen_charts" });
-
-      toast.info("Loading results...");
-      const [reportText, chartsArr] = await Promise.all([
-        fetchReportText(),
-        fetchChartsList(),
-      ]);
-
-      let safeReport: string;
-      if (typeof reportText === "string") {
-        safeReport = reportText.trim();
-      } else {
-        console.error("❌ CRITICAL: reportText is not a string!");
-        safeReport = "";
-      }
-
-      if (typeof safeReport === "string") {
-        setAiReport(safeReport);
-      } else {
-        setAiReport("");
-      }
-
-      if (chartsArr && chartsArr.length > 0) {
-        setChartList(chartsArr);
-        const firstChartName = chartsArr[0].name;
-        setSelectedChartName(firstChartName);
-
-        try {
-          const firstHtml = await fetchChartHtml(firstChartName);
-          setSelectedChartHtml(firstHtml);
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : "Unknown error";
-          console.error("Failed to auto-load first chart:", err);
-          toast.error("Failed to load first chart", {
-            description: errorMessage,
-          });
-          setSelectedChartHtml("<p>Error loading chart.</p>");
-        }
-      } else {
-        toast.error("No charts were generated by the backend.");
-        setChartList([]);
-        setSelectedChartName("");
-        setSelectedChartHtml("");
-      }
-
-      setIsGenerating(false);
-      setShowDashboard(true);
-      toast.success("Dashboard is ready!");
+      await uploadExcelFile(selectedFile);
+      toast.success("File Uploaded Successfully!", { id: "upload" });
+      setFileUploaded(true);
     } catch (error: any) {
-      console.error("Error generating dashboard:", error);
-      setIsGenerating(false);
-      setShowDashboard(false);
-
-      // Clear any pending progress toasts
-      toast.dismiss("upload");
-      toast.dismiss("gen_report");
-      toast.dismiss("gen_charts");
-
-      // Show error with detailed message
-      const errorMessage = error?.message || "Could not process the file. Please try again.";
-      toast.error("Generation Failed", {
+      console.error("Error uploading file:", error);
+      const errorMessage = error?.message || "Could not upload the file. Please try again.";
+      toast.error("Upload Failed", {
         description: errorMessage,
-        duration: 5000, // Show for 5 seconds so user can read it
+        duration: 5000,
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -738,72 +587,262 @@ export const RCA: React.FC = () => {
   };
 
   // Download PDF
+  // Download PDF of both report and charts
   const downloadPDF = async () => {
-    const element = reportRef.current;
-    if (!element) {
+    if (!reportContentRef.current) {
       toast.error("Error", {
-        description: "Cannot find report to download.",
+        description: "Cannot find report content to download.",
       });
       return;
     }
 
-    toast.info("Generating PDF", { description: "Please wait..." });
+    toast.info("Generating PDF", { 
+      description: "Capturing report and charts... This may take a moment." 
+    });
 
     const originalBG = document.body.style.backgroundColor;
     document.body.style.backgroundColor = "#FFFFFF";
 
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#FFFFFF",
-    });
+    // Store original styles to restore later
+    const originalReportStyles: { display?: string; visibility?: string; opacity?: string } = {};
+    const originalChartsStyles: { display?: string; visibility?: string; opacity?: string } = {};
 
-    document.body.style.backgroundColor = originalBG;
+    try {
+      // Temporarily make both tabs visible for capture
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        originalReportStyles.display = reportEl.style.display;
+        originalReportStyles.visibility = reportEl.style.visibility;
+        originalReportStyles.opacity = reportEl.style.opacity;
+        reportEl.style.display = 'block';
+        reportEl.style.visibility = 'visible';
+        reportEl.style.opacity = '1';
+      }
 
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        originalChartsStyles.display = chartsEl.style.display;
+        originalChartsStyles.visibility = chartsEl.style.visibility;
+        originalChartsStyles.opacity = chartsEl.style.opacity;
+        chartsEl.style.display = 'block';
+        chartsEl.style.visibility = 'visible';
+        chartsEl.style.opacity = '1';
+      }
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+      // Wait a bit for styles to apply and iframes to render
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-    const pageImgHeight =
-      imgWidth > 0 ? (pdfWidth - 20) * (imgHeight / imgWidth) : 0;
-    let heightLeft = pageImgHeight;
-    let position = 10;
-    const pageMargin = 10;
-    const safePdfHeight = pdfHeight - pageMargin * 2;
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
 
-    pdf.addImage(
-      imgData,
-      "PNG",
-      pageMargin,
-      position,
-      pdfWidth - pageMargin * 2,
-      pageImgHeight
-    );
-    heightLeft -= safePdfHeight;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const pageMargin = 10;
+      const safePdfHeight = pdfHeight - pageMargin * 2;
+      const safePdfWidth = pdfWidth - pageMargin * 2;
 
-    while (heightLeft > 0) {
-      position = -heightLeft + pageMargin;
-      pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "PNG",
-        pageMargin,
-        position,
-        pdfWidth - pageMargin * 2,
-        pageImgHeight
-      );
-      heightLeft -= safePdfHeight;
+      // Helper function to add canvas to PDF with pagination
+      const addCanvasToPdf = (canvas: HTMLCanvasElement, pdf: jsPDF, startNewPage: boolean = false) => {
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+
+        if (imgWidth === 0 || imgHeight === 0) {
+          return;
+        }
+
+        if (startNewPage) {
+          pdf.addPage();
+        }
+
+        const pageImgHeight = (safePdfWidth * imgHeight) / imgWidth;
+        let heightLeft = pageImgHeight;
+        let position = pageMargin;
+
+        // Add first page
+        pdf.addImage(
+          imgData,
+          "PNG",
+          pageMargin,
+          position,
+          safePdfWidth,
+          pageImgHeight
+        );
+        heightLeft -= safePdfHeight;
+
+        // Add additional pages if needed
+        while (heightLeft > 0) {
+          position = -heightLeft + pageMargin;
+          pdf.addPage();
+          pdf.addImage(
+            imgData,
+            "PNG",
+            pageMargin,
+            position,
+            safePdfWidth,
+            pageImgHeight
+          );
+          heightLeft -= safePdfHeight;
+        }
+      };
+
+      // 1. Capture Report Tab
+      toast.info("Capturing report...", { id: "pdf-progress" });
+      
+      // Scroll to top of report content
+      if (reportContentRef.current) {
+        reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      const reportCanvas = await html2canvas(reportContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#FFFFFF",
+        logging: false,
+        allowTaint: false,
+        removeContainer: false,
+        imageTimeout: 15000,
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (clonedDoc) => {
+          // Ensure colors are preserved in cloned document
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
+                               clonedDoc.body.querySelector('.shadow-lg');
+          if (clonedElement) {
+            (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
+          }
+        },
+      });
+
+      addCanvasToPdf(reportCanvas, pdf);
+
+      // 2. Capture Charts Tab (if charts exist)
+      if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
+        toast.info("Capturing charts...", { id: "pdf-progress" });
+        
+        // Scroll to top of charts content
+        if (chartsContentRef.current) {
+          chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        // Wait a bit more for iframe to fully render
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Capture the charts container
+        const chartsCanvas = await html2canvas(chartsContentRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#FFFFFF",
+          logging: false,
+          allowTaint: false,
+          removeContainer: false,
+          imageTimeout: 15000,
+          scrollX: 0,
+          scrollY: 0,
+          onclone: (clonedDoc) => {
+            // Ensure iframe content is visible
+            const iframes = clonedDoc.querySelectorAll('iframe');
+            iframes.forEach((iframe) => {
+              iframe.style.display = 'block';
+              iframe.style.visibility = 'visible';
+              iframe.style.opacity = '1';
+            });
+          },
+        });
+
+        // Add charts section with title
+        pdf.addPage();
+        pdf.setFontSize(18);
+        pdf.setTextColor(11, 61, 145); // #0B3D91
+        pdf.text("Interactive Charts", pageMargin, pageMargin + 10);
+
+        // Add charts image below title
+        const chartsImgData = chartsCanvas.toDataURL("image/png", 1.0);
+        const chartsImgWidth = chartsCanvas.width;
+        const chartsImgHeight = chartsCanvas.height;
+
+        if (chartsImgWidth > 0 && chartsImgHeight > 0) {
+          const chartsPageImgHeight = (safePdfWidth * chartsImgHeight) / chartsImgWidth;
+          let chartsHeightLeft = chartsPageImgHeight;
+          let chartsPosition = pageMargin + 15; // Offset for title
+
+          // Add first page of charts
+          pdf.addImage(
+            chartsImgData,
+            "PNG",
+            pageMargin,
+            chartsPosition,
+            safePdfWidth,
+            chartsPageImgHeight
+          );
+          chartsHeightLeft -= (safePdfHeight - 15);
+
+          // Add additional pages if needed
+          while (chartsHeightLeft > 0) {
+            chartsPosition = -chartsHeightLeft + pageMargin;
+            pdf.addPage();
+            pdf.addImage(
+              chartsImgData,
+              "PNG",
+              pageMargin,
+              chartsPosition,
+              safePdfWidth,
+              chartsPageImgHeight
+            );
+            chartsHeightLeft -= safePdfHeight;
+          }
+        }
+      }
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `Dattu_RCA_Report_${timestamp}.pdf`;
+
+      // Save PDF - this will trigger the file explorer dialog
+      pdf.save(filename);
+      
+      toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF", {
+        description: error?.message || "An error occurred while generating the PDF.",
+        id: "pdf-progress",
+      });
+    } finally {
+      // Restore original styles
+      if (reportContentRef.current) {
+        const reportEl = reportContentRef.current as HTMLElement;
+        if (originalReportStyles.display !== undefined) {
+          reportEl.style.display = originalReportStyles.display;
+        }
+        if (originalReportStyles.visibility !== undefined) {
+          reportEl.style.visibility = originalReportStyles.visibility;
+        }
+        if (originalReportStyles.opacity !== undefined) {
+          reportEl.style.opacity = originalReportStyles.opacity;
+        }
+      }
+
+      if (chartsContentRef.current) {
+        const chartsEl = chartsContentRef.current as HTMLElement;
+        if (originalChartsStyles.display !== undefined) {
+          chartsEl.style.display = originalChartsStyles.display;
+        }
+        if (originalChartsStyles.visibility !== undefined) {
+          chartsEl.style.visibility = originalChartsStyles.visibility;
+        }
+        if (originalChartsStyles.opacity !== undefined) {
+          chartsEl.style.opacity = originalChartsStyles.opacity;
+        }
+      }
+
+      document.body.style.backgroundColor = originalBG;
     }
-
-    pdf.save("DATTU_RCA_Report.pdf");
   };
 
   const handleFilterChange = () => {
@@ -811,29 +850,9 @@ export const RCA: React.FC = () => {
     console.log("Filtering data...");
   };
 
-  const handleFormSubmit = async (formData: Partial<RcaAction>) => {
-    console.log("Creating new action:", formData);
-    // Mock success for now
-    const newAction: RcaAction = {
-      id: `CA-${Math.floor(Math.random() * 1000)}`,
-      ...formData,
-    } as RcaAction;
-    setActions([newAction, ...actions]);
-    setIsModalOpen(false);
-    toast.success("Success", {
-      description: "New corrective action created.",
-    });
-  };
 
-  const handleGenerateAI = () => {
-    if (!selectedAction) return;
-    toast.info("AI Co-Pilot", {
-      description: `Analyzing root cause for ${selectedAction.id}...`,
-    });
-  };
-
-  // Upload screen
-  if (!showDashboard && !isGenerating) {
+  // 1. Upload screen
+  if (!fileUploaded && !isUploading) {
     return (
       <div className="w-full py-12">
         {/* TOP PAGE HEADING */}
@@ -934,23 +953,25 @@ export const RCA: React.FC = () => {
                 </div>
               </motion.div>
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Upload Safety Data for RCA
+                Upload Corrective Actions & RCA Data
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing corrective actions and root cause analysis data to begin the analysis.
               </p>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <label
+            <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
+              {/* --- NEW DRAG & DROP HOVER EFFECT --- */}
+              <motion.label
                 htmlFor="file-upload"
+                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
                 className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {selectedFile ? (
                     <>
                       <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         {selectedFile.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -960,7 +981,7 @@ export const RCA: React.FC = () => {
                   ) : (
                     <>
                       <Target className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
@@ -978,16 +999,30 @@ export const RCA: React.FC = () => {
                   className="hidden"
                   id="file-upload"
                 />
-              </label>
+              </motion.label>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }}>
+              {/* --- ENHANCED BUTTON HOVER --- */}
+              <motion.div
+                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
+              >
                 <Button
-                  onClick={handleGenerate}
-                  disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isUploading}
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
+                             shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate AI Dashboard
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Upload File
+                    </>
+                  )}
                 </Button>
               </motion.div>
             </CardContent>
@@ -997,29 +1032,192 @@ export const RCA: React.FC = () => {
     );
   }
 
-  // Loading screen
-  if (isGenerating) {
+  // 2. Uploading screen
+  if (isUploading) {
     return (
       <div className="w-full flex items-center justify-center py-20">
         <motion.div
           className="text-center max-w-2xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
           <motion.div
             className="flex justify-center mb-8"
-            animate={{ rotate: 360 }}
+            animate={{ scale: [1, 1.05, 1] }}
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "linear",
+              ease: "easeInOut",
             }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
-              <Loader2 className="w-16 h-16 text-[#0B3D91]" />
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <Upload className="w-16 h-16 text-[#0B3D91]" />
             </div>
           </motion.div>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Uploading Your File...
+          </h2>
+          <p className="text-lg text-gray-600 mb-8">
+            Please wait while we process your Excel file.
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 3. After upload - show Generate buttons
+  if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
+    return (
+      <div className="w-full py-12">
+        <motion.div
+          className="text-center mb-10"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-4xl font-extrabold text-[#0B3D91] mb-4">
+            File Uploaded Successfully!
+          </h1>
+          <p className="text-lg text-gray-600">
+            File: <span className="font-semibold">{selectedFile?.name}</span>
+          </p>
+        </motion.div>
+
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="shadow-lg border-t-4 border-[#0B3D91] h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-6 h-6 text-[#0B3D91]" />
+                  Generate AI Report
+                </CardTitle>
+                <CardDescription>
+                  Generate a comprehensive AI-powered analysis report of your corrective actions and RCA data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={generateReport}
+                  disabled={isGeneratingReport}
+                  className="w-full bg-[#0B3D91] hover:bg-[#082f70] text-white font-semibold py-6 text-lg"
+                >
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating Report...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="shadow-lg border-t-4 border-[#00A79D] h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="w-6 h-6 text-[#00A79D]" />
+                  Generate Charts
+                </CardTitle>
+                <CardDescription>
+                  Generate interactive charts and visualizations from your data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={generateCharts}
+                  disabled={isGeneratingCharts}
+                  className="w-full bg-[#00A79D] hover:bg-[#008a7e] text-white font-semibold py-6 text-lg"
+                >
+                  {isGeneratingCharts ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating Charts...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart2 className="w-5 h-5 mr-2" />
+                      Generate Charts
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <div className="flex justify-center mt-8">
+          <Button
+            onClick={() => {
+              setFileUploaded(false);
+              setSelectedFile(null);
+              setShowReport(false);
+              setShowCharts(false);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+            variant="outline"
+          >
+            Upload New File
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Loading screen for report generation
+  if (isGeneratingReport) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <Target className="w-16 h-16 text-[#0B3D91]" />
+            </div>
+          </motion.div>
+
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Generating AI Report...
+          </h2>
 
           <AnimatePresence mode="wait">
             <motion.div
@@ -1030,24 +1228,219 @@ export const RCA: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="mb-4"
             >
-              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Analyzing Your Data...
-              </h2>
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <Sparkles className="w-6 h-6 text-[#0B3D91] animate-pulse" />
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
                 <p className="text-xl text-gray-600 font-medium">
                   {aiQuotes[currentQuoteIndex]}
                 </p>
-                <Sparkles className="w-6 h-6 text-[#00A79D] animate-pulse" />
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
               </div>
             </motion.div>
           </AnimatePresence>
+
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
         </motion.div>
       </div>
     );
   }
 
-  // Dashboard (results)
+  // 5. Loading screen for chart generation
+  if (isGeneratingCharts) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#00A79D]/20 to-[#0B3D91]/20 border-2 border-[#00A79D]/30 shadow-lg">
+              <BarChart2 className="w-16 h-16 text-[#00A79D]" />
+            </div>
+          </motion.div>
+
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#00A79D] to-[#0B3D91] bg-clip-text text-transparent">
+            Generating Interactive Charts...
+          </h2>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#00A79D] to-[#0B3D91] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Helper function to render report content
+  const renderReportContent = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="shadow-lg">
+          <div ref={reportContentRef}>
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-gray-800">
+                <span className="text-4xl text-[#0B3D91] font-extrabold underline">
+                  DATTU
+                </span>{" "}
+                Corrective Actions & RCA Analysis
+              </CardTitle>
+              <CardDescription className="text-lg text-gray-600">
+                This is the full corrective actions and RCA analysis report generated by the AI based on your uploaded data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent
+              className={cn(
+                "prose prose-slate max-w-none",
+                "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
+                "prose-table:border prose-th:p-2 prose-td:p-2"
+              )}
+            >
+              {(() => {
+                const safeContent: string =
+                  typeof aiReport === "string"
+                    ? aiReport
+                    : String(aiReport || "");
+
+                if (
+                  typeof safeContent === "string" &&
+                  safeContent.length > 0
+                ) {
+                  return <SafeMarkdown content={safeContent} />;
+                } else {
+                  return (
+                    <p className="text-red-500">
+                      {aiReport
+                        ? "Invalid report format received from backend."
+                        : "No report loaded yet."}
+                    </p>
+                  );
+                }
+              })()}
+            </CardContent>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
+
+  // Helper function to render charts content
+  const renderChartsContent = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="shadow-lg">
+          <div ref={chartsContentRef}>
+            <CardHeader>
+              <CardTitle>Interactive Charts</CardTitle>
+              <CardDescription>
+                Select a chart to view the interactive (Plotly) HTML report
+                generated by the backend.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select
+                onValueChange={handleChartSelect}
+                value={selectedChartName || undefined}
+              >
+                <SelectTrigger className="w-full md:w-1/2">
+                  <SelectValue placeholder="Select a chart to display" />
+                </SelectTrigger>
+                <SelectContent>
+                  {chartList.map((chart) => (
+                    <SelectItem key={chart.name} value={chart.name}>
+                      {chart.name
+                        .replace(".html", "")
+                        .replace(/_/g, " ")
+                        .replace(/^\d+\s*/, "")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="w-full h-[600px] border rounded-md overflow-hidden bg-white">
+                {selectedChartHtml ? (
+                  <iframe
+                    srcDoc={selectedChartHtml}
+                    title="Interactive Chart"
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    sandbox="allow-scripts"
+                  />
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center text-gray-500">
+                    <BarChart2 className="h-12 w-12 mb-4 text-gray-400" />
+                    <p className="text-lg font-medium">
+                      {chartList.length > 0
+                        ? "Please select a chart from the dropdown above to view it"
+                        : "No charts available"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
+
+  // 6. Dashboard (results) - Show Report or Charts
   return (
     <TooltipProvider>
       <div className="w-full space-y-6">
@@ -1060,159 +1453,139 @@ export const RCA: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
               <Target className="w-8 h-8 text-[#0B3D91]" />
-              Corrective Actions & RCA
+              {showReport ? "AI Corrective Actions & RCA Report" : showCharts ? "Interactive Charts" : "Corrective Actions & RCA"}
             </h1>
-            {selectedFile && (
-              <p className="text-lg text-gray-600 max-w-3xl">
-                Analysis of: {selectedFile.name}
-              </p>
-            )}
+            <p className="text-lg text-gray-600 max-w-3xl">
+              Analysis of: {selectedFile?.name}
+            </p>
           </div>
           <div className="flex gap-2">
-            {showDashboard && (
-              <Button onClick={downloadPDF} className="bg-[#0B3D91] hover:bg-[#082f70]">
+            {showReport && (
+              <Button
+                onClick={downloadPDF}
+                className="bg-[#0B3D91] hover:bg-[#082f70]"
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Download Report (PDF)
               </Button>
             )}
-            <Button onClick={() => setShowDashboard(false)} variant="outline">
+            <Button
+              onClick={() => {
+                setFileUploaded(false);
+                setShowReport(false);
+                setShowCharts(false);
+                setSelectedFile(null);
+                setAiReport("");
+                setChartList([]);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }}
+              variant="outline"
+            >
               Upload New File
             </Button>
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-              <DialogTrigger asChild>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button className="gap-2 bg-[#0B3D91] hover:bg-[#082f70]">
-                    <PlusCircle className="h-5 w-5" />
-                    Create New Action
+            {fileUploaded && (
+              <>
+                {!showReport && (
+                  <Button
+                    onClick={generateReport}
+                    disabled={isGeneratingReport}
+                    className="bg-[#0B3D91] hover:bg-[#082f70]"
+                  >
+                    {isGeneratingReport ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Report
+                      </>
+                    )}
                   </Button>
-                </motion.div>
-              </DialogTrigger>
-              <CreateActionModal
-                onSubmit={handleFormSubmit}
-                onClose={() => setIsModalOpen(false)}
-              />
-            </Dialog>
+                )}
+                {!showCharts && (
+                  <Button
+                    onClick={generateCharts}
+                    disabled={isGeneratingCharts}
+                    className="bg-[#00A79D] hover:bg-[#008a7e]"
+                  >
+                    {isGeneratingCharts ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <BarChart2 className="w-4 h-4 mr-2" />
+                        Generate Charts
+                      </>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
           </div>
         </motion.div>
 
-        {/* KPIs Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.title} {...kpi} />
-          ))}
-        </div>
+        {/* KPIs Row - Only show when no report/charts are displayed */}
+        {!showReport && !showCharts && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.title} {...kpi} />
+            ))}
+          </div>
+        )}
 
         {/* Main Content Area */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left/Main Panel */}
-          <div className="lg:col-span-2">
-            <div ref={reportRef}>
-              <Tabs defaultValue={showDashboard ? "report" : "ledger"}>
-                <TabsList className="grid w-full grid-cols-3">
-                  {showDashboard && (
-                    <>
-                      <TabsTrigger value="report">
-                        <Sparkles className="mr-2 h-4 w-4 text-[#0B3D91]" />
-                        AI-Generated Report
-                      </TabsTrigger>
-                      <TabsTrigger value="charts">
-                        <BarChart2 className="mr-2 h-4 w-4 text-[#00A79D]" />
-                        Interactive Charts
-                      </TabsTrigger>
-                    </>
-                  )}
-                  <TabsTrigger value="ledger">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Action Ledger
-                  </TabsTrigger>
-                </TabsList>
+        <div className="w-full">
+          {/* Main Panel */}
+          <div className="w-full">
+            {/* PDF capture region */}
+            <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">
+              {showReport && showCharts ? (
+                <Tabs defaultValue="report">
+                  <TabsList className="w-full justify-start h-12 bg-gray-100">
+                    <TabsTrigger
+                      value="report"
+                      className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                    >
+                      <Target className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="charts"
+                      className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                    >
+                      <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+                    </TabsTrigger>
+                  </TabsList>
 
-                {/* AI Report Tab */}
-                {showDashboard && (
+                  {/* Report tab */}
                   <TabsContent value="report" className="mt-6">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                      <Card className="shadow-lg">
-                        <CardHeader>
-                          <CardTitle>DATTU AI Analysis</CardTitle>
-                          <CardDescription>
-                            This is the full report generated by the DATTU based on your uploaded data.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent
-                          className={cn(
-                            "prose prose-slate max-w-none",
-                            "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
-                            "prose-table:border prose-th:p-2 prose-td:p-2"
-                          )}
-                        >
-                          {(() => {
-                            const safeContent: string = typeof aiReport === "string" ? aiReport : String(aiReport || "");
-                            if (typeof safeContent === "string" && safeContent.length > 0) {
-                              return <SafeMarkdown content={safeContent} />;
-                            } else {
-                              return (
-                                <p className="text-red-500">
-                                  {aiReport ? "Invalid report format received from backend." : "No report loaded yet."}
-                                </p>
-                              );
-                            }
-                          })()}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+                    {renderReportContent()}
                   </TabsContent>
-                )}
 
-                {/* Charts Tab */}
-                {showDashboard && (
+                  {/* Charts tab */}
                   <TabsContent value="charts" className="mt-6">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                      <Card className="shadow-lg">
-                        <CardHeader>
-                          <CardTitle>Interactive Charts</CardTitle>
-                          <CardDescription>
-                            Select a chart to view the interactive (Plotly) HTML report generated by the backend.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
-                            <SelectTrigger className="w-full md:w-1/2">
-                              <SelectValue placeholder="Select a chart to display" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {chartList.map((chart) => (
-                                <SelectItem key={chart.name} value={chart.name}>
-                                  {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <div className="w-full h-[600px] border rounded-md overflow-hidden bg-white">
-                            {selectedChartHtml ? (
-                              <iframe
-                                srcDoc={selectedChartHtml}
-                                title="Interactive Chart"
-                                width="100%"
-                                height="100%"
-                                frameBorder="0"
-                                sandbox="allow-scripts"
-                              />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-gray-500">
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                                <p className="ml-2">{selectedChartName ? "Loading Chart..." : "Select a chart from the dropdown"}</p>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
+                    {renderChartsContent()}
                   </TabsContent>
-                )}
+                </Tabs>
+              ) : showReport ? (
+                renderReportContent()
+              ) : showCharts ? (
+                renderChartsContent()
+              ) : (
+                <Tabs defaultValue="ledger">
+                  <TabsList className="w-full justify-start h-12 bg-gray-100">
+                    <TabsTrigger
+                      value="ledger"
+                      className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                    >
+                      <FileText className="h-5 w-5" /> Action Ledger
+                    </TabsTrigger>
+                  </TabsList>
 
                 {/* Ledger Tab */}
                 <TabsContent value="ledger" className="mt-4">
@@ -1256,65 +1629,13 @@ export const RCA: React.FC = () => {
                     <CardContent>
                       <RcaTable
                         actions={actions}
-                        onRowClick={(action) => setSelectedAction(action)}
                       />
                     </CardContent>
                   </Card>
                 </TabsContent>
               </Tabs>
+              )}
             </div>
-          </div>
-
-          {/* Right AI Panel */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-[#0B3D91]" />
-                  AI Co-Pilot
-                </CardTitle>
-                <CardDescription>
-                  {selectedAction
-                    ? `Insights for ${selectedAction.id}`
-                    : "Select an action to see AI insights"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedAction ? (
-                  <>
-                    {selectedAction.status === "Overdue" && (
-                      <div>
-                        <h4 className="font-semibold">Overdue Action Flag</h4>
-                        <p className="flex items-center gap-1 text-lg font-bold text-red-600">
-                          <AlertTriangle className="h-5 w-5" />
-                          Overdue by {formatDistanceToNow(selectedAction.dueDate)}!
-                        </p>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="font-semibold">Preventive Measure</h4>
-                      <p className="text-sm text-gray-600">
-                        Based on root cause '{selectedAction.rootCause}', recommend updating SOP-201 and retraining all welding staff.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Related Actions</h4>
-                      <p className="text-sm text-gray-600">
-                        2 similar actions were logged for 'Improper machine guarding' in the last 6 months.
-                      </p>
-                    </div>
-                    <Button className="w-full gap-2" onClick={handleGenerateAI}>
-                      <Zap className="h-4 w-4" />
-                      Suggest Prevention
-                    </Button>
-                  </>
-                ) : (
-                  <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
-                    <p>Select an action from the table</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
@@ -1371,10 +1692,9 @@ const KpiCard: React.FC<RcaKpi> = ({
 // --- Sub-component: RCA Table ---
 interface RcaTableProps {
   actions: RcaAction[];
-  onRowClick: (action: RcaAction) => void;
 }
 
-const RcaTable: React.FC<RcaTableProps> = ({ actions, onRowClick }) => (
+const RcaTable: React.FC<RcaTableProps> = ({ actions }) => (
   <Table>
     <TableHeader>
       <TableRow>
@@ -1389,8 +1709,6 @@ const RcaTable: React.FC<RcaTableProps> = ({ actions, onRowClick }) => (
       {actions.map((action) => (
         <motion.tr
           key={action.id}
-          className="cursor-pointer"
-          onClick={() => onRowClick(action)}
           whileHover={{ backgroundColor: "#F7F9FB" }}
         >
           <TableCell className="font-medium">{action.id}</TableCell>
@@ -1422,103 +1740,3 @@ const RcaTable: React.FC<RcaTableProps> = ({ actions, onRowClick }) => (
   </Table>
 );
 
-// --- Sub-component: Create Action Modal ---
-interface CreateActionModalProps {
-  onSubmit: (formData: Partial<RcaAction>) => void;
-  onClose: () => void;
-}
-
-const CreateActionModal: React.FC<CreateActionModalProps> = ({
-  onSubmit,
-  onClose,
-}) => {
-  const [formData, setFormData] = useState<Partial<RcaAction>>({
-    status: "Open",
-  });
-
-  const handleSubmit = () => {
-    if (!formData.relatedIncident || !formData.rootCause || !formData.assignedTo || !formData.dueDate) {
-      toast.error("Error", { description: "Please fill in all required fields." });
-      return;
-    }
-    onSubmit(formData);
-  };
-
-  const handleChange = (key: keyof RcaAction, value: unknown) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  return (
-    <DialogContent className="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Target className="h-6 w-6" /> Create New Corrective Action
-        </DialogTitle>
-        <DialogDescription>
-          Assign a new action based on an incident or audit finding.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
-        <Input 
-          placeholder="Related Incident/Audit ID (e.g., INC-1023)"
-          className="md:col-span-2"
-          onChange={(e) => handleChange("relatedIncident", e.target.value)}
-        />
-        
-        <div className="md:col-span-2">
-           <label className="text-sm font-medium">Root Cause</label>
-           <Textarea 
-             placeholder="Describe the root cause of the issue..."
-             onChange={(e) => handleChange("rootCause", e.target.value)}
-           />
-        </div>
-
-        <Select onValueChange={(val) => handleChange("assignedTo", val)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Assigned To" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="S. Gupta">S. Gupta</SelectItem>
-            <SelectItem value="V. Patel">V. Patel</SelectItem>
-            <SelectItem value="R. Singh">R. Singh</SelectItem>
-            <SelectItem value="A. Khan">A. Khan</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div>
-          <label className="text-sm font-medium">Due Date</label>
-          <DatePicker
-            date={formData.dueDate as Date | undefined}
-            onSelect={(date) => handleChange("dueDate", date)}
-          />
-        </div>
-
-        <div className="md:col-span-2"> 
-          <Select 
-            defaultValue="Open"
-            onValueChange={(val) => handleChange("status", val)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Open">Open</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="Closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button className="bg-[#0B3D91] hover:bg-[#082f70]" onClick={handleSubmit}>
-          <Check className="mr-2 h-4 w-4" />
-          Create Action
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-};

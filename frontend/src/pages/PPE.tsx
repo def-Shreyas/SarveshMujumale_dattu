@@ -1,7 +1,7 @@
 // src/pages/PPE.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAuthToken } from "@/lib/api";
+import { getAuthToken, apiClient } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -25,7 +25,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -47,8 +46,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Input } from "@/components/ui/input";
-import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -66,16 +63,12 @@ import {
 } from "recharts";
 import {
   HardHat,
-  PlusCircle,
   FileText,
   TrendingUp,
   Brain,
   Info,
   Filter,
-  Check,
   Zap,
-  Boxes,
-  MinusCircle,
   AlertTriangle,
   ShoppingCart,
   Truck,
@@ -98,7 +91,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
 // Backend URL
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // AI Quotes
 const aiQuotes = [
@@ -567,30 +560,34 @@ export const PPE: React.FC = () => {
 
   const [kpis, setKpis] = useState<PpeKpi[]>([]);
   const [stock, setStock] = useState<PpeItem[]>([]);
-  const [isAddStockOpen, setIsAddStockOpen] = useState(false);
-  const [isIssueStockOpen, setIsIssueStockOpen] = useState(false);
   const [isReorderOpen, setIsReorderOpen] = useState(false);
   const [selectedPpe, setSelectedPpe] = useState<PpeItem | null>(null);
 
   // Backend integration state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showDashboard, setShowDashboard] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
+  const [fileUploaded, setFileUploaded] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
   const [aiReport, setAiReport] = useState<string>("");
   const [chartList, setChartList] = useState<ChartFile[]>([]);
   const [selectedChartName, setSelectedChartName] = useState<string>("");
   const [selectedChartHtml, setSelectedChartHtml] = useState<string>("");
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
 
   // Rotate quotes while generating
   useEffect(() => {
-    if (isGenerating) {
+    if (isGeneratingReport || isGeneratingCharts) {
       const quoteInterval = setInterval(() => {
         setCurrentQuoteIndex((prev) => (prev + 1) % aiQuotes.length);
       }, 3000);
       return () => clearInterval(quoteInterval);
     }
-  }, [isGenerating]);
+  }, [isGeneratingReport, isGeneratingCharts]);
 
   // --- Data Fetching (Backend Logic) ---
   useEffect(() => {
@@ -610,7 +607,11 @@ export const PPE: React.FC = () => {
 
       if (validExtensions.includes(fileExtension)) {
         setSelectedFile(file);
-        setShowDashboard(false);
+        setFileUploaded(false);
+        setShowReport(false);
+        setShowCharts(false);
+        setAiReport("");
+        setChartList([]);
       } else {
         toast.error("Invalid File Type", {
           description: "Please upload a valid Excel (.xlsx, .xls) file.",
@@ -645,216 +646,106 @@ export const PPE: React.FC = () => {
       console.error("Upload error body:", text);
       throw new Error(`Upload failed (${res.status}): ${text}`);
     }
+
+    const data = await res.json();
+    return data;
   };
 
-  // Trigger backend to build report and charts
-  const triggerGeneration = async () => {
+  // helper: generate report
+  const generateReport = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
-    // Generate report
-    const r1 = await fetch(`${BACKEND_URL}/generate-ppe-report`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setIsGeneratingReport(true);
+    setCurrentQuoteIndex(0);
 
-    if (!r1.ok) {
-      // Extract detailed error message from response
-      let errorMessage = `Report generation failed (${r1.status})`;
+    try {
+      const response = await apiClient.post("/generate-ppe-report");
       
-      // Clone response to read it multiple times if needed
-      const clonedResponse = r1.clone();
-      
-      try {
-        const errorData = await r1.json();
-        // FastAPI returns errors in {detail: "message"} format
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch (e) {
-        // If JSON parsing fails, try to get text response from cloned response
-        try {
-          const errorText = await clonedResponse.text();
-          if (errorText && errorText.trim()) {
-            // Try to parse as JSON if it looks like JSON
-            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
-              try {
-                const parsed = JSON.parse(errorText);
-                errorMessage = parsed.detail || parsed.message || errorText;
-              } catch {
-                errorMessage = errorText;
-              }
-            } else {
-              errorMessage = errorText;
-            }
-          }
-        } catch (e2) {
-          // If both fail, use default message
-          console.error("Failed to parse error response:", e, e2);
-        }
+      if (response && response.report_content) {
+        // Use report_content directly from API response
+        const reportContent = typeof response.report_content === "string" 
+          ? response.report_content 
+          : String(response.report_content || "");
+        
+        setAiReport(reportContent);
+        setShowReport(true);
+        toast.success("Report Generated!", {
+          description: `Report generated successfully (${response.report_length || 0} characters)`,
+        });
+      } else {
+        throw new Error("Invalid response from server: missing report_content");
       }
+    } catch (error: any) {
+      console.error("Error generating report:", error);
+      const errorMessage = error?.message || "Failed to generate report. Please try again.";
       
       // Provide user-friendly error messages
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
-        throw new Error("API key not configured. Please contact the administrator to set up the Google API key.");
+        toast.error("API Configuration Error", {
+          description: "API key not configured. Please contact the administrator.",
+        });
       } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
-        throw new Error("Please upload the Excel file first before generating the report.");
+        toast.error("Upload Required", {
+          description: "Please upload the Excel file first before generating the report.",
+        });
       } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
-        throw new Error("Network error. Please check your internet connection and try again.");
+        toast.error("Network Error", {
+          description: "Please check your internet connection and try again.",
+        });
       } else {
-        throw new Error(errorMessage);
+        toast.error("Report Generation Failed", {
+          description: errorMessage,
+        });
       }
-    }
-
-    // 🔥 ADD THIS LINE — prevents race condition
-    await new Promise((res) => setTimeout(res, 1200));
-
-    // Generate charts
-    const r2 = await fetch(`${BACKEND_URL}/generate-ppe-charts`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!r2.ok) {
-      // Extract detailed error message from response
-      let errorMessage = `Chart generation failed (${r2.status})`;
-      
-      // Clone response to read it multiple times if needed
-      const clonedResponse2 = r2.clone();
-      
-      try {
-        const errorData = await r2.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch (e) {
-        try {
-          const errorText = await clonedResponse2.text();
-          if (errorText && errorText.trim()) {
-            // Try to parse as JSON if it looks like JSON
-            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
-              try {
-                const parsed = JSON.parse(errorText);
-                errorMessage = parsed.detail || parsed.message || errorText;
-              } catch {
-                errorMessage = errorText;
-              }
-            } else {
-              errorMessage = errorText;
-            }
-          }
-        } catch (e2) {
-          console.error("Failed to parse error response:", e, e2);
-        }
-      }
-      throw new Error(errorMessage);
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
-  // Fetch AI report text
-  const fetchReportText = async (): Promise<string> => {
+  // helper: generate charts
+  const generateCharts = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
-    const res = await fetch(`${BACKEND_URL}/ppe-report`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setIsGeneratingCharts(true);
+    setCurrentQuoteIndex(0);
+    // Reset chart state - don't show charts until user selects one
+    setSelectedChartName("");
+    setSelectedChartHtml("");
 
-    // Always get raw text first
-    let raw: string;
     try {
-      raw = await res.text();
-    } catch (error) {
-      console.error("Failed to read response as text:", error);
-      throw new Error("Failed to read report response");
-    }
-
-    // Log the raw response for debugging
-    console.log("🔍 Raw response type:", typeof raw);
-    console.log("🔍 Raw response length:", raw?.length || 0);
-    console.log(
-      "🔍 Raw response preview (first 200 chars):",
-      raw?.substring(0, 200) || "EMPTY"
-    );
-
-    // If backend returned JSON (error) — parse and throw
-    const trimmed = raw.trim();
-    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-      try {
-        const parsed = JSON.parse(trimmed);
-        const detail =
-          parsed.detail || parsed.message || JSON.stringify(parsed);
-        console.error("Report endpoint returned JSON error:", parsed);
-        throw new Error(detail);
-      } catch (e) {
-        // not valid JSON - still treat as error if status not ok
-        if (!res.ok) {
-          console.error("Report endpoint returned non-json error:", raw);
-          throw new Error(raw || `Fetch /ppe-report failed (${res.status})`);
-        }
+      const response = await apiClient.post("/generate-ppe-charts");
+      
+      if (response && response.chart_files && Array.isArray(response.chart_files)) {
+        const charts = response.chart_files.map((name: string) => ({ name }));
+        setChartList(charts);
+        
+        // Don't auto-load first chart - let user select from dropdown
+        // Only set showCharts to true so the dropdown appears
+        setShowCharts(true);
+        toast.success("Charts Generated!", {
+          description: `${charts.length} chart(s) generated successfully. Please select a chart to view.`,
+        });
+      } else {
+        throw new Error("Invalid response from server: missing chart_files");
       }
+    } catch (error: any) {
+      console.error("Error generating charts:", error);
+      const errorMessage = error?.message || "Failed to generate charts. Please try again.";
+      
+      if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        toast.error("Upload Required", {
+          description: "Please upload the Excel file first before generating charts.",
+        });
+      } else {
+        toast.error("Chart Generation Failed", {
+          description: errorMessage,
+        });
+      }
+    } finally {
+      setIsGeneratingCharts(false);
     }
-
-    if (!res.ok) {
-      // some non-JSON error body
-      console.error("Fetching /ppe-report failed", res.status, raw);
-      throw new Error(raw || `Fetching /ppe-report failed (${res.status})`);
-    }
-
-    // ✅ ENFORCE: Always return a clean string
-    // Remove any potential React elements or objects
-    if (typeof raw !== "string") {
-      console.error(
-        "❌ CRITICAL: fetchReportText received non-string:",
-        typeof raw,
-        raw
-      );
-      return "";
-    }
-
-    // Sanitize: ensure it's a plain string, no objects embedded
-    const cleaned = String(raw).trim();
-    console.log("✅ Cleaned report type:", typeof cleaned);
-    console.log("✅ Cleaned report length:", cleaned.length);
-
-    return cleaned;
-  };
-
-  // Fetch charts list
-  const fetchChartsList = async () => {
-    const token = getAuthToken();
-    if (!token) throw new Error("Authentication required");
-
-    const res = await fetch(`${BACKEND_URL}/ppe-charts`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Fetching /ppe-charts list failed (${res.status}): ${body}`);
-    }
-
-    const data = await res.json().catch(() => null);
-    if (!data) return [];
-
-    if (Array.isArray(data)) {
-      return data.map((name: string) => ({ name }));
-    }
-
-    if (Array.isArray(data.charts)) {
-      return data.charts.map((chart: any) => ({
-        name: chart.name ?? "",
-        path: chart.path,
-      }));
-    }
-
-    return [];
   };
 
   // Fetch chart HTML
@@ -878,91 +769,34 @@ export const PPE: React.FC = () => {
     return html;
   };
 
-  // Main workflow: upload -> generate -> fetch
-  const handleGenerate = async () => {
+  // main "Upload" button flow
+  const handleUpload = async () => {
     if (!selectedFile) {
-      toast.error("No file selected", {
-        description: "Please select a file to upload.",
-      });
+      toast.error("No File Selected");
       return;
     }
 
-    try {
-      setIsGenerating(true);
-      setShowDashboard(false);
+    setIsUploading(true);
+    setFileUploaded(false);
+    setShowReport(false);
+    setShowCharts(false);
+    setAiReport("");
+    setChartList([]);
 
+    try {
       toast.info("Uploading file...", { id: "upload" });
       await uploadPpeFile(selectedFile);
-      toast.success("File Uploaded!", { id: "upload" });
-
-      toast.info("Generating AI report...", { id: "gen_report" });
-      toast.info("Generating charts...", { id: "gen_charts" });
-      await triggerGeneration();
-      toast.success("AI Report Generated!", { id: "gen_report" });
-      toast.success("Charts Generated!", { id: "gen_charts" });
-
-      toast.info("Loading results...");
-      const [reportText, chartsArr] = await Promise.all([
-        fetchReportText(),
-        fetchChartsList(),
-      ]);
-
-      let safeReport: string;
-      if (typeof reportText === "string") {
-        safeReport = reportText.trim();
-      } else {
-        console.error("❌ CRITICAL: reportText is not a string!");
-        safeReport = "";
-      }
-
-      if (typeof safeReport === "string") {
-        setAiReport(safeReport);
-      } else {
-        setAiReport("");
-      }
-
-      if (chartsArr && chartsArr.length > 0) {
-        setChartList(chartsArr);
-        const firstChartName = chartsArr[0].name;
-        setSelectedChartName(firstChartName);
-
-        try {
-          const firstHtml = await fetchChartHtml(firstChartName);
-          setSelectedChartHtml(firstHtml);
-        } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : "Unknown error";
-          console.error("Failed to auto-load first chart:", err);
-          toast.error("Failed to load first chart", {
-            description: errorMessage,
-          });
-          setSelectedChartHtml("<p>Error loading chart.</p>");
-        }
-      } else {
-        toast.error("No charts were generated by the backend.");
-        setChartList([]);
-        setSelectedChartName("");
-        setSelectedChartHtml("");
-      }
-
-      setIsGenerating(false);
-      setShowDashboard(true);
-      toast.success("Dashboard is ready!");
+      toast.success("File Uploaded Successfully!", { id: "upload" });
+      setFileUploaded(true);
     } catch (error: any) {
-      console.error("Error generating dashboard:", error);
-      setIsGenerating(false);
-      setShowDashboard(false);
-
-      // Clear any pending progress toasts
-      toast.dismiss("upload");
-      toast.dismiss("gen_report");
-      toast.dismiss("gen_charts");
-
-      // Show error with detailed message
-      const errorMessage = error?.message || "Could not process the file. Please try again.";
-      toast.error("Generation Failed", {
+      console.error("Error uploading file:", error);
+      const errorMessage = error?.message || "Could not upload the file. Please try again.";
+      toast.error("Upload Failed", {
         description: errorMessage,
-        duration: 5000, // Show for 5 seconds so user can read it
+        duration: 5000,
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -1061,65 +895,6 @@ export const PPE: React.FC = () => {
     console.log("Filtering data...");
   };
 
-  const handleAddStock = async (formData: Partial<PpeItem>) => {
-    console.log("Adding new stock:", formData);
-    // TODO: Replace with API call
-    /*
-    try {
-      const response = await fetch('/api/ppe/add-stock', { ... });
-      if (!response.ok) throw new Error('Failed to submit');
-      const updatedStock = await response.json();
-      setStock(updatedStock);
-      setIsAddStockOpen(false);
-      toast.success("Success", { description: "New stock added to inventory." });
-    } catch (error) {
-      toast.error("Error", { description: "Could not add stock." });
-    }
-    */
-    // Mock success
-    const newItem: PpeItem = {
-      id: `PPE-${Math.floor(Math.random() * 1000)}`,
-      totalIssued: 0,
-      balance: formData.totalPurchased || 0,
-      status: "In Stock",
-      ...formData,
-    } as PpeItem;
-    setStock([newItem, ...stock]);
-    setIsAddStockOpen(false);
-    toast.success("Success", { description: "New stock added." });
-  };
-
-  const handleIssueStock = async (formData: { ppeId: string; department: string; quantity: number }) => {
-    console.log("Issuing stock:", formData);
-     // TODO: Replace with API call
-    /*
-    try {
-      const response = await fetch('/api/ppe/issue-stock', { ... });
-      if (!response.ok) throw new Error('Failed to submit');
-      const updatedStockItem = await response.json();
-      // Update the item in the local state
-      setStock(stock.map(item => item.id === updatedStockItem.id ? updatedStockItem : item));
-      setIsIssueStockOpen(false);
-      toast.success("Success", { description: "Stock issued successfully." });
-    } catch (error) {
-      toast.error("Error", { description: "Could not issue stock." });
-    }
-    */
-    // Mock success
-    const targetItem = stock.find(item => item.id === formData.ppeId);
-    if (targetItem) {
-      targetItem.totalIssued += formData.quantity;
-      targetItem.balance = targetItem.totalPurchased - targetItem.totalIssued;
-      if (targetItem.balance / targetItem.totalPurchased < 0.15) {
-        targetItem.status = "Low Stock";
-      }
-      if (targetItem.balance <= 0) {
-        targetItem.status = "Out of Stock";
-      }
-    }
-    setIsIssueStockOpen(false);
-    toast.success("Success", { description: `Issued ${formData.quantity} to ${formData.department}.` });
-  };
 
   const handleGenerateReorderList = () => {
     // TODO: API call to AI backend
@@ -1131,8 +906,8 @@ export const PPE: React.FC = () => {
     setIsReorderOpen(true); // Open the reorder list modal
   };
 
-  // Upload screen
-  if (!showDashboard && !isGenerating) {
+  // 1. Upload screen
+  if (!fileUploaded && !isUploading) {
     return (
       <div className="w-full py-12">
         {/* TOP PAGE HEADING */}
@@ -1285,13 +1060,22 @@ export const PPE: React.FC = () => {
                 whileTap={{ scale: selectedFile ? 0.99 : 1 }}
               >
                 <Button
-                  onClick={handleGenerate}
-                  disabled={!selectedFile}
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isUploading}
                   className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
                              shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Generate AI Dashboard
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Upload File
+                    </>
+                  )}
                 </Button>
               </motion.div>
             </CardContent>
@@ -1301,8 +1085,8 @@ export const PPE: React.FC = () => {
     );
   }
 
-  // Loading screen
-  if (isGenerating) {
+  // 2. Uploading screen
+  if (isUploading) {
     return (
       <div className="w-full flex items-center justify-center py-20">
         <motion.div
@@ -1311,7 +1095,165 @@ export const PPE: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Enhanced: "Breathing" AI Icon */}
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <Upload className="w-16 h-16 text-[#0B3D91]" />
+            </div>
+          </motion.div>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Uploading Your File...
+          </h2>
+          <p className="text-lg text-gray-600 mb-8">
+            Please wait while we process your Excel file.
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 3. After upload - show Generate buttons
+  if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
+    return (
+      <div className="w-full py-12">
+        <motion.div
+          className="text-center mb-10"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-4xl font-extrabold text-[#0B3D91] mb-4">
+            File Uploaded Successfully!
+          </h1>
+          <p className="text-lg text-gray-600">
+            File: <span className="font-semibold">{selectedFile?.name}</span>
+          </p>
+        </motion.div>
+
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="shadow-lg border-t-4 border-[#0B3D91] h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-6 h-6 text-[#0B3D91]" />
+                  Generate AI Report
+                </CardTitle>
+                <CardDescription>
+                  Generate a comprehensive AI-powered analysis report of your PPE & Assets data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={generateReport}
+                  disabled={isGeneratingReport}
+                  className="w-full bg-[#0B3D91] hover:bg-[#082f70] text-white font-semibold py-6 text-lg"
+                >
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating Report...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="shadow-lg border-t-4 border-[#00A79D] h-full">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart2 className="w-6 h-6 text-[#00A79D]" />
+                  Generate Charts
+                </CardTitle>
+                <CardDescription>
+                  Generate interactive charts and visualizations from your data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  onClick={generateCharts}
+                  disabled={isGeneratingCharts}
+                  className="w-full bg-[#00A79D] hover:bg-[#008a7e] text-white font-semibold py-6 text-lg"
+                >
+                  {isGeneratingCharts ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Generating Charts...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart2 className="w-5 h-5 mr-2" />
+                      Generate Charts
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        <div className="flex justify-center mt-8">
+          <Button
+            onClick={() => {
+              setFileUploaded(false);
+              setSelectedFile(null);
+              setShowReport(false);
+              setShowCharts(false);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+            variant="outline"
+          >
+            Upload New File
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Loading screen for report generation
+  if (isGeneratingReport) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <motion.div
             className="flex justify-center mb-8"
             animate={{ scale: [1, 1.05, 1] }}
@@ -1326,12 +1268,10 @@ export const PPE: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Main Title */}
           <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-            Analyzing Your PPE & Assets Data...
+            Generating AI Report...
           </h2>
 
-          {/* Rotating AI Quotes */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuoteIndex}
@@ -1351,7 +1291,6 @@ export const PPE: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Indeterminate Progress Bar */}
           <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
             <motion.div
               className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
@@ -1369,7 +1308,195 @@ export const PPE: React.FC = () => {
     );
   }
 
-  // Dashboard (results)
+  // 5. Loading screen for chart generation
+  if (isGeneratingCharts) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <BarChart2 className="w-16 h-16 text-[#00A79D]" />
+            </div>
+          </motion.div>
+
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#00A79D] to-[#0B3D91] bg-clip-text text-transparent">
+            Generating Interactive Charts...
+          </h2>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuoteIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mb-4"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
+                <p className="text-xl text-gray-600 font-medium">
+                  {aiQuotes[currentQuoteIndex]}
+                </p>
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#00A79D] to-[#0B3D91] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Helper function to render report content
+  const renderReportContent = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="shadow-lg">
+          <div ref={reportContentRef}>
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-gray-800">
+                <span className="text-4xl text-[#0B3D91] font-extrabold underline">
+                  DATTU
+                </span>{" "}
+                PPE & Assets Analysis
+              </CardTitle>
+              <CardDescription className="text-lg text-gray-600">
+                This is the full PPE & Assets analysis report generated by the AI based on your
+                uploaded data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent
+              className={cn(
+                "prose prose-slate max-w-none",
+                "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
+                "prose-table:border prose-th:p-2 prose-td:p-2"
+              )}
+            >
+              {(() => {
+                const safeContent: string =
+                  typeof aiReport === "string"
+                    ? aiReport
+                    : String(aiReport || "");
+
+                if (typeof aiReport !== "string") {
+                  console.error(
+                    "❌ RENDER CHECK - aiReport is NOT a string! Type:",
+                    typeof aiReport,
+                    "Value:",
+                    aiReport
+                  );
+                }
+
+                if (
+                  typeof safeContent === "string" &&
+                  safeContent.length > 0
+                ) {
+                  return <SafeMarkdown content={safeContent} />;
+                } else {
+                  return (
+                    <p className="text-red-500">
+                      {aiReport
+                        ? "Invalid report format received from backend."
+                        : "No report loaded yet."}
+                    </p>
+                  );
+                }
+              })()}
+            </CardContent>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
+
+  // Helper function to render charts content
+  const renderChartsContent = () => {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Card className="shadow-lg">
+          <div ref={chartsContentRef}>
+            <CardHeader>
+              <CardTitle>Interactive Charts</CardTitle>
+              <CardDescription>
+                Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
+                <SelectTrigger className="w-full md:w-1/2">
+                  <SelectValue placeholder="Select a chart to display" />
+                </SelectTrigger>
+                <SelectContent>
+                  {chartList.map((chart) => (
+                    <SelectItem key={chart.name} value={chart.name}>
+                      {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "").replace(/^ppe_/i, "")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <div className="w-full h-[600px] border rounded-md overflow-hidden bg-white">
+                {selectedChartHtml ? (
+                  <iframe
+                    srcDoc={selectedChartHtml}
+                    title="Interactive Chart"
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    sandbox="allow-scripts"
+                  />
+                ) : (
+                  <div className="h-full w-full flex flex-col items-center justify-center text-gray-500">
+                    <BarChart2 className="h-12 w-12 mb-4 text-gray-400" />
+                    <p className="text-lg font-medium">
+                      {chartList.length > 0
+                        ? "Please select a chart from the dropdown above to view it"
+                        : "No charts available"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
+
+  // 6. Dashboard (results) - Show Report or Charts
   return (
     <TooltipProvider>
       <div className="w-full space-y-6">
@@ -1382,393 +1509,353 @@ export const PPE: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
               <HardHat className="w-8 h-8 text-[#0B3D91]" />
-              Assets & PPE Management
+              {showReport ? "AI PPE & Assets Report" : showCharts ? "Interactive Charts" : "Dashboard"}
             </h1>
-            {selectedFile && (
-              <p className="text-lg text-gray-600 max-w-3xl">
-                Analysis of: {selectedFile.name}
-              </p>
-            )}
+            <p className="text-lg text-gray-600 max-w-3xl">
+              Analysis of: {selectedFile?.name}
+            </p>
           </div>
           <div className="flex gap-2">
-            {showDashboard && (
-              <Button onClick={downloadPDF} className="bg-[#0B3D91] hover:bg-[#082f70]">
+            {showReport && (
+              <Button
+                onClick={downloadPDF}
+                className="bg-[#0B3D91] hover:bg-[#082f70]"
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Download Report (PDF)
               </Button>
             )}
-            <Button onClick={() => setShowDashboard(false)} variant="outline">
+            <Button
+              onClick={() => {
+                setFileUploaded(false);
+                setShowReport(false);
+                setShowCharts(false);
+                setSelectedFile(null);
+                setAiReport("");
+                setChartList([]);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }}
+              variant="outline"
+            >
               Upload New File
             </Button>
-            <Dialog open={isIssueStockOpen} onOpenChange={setIsIssueStockOpen}>
-              <DialogTrigger asChild>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button variant="outline" className="gap-2">
-                    <MinusCircle className="h-5 w-5" />
-                    Issue Stock
+            {fileUploaded && (
+              <>
+                {!showReport && (
+                  <Button
+                    onClick={generateReport}
+                    disabled={isGeneratingReport}
+                    className="bg-[#0B3D91] hover:bg-[#082f70]"
+                  >
+                    {isGeneratingReport ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Report
+                      </>
+                    )}
                   </Button>
-                </motion.div>
-              </DialogTrigger>
-              <IssuePpeModal
-                stockItems={stock}
-                onSubmit={handleIssueStock}
-                onClose={() => setIsIssueStockOpen(false)}
-              />
-            </Dialog>
-            
-            <Dialog open={isAddStockOpen} onOpenChange={setIsAddStockOpen}>
-              <DialogTrigger asChild>
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button className="gap-2 bg-[#0B3D91] hover:bg-[#082f70]">
-                    <PlusCircle className="h-5 w-5" />
-                    Add New Stock
+                )}
+                {!showCharts && (
+                  <Button
+                    onClick={generateCharts}
+                    disabled={isGeneratingCharts}
+                    className="bg-[#00A79D] hover:bg-[#008a7e]"
+                  >
+                    {isGeneratingCharts ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <BarChart2 className="w-4 h-4 mr-2" />
+                        Generate Charts
+                      </>
+                    )}
                   </Button>
-                </motion.div>
-              </DialogTrigger>
-              <AddPpeStockModal
-                onSubmit={handleAddStock}
-                onClose={() => setIsAddStockOpen(false)}
-              />
-            </Dialog>
+                )}
+              </>
+            )}
           </div>
         </motion.div>
 
-        {/* KPIs Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <KpiCard key={kpi.title} {...kpi} />
-          ))}
-        </div>
+        {/* KPIs Row - Only show when no report/charts are displayed */}
+        {!showReport && !showCharts && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {kpis.map((kpi) => (
+              <KpiCard key={kpi.title} {...kpi} />
+            ))}
+          </div>
+        )}
 
-        {/* Main Content Area */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left/Main Panel */}
-          <div className="lg:col-span-2">
-            <div ref={reportRef}>
-              <Tabs defaultValue={showDashboard ? "report" : "ledger"}>
-                <TabsList className={cn("grid w-full", showDashboard ? "grid-cols-5" : "grid-cols-3")}>
-                  {showDashboard && (
-                    <>
-                      <TabsTrigger value="report">
-                        <Sparkles className="mr-2 h-4 w-4 text-[#0B3D91]" />
-                        AI-Generated Report
-                      </TabsTrigger>
-                      <TabsTrigger value="charts">
-                        <BarChart2 className="mr-2 h-4 w-4 text-[#00A79D]" />
-                        Interactive Charts
-                      </TabsTrigger>
-                    </>
-                  )}
-                  <TabsTrigger value="ledger">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Stock Ledger
-                  </TabsTrigger>
-                  <TabsTrigger value="analytics">
-                    <TrendingUp className="mr-2 h-4 w-4" />
-                    Usage Analytics
-                  </TabsTrigger>
-                  <TabsTrigger value="alerts">
-                    <AlertTriangle className="mr-2 h-4 w-4" />
-                    Reorder Alerts
-                  </TabsTrigger>
-                </TabsList>
+        {/* PDF capture region */}
+        <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">
+          {showReport && showCharts ? (
+            <Tabs defaultValue="report">
+              <TabsList className="w-full justify-start h-12 bg-gray-100">
+                <TabsTrigger
+                  value="report"
+                  className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                >
+                  <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                </TabsTrigger>
+                <TabsTrigger
+                  value="charts"
+                  className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                >
+                  <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+                </TabsTrigger>
+              </TabsList>
 
-                {/* AI Report Tab */}
-                {showDashboard && (
-                  <TabsContent value="report" className="mt-6">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                      <Card className="shadow-lg">
-                        <CardHeader>
-                          <CardTitle>DATTU AI Analysis</CardTitle>
-                          <CardDescription>
-                            This is the full report generated by the DATTU based on your uploaded data.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent
-                          className={cn(
-                            "prose prose-slate max-w-none",
-                            "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
-                            "prose-table:border prose-th:p-2 prose-td:p-2"
-                          )}
-                        >
-                          {(() => {
-                            const safeContent: string = typeof aiReport === "string" ? aiReport : String(aiReport || "");
-                            if (typeof safeContent === "string" && safeContent.length > 0) {
-                              return <SafeMarkdown content={safeContent} />;
-                            } else {
-                              return (
-                                <p className="text-red-500">
-                                  {aiReport ? "Invalid report format received from backend." : "No report loaded yet."}
-                                </p>
-                              );
-                            }
-                          })()}
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-                )}
-
-                {/* Charts Tab */}
-                {showDashboard && (
-                  <TabsContent value="charts" className="mt-6">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                      <Card className="shadow-lg">
-                        <CardHeader>
-                          <CardTitle>Interactive Charts</CardTitle>
-                          <CardDescription>
-                            Select a chart to view the interactive (Plotly) HTML report generated by the backend.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
-                            <SelectTrigger className="w-full md:w-1/2">
-                              <SelectValue placeholder="Select a chart to display" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {chartList.map((chart) => (
-                                <SelectItem key={chart.name} value={chart.name}>
-                                  {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "")}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-
-                          <div className="w-full h-[600px] border rounded-md overflow-hidden bg-white">
-                            {selectedChartHtml ? (
-                              <iframe
-                                srcDoc={selectedChartHtml}
-                                title="Interactive Chart"
-                                width="100%"
-                                height="100%"
-                                frameBorder="0"
-                                sandbox="allow-scripts"
-                              />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-gray-500">
-                                <Loader2 className="h-6 w-6 animate-spin" />
-                                <p className="ml-2">{selectedChartName ? "Loading Chart..." : "Select a chart from the dropdown"}</p>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-                )}
-
-              {/* Ledger Tab */}
-              <TabsContent value="ledger" className="mt-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>PPE Inventory Ledger</CardTitle>
-                    <CardDescription>
-                      Live inventory of all PPE items.
-                    </CardDescription>
-                    {/* Filters */}
-                    <div className="flex flex-wrap items-center gap-2 pt-4">
-                      <Filter className="h-4 w-4 text-gray-500" />
-                      <Select onValueChange={handleFilterChange}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select PPE Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="helmet">Safety Helmet</SelectItem>
-                          <SelectItem value="gloves">Cut-Resist Gloves</SelectItem>
-                          <SelectItem value="goggles">Safety Goggles</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select onValueChange={handleFilterChange}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="in-stock">In Stock</SelectItem>
-                          <SelectItem value="low-stock">Low Stock</SelectItem>
-                          <SelectItem value="expired">Expired</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <PpeTable
-                      stock={stock}
-                      onRowClick={(item) => setSelectedPpe(item)}
-                    />
-                  </CardContent>
-                </Card>
+              {/* Report tab */}
+              <TabsContent value="report" className="mt-6">
+                {renderReportContent()}
               </TabsContent>
 
-              {/* Analytics Tab */}
-              <TabsContent value="analytics" className="mt-4">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                  className="grid grid-cols-1 gap-6 md:grid-cols-2"
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Usage vs. Purchase (6 Months)</CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={mockUsageData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" fontSize={12} />
-                          <YAxis fontSize={12} />
-                          <RechartsTooltip />
-                          <Legend />
-                          <Bar dataKey="Purchased" fill="#0B3D91" />
-                          <Bar dataKey="Issued" fill="#00A79D" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Stock Summary by Type</CardTitle>
-                    </CardHeader>
-                    <CardContent className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={mockStockData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
-                            fill="#8884d8"
-                            dataKey="value"
-                            label={(entry) => `${entry.name} (${entry.value})`}
-                          >
-                            {mockStockData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Pie>
-                          <RechartsTooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </TabsContent>
-
-              {/* Reorder Alerts Tab */}
-              <TabsContent value="alerts" className="mt-4">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Accordion type="multiple" defaultValue={["low-stock", "expired"]}>
-                    <AccordionItem value="low-stock">
-                      <AccordionTrigger className="text-lg font-semibold text-yellow-600">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5" />
-                          Low Stock Items (1)
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {/* TODO: Populate with real data */}
-                        <p>PPE-002: Cut-Resist Gloves - 20 remaining</p>
-                      </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="out-of-stock">
-                      <AccordionTrigger className="text-lg font-semibold text-red-600">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5" />
-                          Out of Stock Items (1)
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {/* TODO: Populate with real data */}
-                        <p>PPE-004: Respirator Cartridge - 0 remaining</p>
-                      </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="expired">
-                      <AccordionTrigger className="text-lg font-semibold text-red-600">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5" />
-                          Expired Stock (1)
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {/* TODO: Populate with real data */}
-                        <p>PPE-005: Fall Arrest Harness - 5 expired on 2025-09-30</p>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </motion.div>
+              {/* Charts tab */}
+              <TabsContent value="charts" className="mt-6">
+                {renderChartsContent()}
               </TabsContent>
             </Tabs>
-            </div>
-          </div>
+          ) : showReport ? (
+            renderReportContent()
+          ) : showCharts ? (
+            renderChartsContent()
+          ) : (
+            /* Show PPE Management tabs when no report/charts */
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              {/* Left/Main Panel */}
+              <div className="lg:col-span-2">
+                <Tabs defaultValue="ledger">
+                  <TabsList className="w-full justify-start h-12 bg-gray-100">
+                    <TabsTrigger value="ledger" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+                      <FileText className="mr-2 h-4 w-4" />
+                      Stock Ledger
+                    </TabsTrigger>
+                    <TabsTrigger value="analytics" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      Usage Analytics
+                    </TabsTrigger>
+                    <TabsTrigger value="alerts" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Reorder Alerts
+                    </TabsTrigger>
+                  </TabsList>
 
-          {/* Right AI Panel */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-[#0B3D91]" />
-                  AI Co-Pilot
-                </CardTitle>
-                <CardDescription>
-                  {selectedPpe
-                    ? `Insights for ${selectedPpe.name}`
-                    : "Select an item to see AI insights"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {selectedPpe ? (
-                  <>
-                    <div>
-                      <h4 className="font-semibold">Predicted Stock-Out</h4>
-                      <p className={cn(
-                        "text-sm font-bold",
-                        selectedPpe.status === "Low Stock" ? "text-red-600" : "text-gray-600"
-                      )}>
-                        {/* TODO: Populate from AI API */}
-                        {selectedPpe.status === "Low Stock" ? "In approx. 3 days" : "In 25 days"}
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">High-Usage Departments</h4>
-                      <ul className="list-disc pl-5 text-sm text-gray-600">
-                        {/* TODO: Populate from AI API */}
-                        <li>Assembly (60%)</li>
-                        <li>Welding (30%)</li>
-                        <li>Maintenance (10%)</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Suggested Reorder Qty</h4>
-                      <p className="text-lg font-bold text-gray-900">
-                         {/* TODO: Populate from AI API */}
-                        {selectedPpe.name === "Cut-Resist Gloves" ? 500 : 200} units
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
-                    <p>Select a PPE item from the table</p>
-                  </div>
-                )}
-                <Button 
-                  className="w-full gap-2" 
-                  onClick={handleGenerateReorderList}
-                >
-                  <Zap className="h-4 w-4" />
-                  Auto-Generate Reorder List
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                    {/* Ledger Tab */}
+                    <TabsContent value="ledger" className="mt-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>PPE Inventory Ledger</CardTitle>
+                          <CardDescription>
+                            Live inventory of all PPE items.
+                          </CardDescription>
+                          {/* Filters */}
+                          <div className="flex flex-wrap items-center gap-2 pt-4">
+                            <Filter className="h-4 w-4 text-gray-500" />
+                            <Select onValueChange={handleFilterChange}>
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select PPE Type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="helmet">Safety Helmet</SelectItem>
+                                <SelectItem value="gloves">Cut-Resist Gloves</SelectItem>
+                                <SelectItem value="goggles">Safety Goggles</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select onValueChange={handleFilterChange}>
+                              <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Select Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="in-stock">In Stock</SelectItem>
+                                <SelectItem value="low-stock">Low Stock</SelectItem>
+                                <SelectItem value="expired">Expired</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <PpeTable
+                            stock={stock}
+                            onRowClick={(item) => setSelectedPpe(item)}
+                          />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    {/* Analytics Tab */}
+                    <TabsContent value="analytics" className="mt-4">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                        className="grid grid-cols-1 gap-6 md:grid-cols-2"
+                      >
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Usage vs. Purchase (6 Months)</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={mockUsageData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="month" fontSize={12} />
+                                <YAxis fontSize={12} />
+                                <RechartsTooltip />
+                                <Legend />
+                                <Bar dataKey="Purchased" fill="#0B3D91" />
+                                <Bar dataKey="Issued" fill="#00A79D" />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Stock Summary by Type</CardTitle>
+                          </CardHeader>
+                          <CardContent className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={mockStockData}
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={100}
+                                  fill="#8884d8"
+                                  dataKey="value"
+                                  label={(entry) => `${entry.name} (${entry.value})`}
+                                >
+                                  {mockStockData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                                  ))}
+                                </Pie>
+                                <RechartsTooltip />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    </TabsContent>
+
+                    {/* Reorder Alerts Tab */}
+                    <TabsContent value="alerts" className="mt-4">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Accordion type="multiple" defaultValue={["low-stock", "expired"]}>
+                          <AccordionItem value="low-stock">
+                            <AccordionTrigger className="text-lg font-semibold text-yellow-600">
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5" />
+                                Low Stock Items (1)
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {/* TODO: Populate with real data */}
+                              <p>PPE-002: Cut-Resist Gloves - 20 remaining</p>
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="out-of-stock">
+                            <AccordionTrigger className="text-lg font-semibold text-red-600">
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5" />
+                                Out of Stock Items (1)
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {/* TODO: Populate with real data */}
+                              <p>PPE-004: Respirator Cartridge - 0 remaining</p>
+                            </AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem value="expired">
+                            <AccordionTrigger className="text-lg font-semibold text-red-600">
+                              <div className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5" />
+                                Expired Stock (1)
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {/* TODO: Populate with real data */}
+                              <p>PPE-005: Fall Arrest Harness - 5 expired on 2025-09-30</p>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </motion.div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+                {/* Right AI Panel */}
+                <div className="lg:col-span-1">
+                  <Card className="sticky top-20">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Brain className="h-5 w-5 text-[#0B3D91]" />
+                        AI Co-Pilot
+                      </CardTitle>
+                      <CardDescription>
+                        {selectedPpe
+                          ? `Insights for ${selectedPpe.name}`
+                          : "Select an item to see AI insights"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {selectedPpe ? (
+                        <>
+                          <div>
+                            <h4 className="font-semibold">Predicted Stock-Out</h4>
+                            <p className={cn(
+                              "text-sm font-bold",
+                              selectedPpe.status === "Low Stock" ? "text-red-600" : "text-gray-600"
+                            )}>
+                              {/* TODO: Populate from AI API */}
+                              {selectedPpe.status === "Low Stock" ? "In approx. 3 days" : "In 25 days"}
+                            </p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">High-Usage Departments</h4>
+                            <ul className="list-disc pl-5 text-sm text-gray-600">
+                              {/* TODO: Populate from AI API */}
+                              <li>Assembly (60%)</li>
+                              <li>Welding (30%)</li>
+                              <li>Maintenance (10%)</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Suggested Reorder Qty</h4>
+                            <p className="text-lg font-bold text-gray-900">
+                              {/* TODO: Populate from AI API */}
+                              {selectedPpe.name === "Cut-Resist Gloves" ? 500 : 200} units
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
+                          <p>Select a PPE item from the table</p>
+                        </div>
+                      )}
+                      <Button 
+                        className="w-full gap-2" 
+                        onClick={handleGenerateReorderList}
+                      >
+                        <Zap className="h-4 w-4" />
+                        Auto-Generate Reorder List
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
         </div>
 
         {/* AI Reorder List Modal */}
@@ -1928,161 +2015,3 @@ const PpeTable: React.FC<PpeTableProps> = ({ stock, onRowClick }) => (
     </TableBody>
   </Table>
 );
-
-// --- Sub-component: Add Stock Modal ---
-interface AddPpeStockModalProps {
-  onSubmit: (formData: Partial<PpeItem>) => void;
-  onClose: () => void;
-}
-
-const AddPpeStockModal: React.FC<AddPpeStockModalProps> = ({
-  onSubmit,
-  onClose,
-}) => {
-  const [formData, setFormData] = useState<Partial<PpeItem>>({});
-
-  const handleSubmit = () => {
-    // Basic validation
-    if (!formData.name || !formData.supplier || !formData.totalPurchased || !formData.purchaseDate || !formData.expiryDate) {
-      toast.error("Error", { description: "Please fill in all fields." });
-      return;
-    }
-    onSubmit(formData);
-  };
-
-  const handleChange = (key: keyof PpeItem, value: string | number | Date | undefined) => {
-    setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  return (
-    <DialogContent className="sm:max-w-[500px]">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <Boxes className="h-6 w-6" /> Add New PPE Stock
-        </DialogTitle>
-        <DialogDescription>
-          Add a new purchase order or stock item to the inventory.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
-        <Input 
-          placeholder="Item Name (e.g., Safety Helmet)"
-          className="md:col-span-2"
-          onChange={(e) => handleChange("name", e.target.value)}
-        />
-        <Input 
-          placeholder="Supplier (e.g., SafeInc)"
-          onChange={(e) => handleChange("supplier", e.target.value)}
-        />
-        <Input 
-          type="number"
-          placeholder="Quantity Purchased"
-          onChange={(e) => handleChange("totalPurchased", parseInt(e.target.value) || 0)}
-        />
-        <div>
-          <label className="text-sm font-medium">Purchase Date</label>
-          <DatePicker
-            date={formData.purchaseDate as Date | undefined}
-            onSelect={(date) => handleChange("purchaseDate", date)}
-          />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Expiry Date</label>
-          <DatePicker
-            date={formData.expiryDate as Date | undefined}
-            onSelect={(date) => handleChange("expiryDate", date)}
-          />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button className="bg-[#0B3D91] hover:bg-[#082f70]" onClick={handleSubmit}>
-          <Check className="mr-2 h-4 w-4" />
-          Add to Stock
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-};
-
-// --- Sub-component: Issue Stock Modal ---
-interface IssuePpeModalProps {
-  stockItems: PpeItem[];
-  onSubmit: (formData: { ppeId: string; department: string; quantity: number }) => void;
-  onClose: () => void;
-}
-
-const IssuePpeModal: React.FC<IssuePpeModalProps> = ({
-  stockItems,
-  onSubmit,
-  onClose,
-}) => {
-  const [ppeId, setPpeId] = useState<string>("");
-  const [department, setDepartment] = useState<string>("");
-  const [quantity, setQuantity] = useState<number>(0);
-
-  const handleSubmit = () => {
-    // Basic validation
-    if (!ppeId || !department || quantity <= 0) {
-      toast.error("Error", { description: "Please fill in all fields correctly." });
-      return;
-    }
-    onSubmit({ ppeId, department, quantity });
-  };
-
-  return (
-    <DialogContent className="sm:max-w-[425px]">
-      <DialogHeader>
-        <DialogTitle className="flex items-center gap-2">
-          <MinusCircle className="h-6 w-6" /> Issue PPE Stock
-        </DialogTitle>
-        <DialogDescription>
-          Issue stock to a department and update inventory.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <Select onValueChange={setPpeId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select PPE Item" />
-          </SelectTrigger>
-          <SelectContent>
-            {stockItems
-              .filter(item => item.status !== "Out of Stock")
-              .map(item => (
-                <SelectItem key={item.id} value={item.id}>
-                  {item.name} (Balance: {item.balance})
-                </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select onValueChange={setDepartment}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select Department" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Assembly">Assembly</SelectItem>
-            <SelectItem value="Welding">Welding</SelectItem>
-            <SelectItem value="Maintenance">Maintenance</SelectItem>
-            <SelectItem value="Logistics">Logistics</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input 
-          type="number"
-          placeholder="Quantity Issued"
-          onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-        />
-      </div>
-      <DialogFooter>
-        <Button variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button className="bg-[#00A79D] hover:bg-[#008a7e]" onClick={handleSubmit}>
-          <Check className="mr-2 h-4 w-4" />
-          Issue Stock
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-};

@@ -197,12 +197,17 @@ const UserApiUsage: React.FC = () => {
       
       if (data && typeof data.api_calls_limit !== 'undefined') {
         setUsage(data);
+        setApiError(null); // Clear any previous errors
       } else {
         throw new Error("Invalid usage data received from server.");
       }
     } catch (error: any) {
       console.error("Failed to fetch API usage:", error);
-      setApiError(error.message || "Failed to fetch API usage.");
+      const errorMessage = error.message || "Failed to fetch API usage.";
+      setApiError(errorMessage);
+      
+      // Don't show toast for connection errors in Settings - let the UI handle it
+      // The error will be displayed in the component's error state
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
