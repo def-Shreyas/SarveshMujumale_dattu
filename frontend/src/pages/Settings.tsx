@@ -44,6 +44,10 @@ import {
   Star,
   CreditCard,
   Trash2,
+  Gift,
+  History,
+  TrendingUp,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -54,10 +58,16 @@ import { cn } from "@/lib/utils";
 
 // --- Type for API Usage data ---
 interface ApiUsage {
-  daily_limit: number;
-  monthly_limit: number;
-  api_calls_today: number;
-  api_calls_month: number;
+  api_calls_limit: number;      // Monthly API limit
+  api_calls_used: number;       // Monthly API used
+  api_calls_remaining: number;  // Monthly API remaining
+  daily_limit: number;          // Daily limit from subscription
+  daily_used: number;           // Daily used
+  daily_remaining: number;      // Daily remaining
+  monthly_limit: number;        // Monthly limit from subscription
+  monthly_used: number;         // Monthly used
+  monthly_remaining: number;   // Monthly remaining
+  subscription_tier: string;
 }
 
 // --- Type for New User Form (matches backend) ---
@@ -70,6 +80,39 @@ type NewUserForm = {
   role: AuthUser['role'];
   subscription_tier: "basic" | "premium" | "enterprise" | "free";
   api_calls_limit: number;
+}
+
+// --- Type for Grant API Calls (for future backend implementation) ---
+// interface GrantApiCallsRequest {
+//   user_id: string;
+//   additional_calls: number;
+//   reason?: string;
+// }
+
+// --- Type for Grant History ---
+interface GrantHistory {
+  id: string;
+  user_id: string;
+  username: string;
+  email: string;
+  granted_by: string;
+  additional_calls: number;
+  reason?: string;
+  granted_at: string;
+  subscription_tier?: string;
+}
+
+// --- Type for User API Usage (Admin View) ---
+interface UserApiUsageInfo {
+  user_id: string;
+  username: string;
+  email: string;
+  api_calls_limit: number;
+  api_calls_used: number;
+  api_calls_remaining: number;
+  subscription_tier: string;
+  usage_percentage: number;
+  status: "critical" | "warning" | "good";
 }
 
 // --- Utility Components ---
@@ -137,8 +180,34 @@ const UserApiUsage: React.FC = () => {
   const { user } = useAuth();
   const [usage, setUsage] = useState<ApiUsage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
+
+  const fetchUsage = async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+    setApiError(null);
+    
+    try {
+      const data = await apiClient.get("/auth/rate-limit");
+      
+      if (data && typeof data.api_calls_limit !== 'undefined') {
+        setUsage(data);
+      } else {
+        throw new Error("Invalid usage data received from server.");
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch API usage:", error);
+      setApiError(error.message || "Failed to fetch API usage.");
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Prevent multiple concurrent fetches
@@ -148,34 +217,12 @@ const UserApiUsage: React.FC = () => {
     hasFetchedRef.current = true;
     const abortController = new AbortController();
 
-    const fetchUsage = async () => {
+    const loadUsage = async () => {
       if (!isMounted || abortController.signal.aborted) return;
-      
-      setIsLoading(true); 
-      setApiError(null);
-      try {
-        const data = await apiClient.get("/auth/rate-limit");
-        if (!isMounted || abortController.signal.aborted) return;
-        
-        if (data && typeof data.api_calls_month !== 'undefined') {
-          setUsage(data); 
-        } else {
-          throw new Error("Invalid usage data received from server.");
-        }
-      } catch (error: any) {
-        // Ignore abort errors
-        if (abortController.signal.aborted) return;
-        if (!isMounted) return;
-        console.error("Failed to fetch API usage:", error);
-        setApiError(error.message || "Failed to fetch API usage.");
-      } finally {
-        if (isMounted && !abortController.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
+      await fetchUsage(false);
     };
     
-    fetchUsage();
+    loadUsage();
     
     return () => {
       isMounted = false;
@@ -216,29 +263,140 @@ const UserApiUsage: React.FC = () => {
      )
   }
 
-  const dailyUsage = usage.daily_limit > 0 ? (usage.api_calls_today / usage.daily_limit) * 100 : 0;
-  const monthlyUsage = usage.monthly_limit > 0 ? (usage.api_calls_month / usage.monthly_limit) * 100 : 0;
+  // Calculate percentages for progress bars
+  const monthlyUsagePercent = usage.api_calls_limit > 0 
+    ? (usage.api_calls_used / usage.api_calls_limit) * 100 
+    : 0;
+  
+  const dailyUsagePercent = usage.daily_limit > 0 
+    ? (usage.daily_used / usage.daily_limit) * 100 
+    : 0;
+
+  // Format remaining APIs
+  const formatRemaining = (remaining: number) => {
+    if (remaining === -1) return "Unlimited";
+    return remaining.toLocaleString();
+  };
+
+  const formatLimit = (limit: number) => {
+    if (limit === -1) return "Unlimited";
+    return limit.toLocaleString();
+  };
 
   return (
     <SectionCard
       title="API & Subscription"
       description={`You are currently on the ${user.subscription_tier} plan.`}
     >
-      <div className="space-y-4">
-        <div>
-          <Label className="flex justify-between mb-1">
-            <span>Monthly API Calls Used</span>
-            <span className="font-bold">{usage.api_calls_month.toLocaleString()} / {usage.monthly_limit > 0 ? usage.monthly_limit.toLocaleString() : 'Unlimited'}</span>
-          </Label>
-          <Progress value={monthlyUsage} indicatorClassName={monthlyUsage > 80 ? "bg-red-500" : "bg-teal-500"} />
+      <div className="space-y-6">
+        {/* Refresh Button */}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchUsage(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? "Refreshing..." : "Refresh Usage"}
+          </Button>
         </div>
-        <div>
-          <Label className="flex justify-between mb-1">
-            <span>Daily API Calls Used</span>
-            <span className="font-bold">{usage.api_calls_today.toLocaleString()} / {usage.daily_limit > 0 ? usage.daily_limit.toLocaleString() : 'Unlimited'}</span>
-          </Label>
-          <Progress value={dailyUsage} indicatorClassName={dailyUsage > 80 ? "bg-yellow-500" : "bg-teal-500"} />
+
+        {/* Monthly API Calls (Main Limit) */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <Label className="text-base font-semibold">Monthly API Calls</Label>
+            <div className="text-right">
+              <span className="text-lg font-bold text-[#0B3D91]">
+                {usage.api_calls_used.toLocaleString()} / {formatLimit(usage.api_calls_limit)}
+              </span>
+              <span className="text-sm text-gray-500 ml-2">
+                ({formatRemaining(usage.api_calls_remaining)} remaining)
+              </span>
+            </div>
+          </div>
+          <Progress 
+            value={monthlyUsagePercent} 
+            className="h-3"
+            indicatorClassName={
+              monthlyUsagePercent >= 90 
+                ? "bg-red-500" 
+                : monthlyUsagePercent >= 75 
+                ? "bg-yellow-500" 
+                : "bg-teal-500"
+            } 
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Used: {usage.api_calls_used.toLocaleString()}</span>
+            <span>Remaining: {formatRemaining(usage.api_calls_remaining)}</span>
+          </div>
         </div>
+
+        {/* Daily API Calls (Subscription Limit) */}
+        <div className="space-y-2 pt-2 border-t">
+          <div className="flex justify-between items-center">
+            <Label className="text-base font-semibold">Daily API Calls</Label>
+            <div className="text-right">
+              <span className="text-lg font-bold text-[#00A79D]">
+                {usage.daily_used.toLocaleString()} / {formatLimit(usage.daily_limit)}
+              </span>
+              <span className="text-sm text-gray-500 ml-2">
+                ({formatRemaining(usage.daily_remaining)} remaining)
+              </span>
+            </div>
+          </div>
+          <Progress 
+            value={dailyUsagePercent} 
+            className="h-3"
+            indicatorClassName={
+              dailyUsagePercent >= 90 
+                ? "bg-red-500" 
+                : dailyUsagePercent >= 75 
+                ? "bg-yellow-500" 
+                : "bg-teal-500"
+            } 
+          />
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Used: {usage.daily_used.toLocaleString()}</span>
+            <span>Remaining: {formatRemaining(usage.daily_remaining)}</span>
+          </div>
+        </div>
+
+        {/* Monthly Subscription Limit (Info) */}
+        {usage.monthly_limit !== usage.api_calls_limit && (
+          <div className="pt-2 border-t">
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-600">Subscription Monthly Limit:</span>
+              <span className="font-semibold">
+                {usage.monthly_used.toLocaleString()} / {formatLimit(usage.monthly_limit)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Warning Messages */}
+        {monthlyUsagePercent >= 90 && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                Warning: You've used {monthlyUsagePercent.toFixed(0)}% of your monthly API limit!
+              </span>
+            </div>
+          </div>
+        )}
+        
+        {monthlyUsagePercent >= 75 && monthlyUsagePercent < 90 && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2 text-yellow-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm font-medium">
+                You've used {monthlyUsagePercent.toFixed(0)}% of your monthly API limit.
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </SectionCard>
   );
@@ -603,6 +761,497 @@ const SubscriptionManager: React.FC = () => {
   );
 };
 
+// ===================================================================
+// --- NEW ADMIN COMPONENTS ---
+// ===================================================================
+
+const GrantApiCalls: React.FC = () => {
+  const [users, setUsers] = useState<AuthUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [additionalCalls, setAdditionalCalls] = useState<number>(0);
+  const [reason, setReason] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGranting, setIsGranting] = useState(false);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiClient.get("/auth/admin/users");
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleGrantApiCalls = async () => {
+    if (!selectedUserId) {
+      toast.error("Error", { description: "Please select a user." });
+      return;
+    }
+    if (additionalCalls <= 0) {
+      toast.error("Error", { description: "Please enter a valid number of API calls to grant." });
+      return;
+    }
+
+    setIsGranting(true);
+    try {
+      // Get current user data
+      const selectedUser = users.find(u => u.id === selectedUserId);
+      if (!selectedUser) {
+        throw new Error("User not found");
+      }
+
+      const currentLimit = (selectedUser as any).api_calls_limit || 1000;
+      const newLimit = currentLimit + additionalCalls;
+
+      // Update user's API limit (this grants additional calls)
+      await apiClient.put(`/auth/admin/users/${selectedUserId}/upgrade`, {
+        subscription_tier: selectedUser.subscription_tier,
+        api_calls_limit: newLimit
+      });
+
+      toast.success("API Calls Granted", { 
+        description: `Successfully granted ${additionalCalls.toLocaleString()} API calls to ${selectedUser.username}. New limit: ${newLimit.toLocaleString()}` 
+      });
+
+      // Reset form
+      setSelectedUserId("");
+      setAdditionalCalls(0);
+      setReason("");
+      await fetchUsers();
+    } catch (error: any) {
+      console.error("Failed to grant API calls:", error);
+      toast.error("Grant Failed", { description: error.message || "Failed to grant API calls." });
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
+  if (isLoading) {
+    return (
+      <SectionCard title="Grant Additional API Calls" description="Grant additional API calls to users who have reached their limit.">
+        <div className="h-48 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0B3D91]" />
+        </div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard
+      title="Grant Additional API Calls"
+      description="Grant additional API calls to users who have reached their subscription tier limit."
+    >
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <Label>Select User</Label>
+          <Select onValueChange={setSelectedUserId} value={selectedUserId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a user to grant API calls..." />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map(user => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.username} ({user.email}) - Tier: {user.subscription_tier}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedUser && (
+          <motion.div
+            className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-2"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-600">Current Limit:</span>
+                <span className="ml-2 font-semibold">
+                  {(selectedUser as any).api_calls_limit?.toLocaleString() || "N/A"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Used:</span>
+                <span className="ml-2 font-semibold">
+                  {(selectedUser as any).api_calls_used?.toLocaleString() || "0"}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Remaining:</span>
+                <span className="ml-2 font-semibold text-red-600">
+                  {((selectedUser as any).api_calls_limit - ((selectedUser as any).api_calls_used || 0)).toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Subscription:</span>
+                <span className="ml-2 font-semibold capitalize">{selectedUser.subscription_tier}</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <Label htmlFor="additionalCalls">Additional API Calls to Grant</Label>
+            <Input
+              id="additionalCalls"
+              type="number"
+              min="1"
+              value={additionalCalls}
+              onChange={(e) => setAdditionalCalls(parseInt(e.target.value) || 0)}
+              placeholder="Enter number of API calls"
+            />
+            {selectedUser && additionalCalls > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                New limit will be: {((selectedUser as any).api_calls_limit || 0) + additionalCalls} calls
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="reason">Reason (Optional)</Label>
+            <Input
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g., Special request, exceeded limit"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-4">
+        <AnimatedButton
+          onClick={handleGrantApiCalls}
+          disabled={isGranting || !selectedUserId || additionalCalls <= 0}
+          className="bg-[#0B3D91] text-white px-6 py-2 shadow-md hover:bg-[#0a2f6f] transition-colors"
+        >
+          {isGranting ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Granting...
+            </>
+          ) : (
+            <>
+              <Gift className="mr-2 h-4 w-4" />
+              Grant API Calls
+            </>
+          )}
+        </AnimatedButton>
+      </div>
+    </SectionCard>
+  );
+};
+
+const UserApiUsageMonitor: React.FC = () => {
+  const [userUsage, setUserUsage] = useState<UserApiUsageInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "critical" | "warning" | "good">("all");
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiClient.get("/auth/admin/users");
+      
+      // Calculate usage info for each user
+      const usageInfo: UserApiUsageInfo[] = data.map((user: any) => {
+        const limit = user.api_calls_limit || 1000;
+        const used = user.api_calls_used || 0;
+        const remaining = limit - used;
+        const percentage = limit > 0 ? (used / limit) * 100 : 0;
+        
+        let status: "critical" | "warning" | "good" = "good";
+        if (percentage >= 90) status = "critical";
+        else if (percentage >= 75) status = "warning";
+
+        return {
+          user_id: user.id,
+          username: user.username,
+          email: user.email,
+          api_calls_limit: limit,
+          api_calls_used: used,
+          api_calls_remaining: remaining,
+          subscription_tier: user.subscription_tier,
+          usage_percentage: percentage,
+          status
+        };
+      });
+
+      setUserUsage(usageInfo);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      toast.error("Failed to load user usage data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchUsers, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const filteredUsage = filter === "all" 
+    ? userUsage 
+    : userUsage.filter(u => u.status === filter);
+
+  const criticalUsers = userUsage.filter(u => u.status === "critical").length;
+  const warningUsers = userUsage.filter(u => u.status === "warning").length;
+
+  if (isLoading) {
+    return (
+      <SectionCard title="User API Usage Monitor" description="Monitor all users' API usage and get alerts when limits are approaching.">
+        <div className="h-48 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0B3D91]" />
+        </div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard
+      title="User API Usage Monitor"
+      description="Monitor all users' API usage and get alerts when limits are approaching."
+    >
+      <div className="space-y-4">
+        {/* Alert Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Critical</p>
+                <p className="text-2xl font-bold text-red-600">{criticalUsers}</p>
+                <p className="text-xs text-gray-500">≥90% usage</p>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-red-600" />
+            </div>
+          </div>
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Warning</p>
+                <p className="text-2xl font-bold text-yellow-600">{warningUsers}</p>
+                <p className="text-xs text-gray-500">≥75% usage</p>
+              </div>
+              <Bell className="h-8 w-8 text-yellow-600" />
+            </div>
+          </div>
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Good</p>
+                <p className="text-2xl font-bold text-green-600">{userUsage.length - criticalUsers - warningUsers}</p>
+                <p className="text-xs text-gray-500">&lt;75% usage</p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Filter */}
+        <div className="flex gap-2">
+          <Button
+            variant={filter === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter("all")}
+          >
+            All ({userUsage.length})
+          </Button>
+          <Button
+            variant={filter === "critical" ? "default" : "outline"}
+            size="sm"
+            className={filter === "critical" ? "bg-red-600 hover:bg-red-700" : ""}
+            onClick={() => setFilter("critical")}
+          >
+            Critical ({criticalUsers})
+          </Button>
+          <Button
+            variant={filter === "warning" ? "default" : "outline"}
+            size="sm"
+            className={filter === "warning" ? "bg-yellow-600 hover:bg-yellow-700" : ""}
+            onClick={() => setFilter("warning")}
+          >
+            Warning ({warningUsers})
+          </Button>
+          <Button
+            variant={filter === "good" ? "default" : "outline"}
+            size="sm"
+            className={filter === "good" ? "bg-green-600 hover:bg-green-700" : ""}
+            onClick={() => setFilter("good")}
+          >
+            Good ({userUsage.length - criticalUsers - warningUsers})
+          </Button>
+        </div>
+
+        {/* User Usage Table */}
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Subscription</TableHead>
+                <TableHead>Used</TableHead>
+                <TableHead>Limit</TableHead>
+                <TableHead>Remaining</TableHead>
+                <TableHead>Usage %</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsage.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-gray-500 py-8">
+                    No users found matching the filter.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsage.map((usage) => (
+                  <TableRow key={usage.user_id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{usage.username}</p>
+                        <p className="text-xs text-gray-500">{usage.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="capitalize">{usage.subscription_tier}</TableCell>
+                    <TableCell>{usage.api_calls_used.toLocaleString()}</TableCell>
+                    <TableCell>{usage.api_calls_limit.toLocaleString()}</TableCell>
+                    <TableCell className={usage.api_calls_remaining < 100 ? "text-red-600 font-semibold" : ""}>
+                      {usage.api_calls_remaining.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={usage.usage_percentage} className="w-20 h-2" />
+                        <span className="text-sm">{usage.usage_percentage.toFixed(1)}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={
+                          usage.status === "critical"
+                            ? "bg-red-600 text-white"
+                            : usage.status === "warning"
+                            ? "bg-yellow-600 text-white"
+                            : "bg-green-600 text-white"
+                        }
+                      >
+                        {usage.status === "critical" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                        {usage.status === "warning" && <Bell className="h-3 w-3 mr-1" />}
+                        {usage.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Refresh Button */}
+        <div className="flex justify-end">
+          <Button variant="outline" size="sm" onClick={fetchUsers}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
+        </div>
+      </div>
+    </SectionCard>
+  );
+};
+
+const GrantHistory: React.FC = () => {
+  const [history, setHistory] = useState<GrantHistory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Note: This will work once backend endpoint is created
+  // For now, we'll show a placeholder that explains the feature
+  useEffect(() => {
+    setIsLoading(true);
+    // Simulate loading - in real implementation, this would call:
+    // const data = await apiClient.get("/auth/admin/grant-history");
+    setTimeout(() => {
+      setHistory([]);
+      setIsLoading(false);
+    }, 500);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <SectionCard title="Grant History" description="View history of all API call grants made to users.">
+        <div className="h-48 flex justify-center items-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0B3D91]" />
+        </div>
+      </SectionCard>
+    );
+  }
+
+  return (
+    <SectionCard
+      title="Grant History"
+      description="View history of all API call grants and subscription tier updates made to users."
+    >
+      {history.length === 0 ? (
+        <div className="text-center py-12">
+          <History className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2">No grant history available yet.</p>
+          <p className="text-sm text-gray-500">
+            Grant history will appear here once you start granting additional API calls to users.
+          </p>
+          <p className="text-xs text-gray-400 mt-4">
+            Note: This feature requires backend implementation of grant tracking.
+          </p>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>User</TableHead>
+                <TableHead>Granted By</TableHead>
+                <TableHead>Additional Calls</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Subscription</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {history.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>{new Date(item.granted_at).toLocaleString()}</TableCell>
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{item.username}</p>
+                      <p className="text-xs text-gray-500">{item.email}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>{item.granted_by}</TableCell>
+                  <TableCell className="font-semibold text-green-600">
+                    +{item.additional_calls.toLocaleString()}
+                  </TableCell>
+                  <TableCell>{item.reason || "—"}</TableCell>
+                  <TableCell className="capitalize">{item.subscription_tier || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </SectionCard>
+  );
+};
+
 const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) => Promise<void> }> = ({ users, onDelete }) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<AuthUser | null>(null);
@@ -640,43 +1289,76 @@ const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) =>
             <TableHead>Role</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Sub Tier</TableHead>
+            <TableHead>API Usage</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.map((user) => (
-            <TableRow key={user.id}>
-              <TableCell className="font-medium">{user.username}</TableCell>
-              <TableCell>{user.email}</TableCell>
-              <TableCell>
-                <Badge 
-                  className={cn("text-white capitalize", user.role === 'admin' ? "bg-[#0B3D91]" : "bg-gray-500")}
-                >
-                  {user.role}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Badge 
-                  className={cn("text-white capitalize", user.status === 'active' ? "bg-green-600" : "bg-red-600")}
-                >
-                  {user.status}
-                </Badge>
-              </TableCell>
-              <TableCell className="capitalize">
-                {user.subscription_tier}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteClick(user)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
+          {users.map((user) => {
+            const apiLimit = (user as any).api_calls_limit || 1000;
+            const apiUsed = (user as any).api_calls_used || 0;
+            const usagePercent = apiLimit > 0 ? (apiUsed / apiLimit) * 100 : 0;
+            const isCritical = usagePercent >= 90;
+            const isWarning = usagePercent >= 75 && usagePercent < 90;
+
+            return (
+              <TableRow key={user.id}>
+                <TableCell className="font-medium">{user.username}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  <Badge 
+                    className={cn("text-white capitalize", user.role === 'admin' ? "bg-[#0B3D91]" : "bg-gray-500")}
+                  >
+                    {user.role}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge 
+                    className={cn("text-white capitalize", user.status === 'active' ? "bg-green-600" : "bg-red-600")}
+                  >
+                    {user.status}
+                  </Badge>
+                </TableCell>
+                <TableCell className="capitalize">
+                  {user.subscription_tier}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2 min-w-[120px]">
+                    <div className="flex-1">
+                      <Progress 
+                        value={usagePercent} 
+                        className="h-2"
+                        indicatorClassName={
+                          isCritical ? "bg-red-500" : isWarning ? "bg-yellow-500" : "bg-green-500"
+                        }
+                      />
+                    </div>
+                    <span className={cn(
+                      "text-xs font-semibold",
+                      isCritical ? "text-red-600" : isWarning ? "text-yellow-600" : "text-gray-600"
+                    )}>
+                      {usagePercent.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {apiUsed.toLocaleString()} / {apiLimit.toLocaleString()}
+                    {isCritical && <AlertTriangle className="h-3 w-3 inline ml-1 text-red-600" />}
+                    {isWarning && !isCritical && <Bell className="h-3 w-3 inline ml-1 text-yellow-600" />}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteClick(user)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
 
@@ -792,7 +1474,7 @@ const LogoutSection: React.FC = () => {
 const AdminSettings: React.FC = () => {
   return (
     <Tabs defaultValue="profile">
-      <TabsList className="w-full justify-start h-12 bg-gray-100">
+      <TabsList className="w-full justify-start h-12 bg-gray-100 flex-wrap">
         <TabsTrigger value="profile" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <User className="h-5 w-5" /> Profile
         </TabsTrigger>
@@ -801,6 +1483,15 @@ const AdminSettings: React.FC = () => {
         </TabsTrigger>
         <TabsTrigger value="subscriptions" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <Star className="h-5 w-5 text-yellow-500" /> Manage Subscriptions
+        </TabsTrigger>
+        <TabsTrigger value="grant_calls" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+          <Gift className="h-5 w-5 text-green-600" /> Grant API Calls
+        </TabsTrigger>
+        <TabsTrigger value="usage_monitor" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+          <TrendingUp className="h-5 w-5 text-blue-600" /> Usage Monitor
+        </TabsTrigger>
+        <TabsTrigger value="grant_history" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+          <History className="h-5 w-5 text-purple-600" /> Grant History
         </TabsTrigger>
         <TabsTrigger value="logout" className="flex items-center gap-2 text-red-500 data-[state=active]:bg-white">
           <LogOut className="h-5 w-5" /> Log Out
@@ -815,6 +1506,15 @@ const AdminSettings: React.FC = () => {
         </TabsContent>
         <TabsContent value="subscriptions">
           <SubscriptionManager />
+        </TabsContent>
+        <TabsContent value="grant_calls">
+          <GrantApiCalls />
+        </TabsContent>
+        <TabsContent value="usage_monitor">
+          <UserApiUsageMonitor />
+        </TabsContent>
+        <TabsContent value="grant_history">
+          <GrantHistory />
         </TabsContent>
         <TabsContent value="logout">
            <LogoutSection />
