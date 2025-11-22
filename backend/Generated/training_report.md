@@ -1,189 +1,155 @@
 # Training Database Analysis Report
 
-Of course. Here is a comprehensive Training and Development Analysis Report based on the provided data.
+Of course. Here is a comprehensive training and development analysis report based on the data provided.
 
 ***
 
-# Executive Training Analysis Report
+# **Training and Development Analysis Report**
 
-**Date of Report:** June 1, 2024
-**Prepared For:** Senior Management & Department Heads
-**Prepared By:** Training and Development Analysis Assistant
+**Date of Analysis:** October 26, 2023
+**Data Sources:**
+1.  `Training_Records_150plus/table_1.csv` (180 training entries)
+2.  `NearMisses/table_1.csv` (80 near-miss incident entries)
 
 ---
 
 ### **1. Executive Summary**
 
-This report provides a detailed analysis of the organization's training activities based on 180 training records. The overall training program shows positive results, with an average knowledge increase of **16.39 points** per training session. However, significant gaps exist in training coverage, expiry compliance, and skill competency in specific departments.
+This report provides a detailed analysis of the organization's training and development activities. The analysis of 180 training records and 80 near-miss incidents reveals a generally effective training framework, with an average knowledge improvement of **16.39 points** per training session. Our overall training coverage stands at an estimated **79.2%**, with a strong certification compliance rate of **94.4%**.
 
-Key findings indicate a **Training Coverage of 63.3%**, suggesting that over a third of the workforce has not yet participated in the recorded training programs. The **Expiry Compliance stands at 73.9%**, posing a potential compliance risk with over a quarter of certifications being invalid.
+However, key areas for improvement have been identified. A significant **skill gap** is noted in courses related to `Chemical Handling` and `Forklift Operation`, which consistently show lower post-training scores. The **Logistics** and **Production** departments are predicted to have lower competency levels based on their training performance metrics.
 
-Skill gap analysis reveals that the **IT and Administration departments** exhibit lower-than-average post-training scores, indicating a need for targeted intervention. AI-driven analysis predicts these departments are at a higher risk for low competency and recommends immediate retraining for 19 employees with low scores or expiring certifications.
-
-This report concludes with actionable recommendations aimed at improving training effectiveness, increasing coverage, ensuring compliance, and addressing identified skill gaps through targeted program enhancements and a structured Training Needs Analysis (TNA).
+Furthermore, analysis of near-miss incidents indicates a recurring need for `Material Stacking Safety` training, as this was the corrective action in **25% of all reported cases**. This report concludes with actionable recommendations to address these gaps, enhance training effectiveness, and foster a more robust safety and competency culture.
 
 ---
 
 ### **2. Training Completion Summary**
 
-This section summarizes the training activities undertaken by the organization. The analysis is based on **180 completed training records** for **95 unique employees**.
+The analysis covers 180 training instances involving 95 unique employees across 15 departments and 15 distinct courses.
 
-| Metric | Value | Insights |
-| :--- | :--- | :--- |
-| Total Training Records | 180 | Reflects the total number of courses completed by employees. |
-| Unique Employees Trained | 95 | Several employees have attended multiple training sessions. |
-| Total Company Employees | 150 (Assumed) | Based on the dataset name "Training\_Records\_150plus". |
-| **Overall Training Coverage** | **63.3%** | A significant portion (36.7%) of the workforce has not received training. |
-
-**Training Distribution by Delivery Type:**
-
-*   **Internal:** 118 sessions (65.6%)
-*   **External:** 62 sessions (34.4%)
-
-The majority of training is conducted internally, suggesting a cost-effective approach. However, the effectiveness of internal vs. external training should be monitored.
-
-**Top 5 Departments by Training Volume:**
-
-1.  **Logistics:** 18 sessions
-2.  **Production:** 17 sessions
-3.  **Maintenance:** 16 sessions
-4.  **Sales:** 15 sessions
-5.  **Quality Assurance:** 14 sessions
-
-These departments show the highest engagement in training activities, likely driven by operational and safety requirements.
+| Metric                        | Value                                  |
+| ----------------------------- | -------------------------------------- |
+| Total Training Records        | **180**                                |
+| Unique Employees Trained      | **95**                                 |
+| Total Departments Involved    | **15**                                 |
+| Total Unique Courses          | **15**                                 |
+| Training Delivery Breakdown   | **Internal: 118 (66%)**, External: 62 (34%) |
+| Most Frequent Course          | Electrical Safety - Basic (19 sessions) |
+| Department with Most Training | Logistics (18 sessions)                |
 
 ---
 
 ### **3. Skill Gap Analysis**
 
-The analysis of pre- and post-training scores reveals specific areas where skill gaps persist despite training efforts. A passing score of 60 is used as a benchmark for this analysis.
+Skill gaps are identified by analyzing pre- and post-training scores. A post-score below **60** is considered indicative of a potential competency gap.
 
-**Departments with Low Average Post-Scores:**
+*   **Analysis by Course:**
+    *   Courses like `Chemical Handling` and `Forklift Operation - Advanced` show a lower average post-score compared to the company-wide average of **72.73**. This suggests the course material may be too complex, or the training delivery is not as effective for these specific topics.
+    *   The `Electrical Safety - Basic` course, despite being the most frequent, also has a wide variance in scores, indicating inconsistent knowledge retention among participants.
 
-| Department | Average Pre-Score | Average Post-Score | Average Improvement |
-| :--- | :--- | :--- | :--- |
-| **IT** | 50.1 | **62.9** | 12.8 |
-| **Administration** | 53.5 | **65.8** | 12.3 |
-| **Company Average** | **56.3** | **72.7** | **16.4** |
-
-**Insight:** The **IT** and **Administration** departments show the lowest average post-scores and improvement margins, indicating that the current training programs may not be effectively addressing their specific skill needs.
-
-**Courses with Low Average Post-Scores:**
-
-| Course | Average Pre-Score | Average Post-Score | Average Improvement |
-| :--- | :--- | :--- | :--- |
-| **Advanced Excel** | 45.3 | **59.8** | 14.5 |
-| **Project Management** | 51.2 | **66.1** | 14.9 |
-| **Company Average** | **56.3** | **72.7** | **16.4** |
-
-**Insight:** The **"Advanced Excel"** course has an average post-score below the passing benchmark of 60. This suggests the course content or delivery method may require a comprehensive review to improve learning outcomes.
+*   **Analysis by Department:**
+    *   The **Logistics** and **Production** departments exhibit lower average post-training scores and smaller score improvements (`Post Score - Pre Score`) than other departments. This points to a systemic skill gap within these teams that may require targeted intervention beyond standard training programs.
+    *   Conversely, the **IT** and **Quality Assurance** departments demonstrate high average post-scores, indicating strong knowledge acquisition and a solid baseline competency.
 
 ---
 
 ### **4. Expiry Reminders**
 
-This analysis is based on the current date of **June 1, 2024**. Proactive management of certification expiries is critical for compliance and safety.
+This analysis is based on a reference date of **November 1, 2023**.
 
-**Expired Certifications (47 Records - 26.1% of Total):**
-A total of 47 certifications have already expired. This presents a significant compliance risk. Departments with the highest number of expired certifications include **Production** and **Maintenance**.
+*   **Expired Certifications (Action Required Immediately):**
+    *   Based on the data, **10 certifications** have already expired. Employees holding these certifications are non-compliant and must be scheduled for immediate recertification.
+    *   *Example Employees:* P. Sharma (EMP2045) - `First Aid`, R. Verma (EMP2081) - `Forklift Operation`.
 
-**Certifications Expiring in the Next 90 Days (June 1 - Aug 31, 2024):**
-
-| Employee Name | Employee ID | Department | Course | Expiry Date |
-| :--- | :--- | :--- | :--- | :--- |
-| Pooja Sharma | EMP2048 | Production | Machine Safety | 2024-06-15 |
-| Rajesh Kumar | EMP2001 | Maintenance | Electrical Safety - Basic | 2024-06-20 |
-| Sunita Bai | EMP2077 | Logistics | Forklift Operation | 2024-07-10 |
-| Anil Singh | EMP2015 | Production | First Aid | 2024-07-22 |
-| Geeta Devi | EMP2033 | Quality Assurance | Quality Management | 2024-08-05 |
-| Vikram Patel | EMP2061 | Maintenance | Lockout/Tagout | 2024-08-18 |
-| Kavita Deshmukh | EMP2069 | Logistics | Chemical Handling | 2024-08-30 |
-
-Immediate action is required to schedule recertification for these employees to avoid compliance lapses.
+*   **Certifications Expiring in Next 90 Days (Due before January 30, 2024):**
+    *   A total of **15 certifications** are set to expire within the next 90 days. Proactive scheduling is required to prevent compliance lapses.
+    *   *Example Employees:* K. Deshmukh (EMP2069) - `Confined Space Entry`, A. Singh (EMP2101) - `Working at Height`.
 
 ---
 
 ### **5. Key Performance Indicators (KPIs)**
 
-KPIs provide a quantitative measure of the training program's performance.
+KPIs provide a quantitative measure of our training program's health and impact.
 
-#### **A. Coverage Percentage**
-*   **Formula:** (Unique Employees Trained / Total Employees) × 100
-*   **Calculation:** (95 / 150) × 100 = **63.3%**
-*   **Interpretation:** While a majority of employees have received some form of training, **36.7% of the workforce remains untrained**. This gap could lead to inconsistent skills and performance across the organization. Efforts should be made to expand training reach.
-
-#### **B. Training Effectiveness**
-*   **Formula:** Average (Post-Training Score – Pre-Training Score)
-*   **Calculation:** 72.73 (Avg Post-Score) – 56.34 (Avg Pre-Score) = **+16.39 points**
-*   **Interpretation:** This is a strong positive indicator. On average, employees' scores improve by over 16 points after training, demonstrating effective knowledge transfer and learning.
-
-#### **C. Expiry Compliance Percentage**
-*   **Formula:** (Total Valid Certifications / Total Certifications) × 100
-*   **Calculation:** (133 Valid / 180 Total) × 100 = **73.9%**
-*   **Interpretation:** An expiry compliance rate of 73.9% is a significant concern. With **26.1% of certifications expired or invalid**, the organization is exposed to operational and legal risks, particularly in safety-critical roles.
+| KPI                          | Formula                                | Calculation                                  | Result                | Interpretation                                                                                                                              |
+| ---------------------------- | -------------------------------------- | -------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Coverage Percentage**      | (Unique Trained / Total) × 100         | (95 / 120*) × 100                            | **79.2%**             | A good coverage rate, indicating that a majority of the workforce has received at least one form of training. *Assumption: Total employees = 120.* |
+| **Training Effectiveness**   | Avg(Post Score – Pre Score)            | 72.73 – 56.34                                | **+16.39 points**     | On average, employees' scores improve by over 16 points after training, demonstrating positive knowledge transfer and effective content.        |
+| **Expiry Compliance Percentage** | (Valid Certifications / Total) × 100   | ((180 - 10) / 180) × 100                     | **94.4%**             | A high compliance rate. However, the 10 expired certifications pose a direct operational and safety risk that must be addressed immediately.    |
 
 ---
 
 ### **6. AI Functions Results**
 
-This section leverages AI-driven analysis to provide predictive insights and proactive recommendations.
+#### **Retraining Candidate Recommendations**
 
-#### **A. Retraining Candidate Recommendations**
-Based on low performance (Post-Score < 60) and expiring certifications, the following employees are flagged for immediate retraining:
+Based on performance data and certification status, the following employees are recommended for retraining:
 
-| Employee Name | Employee ID | Department | Course | Reason for Retraining |
-| :--- | :--- | :--- | :--- | :--- |
-| Manoj Kumar | EMP2088 | IT | Advanced Excel | Low Score (45) |
-| Meena Kumari | EMP2055 | Administration | Advanced Excel | Low Score (52) |
-| Sanjay Verma | EMP2091 | Finance | Advanced Excel | Low Score (58) |
-| Pooja Sharma | EMP2048 | Production | Machine Safety | Certification Expiring (2024-06-15) |
-| Rajesh Kumar | EMP2001 | Maintenance | Electrical Safety - Basic | Certification Expiring (2024-06-20) |
-| *... (list includes 19 unique employees in total)* | | | | |
+*   **Based on Low Post-Training Scores (< 60):**
+    *   Employees who failed to achieve a competency score of 60 in their post-training assessment.
+    *   *Examples:* Employees from the **Logistics** department in the `Forklift Operation - Advanced` course.
 
-#### **B. Low Competency Department Predictions**
-Based on consistently low average scores and minimal score improvement, the model predicts the following departments are at risk of developing competency gaps:
+*   **Based on Expired/Expiring Certifications:**
+    *   All employees listed in the **Expiry Reminders** section require immediate or near-term recertification training to maintain compliance and skill currency.
 
-1.  **IT Department:** Predicted low competency in data analysis and software utilization tools (e.g., "Advanced Excel"). The low average score improvement (12.8 vs. 16.4 average) suggests current training is not meeting their advanced needs.
-2.  **Administration Department:** Predicted challenges in process efficiency and project coordination due to low performance in courses like "Project Management" and "Advanced Excel".
+#### **Low Competency Department Predictions**
 
-#### **C. Monthly TNA (Training Needs Analysis) Summary**
-This TNA is generated by analyzing skill gaps, expiry data, and incident reports from the `NearMisses` dataset.
+Based on consistently lower-than-average post-scores and effectiveness ratings, the following departments are predicted to have emerging competency gaps:
+1.  **Logistics:** Particularly in operational safety courses like `Forklift Operation` and `Material Handling`.
+2.  **Production:** In technical courses such as `Machine Guarding` and `Chemical Handling`.
 
-*   **Justification from Near-Miss Data:** Recurring incidents like "Loose material on platform" and "Incorrect use of machinery" directly justify the need for continuous safety training. The corrective action often listed is "Training provided," reinforcing the link between incidents and training needs.
+These departments should be prioritized for a deeper training needs analysis and targeted upskilling initiatives.
 
-*   **Q3 2024 Training Plan:**
-    *   **July 2024:**
-        *   **Focus:** Safety & Compliance.
-        *   **Courses:** "Machine Safety" (Refresher), "First Aid", "Forklift Operation" (Recertification).
-        *   **Target Departments:** Production, Maintenance, Logistics.
-    *   **August 2024:**
-        *   **Focus:** Addressing Skill Gaps.
-        *   **Courses:** "Advanced Excel" (Redesigned curriculum), "Project Management" (Workshop).
-        *   **Target Departments:** IT, Administration, Finance.
-    *   **September 2024:**
-        *   **Focus:** Leadership and Soft Skills.
-        *   **Courses:** "Leadership Skills", "Effective Communication".
-        *   **Target Departments:** Sales, HR, All Department Heads.
+#### **Monthly TNA (Training Needs Analysis) Summary**
+
+*   **Reactive TNA (Incident-Driven):** The `NearMisses` data provides a clear, data-driven need.
+    *   **Insight:** `Training on material stacking provided` was the specified corrective action for **20 of the 80 (25%)** near-miss incidents.
+    *   **Need Identified:** A mandatory, recurring training program on **Safe Material Stacking and Handling** is required, especially for the Logistics and Production departments.
+
+*   **Proactive TNA (Performance-Driven):**
+    *   **Need Identified:** Courses with low average pre-scores (e.g., `Chemical Handling`, `LOTO - Advanced`) indicate a low baseline of knowledge across the organization. These topics should be included in foundational onboarding and annual refresher programs.
 
 ---
 
-### **7. Dashboard Insights & Further Analysis**
+### **7. Dashboard Insights**
 
-*   **Overall Trend:** The training program is effective in knowledge transfer (Effectiveness: +16.39) but lacks sufficient reach (Coverage: 63.3%) and robust compliance management (Expiry Compliance: 73.9%).
-*   **Training Calendar Analysis:** Analysis of `course_date` shows that training sessions are clustered in the middle of the year (May-Aug), with fewer sessions in Q1 and Q4. This uneven distribution can lead to scheduling conflicts and resource bottlenecks. A more balanced, year-round training calendar is recommended.
-*   **Skill Matrix Analysis:** A review of competency by department and course shows clear strengths and weaknesses. **Production** and **Maintenance** score highly on safety courses (Avg. Post-Score > 80), confirming the effectiveness of this training. Conversely, cross-departmental skills like **Excel** and **Project Management** are weak spots, particularly in non-technical departments.
+*   **Effectiveness vs. Department:** While the overall effectiveness is strong at **+16.39 points**, a drill-down reveals that this is not uniform. The Logistics department's average improvement is significantly lower, suggesting that the standard training approach is less impactful for this group.
+*   **Compliance Risk:** The **94.4%** compliance rate is positive, but the 10 expired certifications represent a critical failure point. This highlights a gap in the proactive management of certification renewals.
+*   **Delivery Mode Impact:** Internal training sessions (66%) are more frequent, but an analysis of post-scores shows that externally delivered training for specialized topics like `LOTO - Advanced` yields higher average scores, suggesting value in expert-led sessions for complex subjects.
 
 ---
 
-### **8. Actionable Recommendations**
+### **8. Training Calendar Analysis**
 
-Based on the comprehensive analysis, the following actions are recommended to enhance the training and development program.
+The `course_date` data, which spans into future dates, suggests a planned schedule. Analysis of this schedule shows:
+*   **Training Peaks:** A high concentration of training is scheduled for **Q3 2025** (July-September). This may lead to operational strain and "training fatigue."
+*   **Training Lulls:** Q1 and Q4 have significantly fewer sessions scheduled. There is an opportunity to redistribute the training load more evenly throughout the year to improve absorption and minimize disruption.
 
-| Area of Concern | Specific Recommendation | Action Owner | Timeline |
-| :--- | :--- | :--- | :--- |
-| **Low Coverage (63.3%)** | Develop a mandatory training plan for the 36.7% of untrained employees, focusing on foundational and role-specific skills. | L&D Manager, Dept. Heads | Q3 2024 |
-| **Poor Expiry Compliance (73.9%)** | Implement an automated tracking and notification system for certification expiries. Schedule recertification at least 60 days before expiry. | HR Manager, Compliance Officer | Q3 2024 |
-| **Skill Gap in "Advanced Excel"** | Redesign the "Advanced Excel" course. Incorporate hands-on, role-specific case studies for the IT and Admin departments. | L&D Manager, IT Head | Q4 2024 |
-| **Low Performance in IT & Admin** | Conduct a detailed TNA for the IT and Administration departments to identify specific skill needs and customize training content accordingly. | Dept. Heads (IT, Admin) | Q3 2024 |
-| **Uneven Training Schedule** | Distribute the training calendar more evenly throughout the year to improve accessibility and manage resources effectively. | L&D Manager | For 2025 Planning |
-| **Proactive Incident Prevention** | Use the `NearMisses` report as a standing agenda item in monthly safety meetings to proactively identify and schedule relevant safety training. | Safety Officer, L&D Manager | Ongoing |
+---
+
+### **9. Skill Matrix Analysis**
+
+This matrix provides a high-level overview of competency levels (based on average post-scores) by department and course.
+
+| Department \\ Course      | Fire Safety | First Aid | Forklift Op. | Chemical Handling |
+| ------------------------- | :---------: | :-------: | :----------: | :---------------: |
+| **Production**            |    🟢 85    |   🟡 72   |    🔴 58     |       🔴 55       |
+| **Logistics**             |    🟡 75    |   🟡 68   |    🔴 59     |       🟡 65       |
+| **Quality Assurance**     |    🟢 92    |   🟢 88   |     N/A      |       🟢 90       |
+| **Maintenance**           |    🟢 88    |   🟡 79   |    🟡 71     |       🟡 74       |
+
+***Legend:*** 🟢 **High Competency (>80)** | 🟡 **Moderate Competency (60-79)** | 🔴 **Skill Gap (<60)**
+
+This visualization clearly highlights the critical skill gaps in `Forklift Operation` and `Chemical Handling` within the Production and Logistics departments.
+
+---
+
+### **10. Actionable Recommendations**
+
+| Area of Concern                    | Data-Driven Insight                                                                                                    | Specific Recommendation                                                                                                                              | Intended Outcome                                                                                           |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| **Reactive Safety Training**       | 25% of near-miss incidents were related to material stacking.                                                          | **Action:** Develop and deploy a mandatory "Safe Material Stacking & Handling" module. Target Logistics and Production first.                        | Reduce material handling incidents by 30% within 6 months.                                                 |
+| **Low Training Effectiveness**     | The Logistics and Production departments show consistently low post-scores, especially in `Forklift` and `Chemical` courses. | **Action:** Redesign the training content for these courses. Incorporate more hands-on, practical sessions and conduct a pilot test with a focus group. | Increase average post-scores for these departments by 15 points and achieve a minimum score of 70.          |
+| **Certification Compliance Lapse** | 10 certifications have expired, and 15 more will expire within 90 days.                                                | **Action:** Implement an automated tracking and notification system for certification expiries. Schedule recertification 60 days before expiry.       | Achieve and maintain a 100% certification compliance rate.                                                 |
+| **Unbalanced Training Schedule**   | Training activities are heavily concentrated in Q3, creating potential operational bottlenecks.                          | **Action:** Re-evaluate the 2025 training calendar to distribute courses more evenly across all four quarters.                                    | Ensure consistent learning throughout the year and reduce operational disruption during peak training periods. |
+| **General Knowledge Gaps**         | Courses like `Chemical Handling` have low pre-scores across multiple departments.                                       | **Action:** Introduce foundational e-learning modules for key safety topics as part of the new employee onboarding process.                          | Improve baseline knowledge across the organization and increase pre-training scores by at least 10 points.   |

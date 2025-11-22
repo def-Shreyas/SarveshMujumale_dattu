@@ -1,16 +1,43 @@
+import io
 import pandas as pd
 import numpy as np
 from pathlib import Path
+from typing import Union, IO
 
-def extract_tables(excel_path):
-    excel_path = Path(excel_path)
-    out_dir = excel_path.parent / "Generated" / "extracted_tables"
-    out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Open ExcelFile and ensure it's properly closed to prevent file locking on Windows
+def extract_tables(excel_source: Union[str, Path, bytes, IO[bytes]], output_dir: Union[str, Path, None] = None):
+    """
+    Extract tables from an Excel workbook.
+
+    Args:
+        excel_source: Path to the Excel file, raw bytes, or a file-like object.
+        output_dir: Directory where extracted tables should be written. Required when excel_source
+                    is not a filesystem path.
+    """
     xls = None
+    out_dir = Path(output_dir) if output_dir is not None else None
+
+    # Prepare ExcelFile handle depending on source type
     try:
-        xls = pd.ExcelFile(excel_path)
+        if isinstance(excel_source, (str, Path)):
+            excel_path = Path(excel_source)
+            if out_dir is None:
+                out_dir = excel_path.parent / "Generated" / "extracted_tables"
+            xls = pd.ExcelFile(excel_path)
+        else:
+            if isinstance(excel_source, bytes):
+                excel_bytes = excel_source
+            elif hasattr(excel_source, "read"):
+                excel_bytes = excel_source.read()
+            else:
+                raise TypeError("excel_source must be a path, bytes, or a file-like object.")
+
+            if out_dir is None:
+                raise ValueError("output_dir must be provided when excel_source is not a file path.")
+
+            xls = pd.ExcelFile(io.BytesIO(excel_bytes))
+
+        out_dir.mkdir(parents=True, exist_ok=True)
         for sheet in xls.sheet_names:
             df = xls.parse(sheet, header=None, dtype=object)
             df = df.replace(r'^\s*$', np.nan, regex=True)  # treat blanks as NaN
@@ -72,6 +99,7 @@ def extract_tables(excel_path):
         # Ensure ExcelFile is closed to unlock the file (important on Windows)
         if xls is not None:
             xls.close()
+
 
 if __name__ == "__main__":
     extract_tables(r"C:\Users\Lenovo\Desktop\dattu\New\social_governance_database.xlsx")

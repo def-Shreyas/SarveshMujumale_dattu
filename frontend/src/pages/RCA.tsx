@@ -435,25 +435,103 @@ export const RCA: React.FC = () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
+    // Generate report
     const r1 = await fetch(`${BACKEND_URL}/generate-report`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
-    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+    if (!r1.ok) {
+      // Extract detailed error message from response
+      let errorMessage = `Report generation failed (${r1.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse = r1.clone();
+      
+      try {
+        const errorData = await r1.json();
+        // FastAPI returns errors in {detail: "message"} format
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch (e) {
+        // If JSON parsing fails, try to get text response from cloned response
+        try {
+          const errorText = await clonedResponse.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          // If both fail, use default message
+          console.error("Failed to parse error response:", e, e2);
+        }
+      }
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+        throw new Error("API key not configured. Please contact the administrator to set up the Google API key.");
+      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        throw new Error("Please upload the Excel file first before generating the report.");
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        throw new Error("Network error. Please check your internet connection and try again.");
+      } else {
+        throw new Error(errorMessage);
+      }
+    }
 
+    // 🔥 ADD THIS LINE — prevents race condition
     await new Promise((res) => setTimeout(res, 1200));
 
+    // Generate charts
     const r2 = await fetch(`${BACKEND_URL}/generate-charts`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
-    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+    if (!r2.ok) {
+      // Extract detailed error message from response
+      let errorMessage = `Chart generation failed (${r2.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse2 = r2.clone();
+      
+      try {
+        const errorData = await r2.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
+      } catch (e) {
+        try {
+          const errorText = await clonedResponse2.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          console.error("Failed to parse error response:", e, e2);
+        }
+      }
+      throw new Error(errorMessage);
+    }
   };
 
   // Fetch AI report text
@@ -623,14 +701,21 @@ export const RCA: React.FC = () => {
       setIsGenerating(false);
       setShowDashboard(true);
       toast.success("Dashboard is ready!");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Could not process the file. Please try again.";
+    } catch (error: any) {
       console.error("Error generating dashboard:", error);
       setIsGenerating(false);
       setShowDashboard(false);
 
+      // Clear any pending progress toasts
+      toast.dismiss("upload");
+      toast.dismiss("gen_report");
+      toast.dismiss("gen_charts");
+
+      // Show error with detailed message
+      const errorMessage = error?.message || "Could not process the file. Please try again.";
       toast.error("Generation Failed", {
         description: errorMessage,
+        duration: 5000, // Show for 5 seconds so user can read it
       });
     }
   };

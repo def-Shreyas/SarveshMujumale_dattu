@@ -15,8 +15,6 @@ security = HTTPBearer()
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
-    # print("🔍 AUTH HEADER:", credentials.credentials[:40] if credentials else "No credentials")
-    print("🔍 TOKEN RECEIVED:", credentials.credentials[:40] if credentials else "No credentials")
     """Get current authenticated user from JWT token"""
     token = credentials.credentials
     payload = decode_access_token(token)
@@ -85,9 +83,14 @@ async def track_api_usage(
     status_code: int,
     response_time: float,
     file_size: Optional[int] = None,
-    error_message: Optional[str] = None
+    error_message: Optional[str] = None,
+    deduct_api_call: bool = False
 ):
-    """Track API usage for analytics"""
+    """Track API usage for analytics.
+
+    When `deduct_api_call` is True, the user's api_calls_used counter is incremented
+    and the remaining limit information is returned.
+    """
     db = get_database()
     
     # Record API call
@@ -154,9 +157,27 @@ async def track_api_usage(
         update_data
     )
     
-    # Increment user's API calls used
-    await db.users.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$inc": {"api_calls_used": 1}, "$set": {"last_activity": datetime.utcnow()}}
-    )
+    user_update = {"$set": {"last_activity": datetime.utcnow()}}
+    if deduct_api_call:
+        user_update["$inc"] = {"api_calls_used": 1}
+    await db.users.update_one({"_id": ObjectId(user_id)}, user_update)
 
+    if not deduct_api_call:
+        return None
+
+    user_doc = await db.users.find_one(
+        {"_id": ObjectId(user_id)},
+        {"api_calls_limit": 1, "api_calls_used": 1}
+    )
+    
+    api_calls_limit = user_doc.get("api_calls_limit", -1) if user_doc else -1
+    api_calls_used = user_doc.get("api_calls_used", 0) if user_doc else 0
+    api_calls_remaining = (
+        api_calls_limit - api_calls_used if api_calls_limit not in (-1, None) else -1
+    )
+    
+    return {
+        "api_calls_limit": api_calls_remaining,
+        "api_calls_limit_max": api_calls_limit,
+        "api_calls_used": api_calls_used
+    }

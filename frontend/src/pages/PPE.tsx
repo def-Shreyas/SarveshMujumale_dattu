@@ -113,14 +113,21 @@ interface ChartFile {
   path?: string;
 }
 
-// Safe Markdown Renderer Component
+// ✅ Safe Markdown Renderer Component - NO ReactMarkdown, just plain HTML
 interface SafeMarkdownProps {
   content: string;
 }
 
+// ✅ ULTRA-SIMPLE SOLUTION: Convert markdown to HTML string, then render as HTML
+// This completely avoids ReactMarkdown and any React element issues
 const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
+  // Validate content is a string
   if (typeof content !== "string") {
-    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
+    console.error(
+      "❌ SafeMarkdown received non-string content:",
+      typeof content,
+      content
+    );
     return (
       <div className="text-red-500 p-4">
         <p>Invalid content type: {typeof content}</p>
@@ -132,6 +139,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     return <p className="text-gray-500">No content to display</p>;
   }
 
+  // Simple markdown-to-HTML converter
   const formatMarkdown = (text: string): string => {
     // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
     const stripHtmlAttributes = (str: string): string => {
@@ -156,114 +164,290 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     // Clean the text first to remove HTML attributes
     text = stripHtmlAttributes(text);
 
+    // Escape HTML for content (not attributes) - only escape <, >, and & (when not part of valid entities)
+    // Quotes don't need to be escaped in HTML content, only in attribute values
     const escapeHtml = (str: string) => {
+      // First, protect existing HTML entities
       const entityPlaceholders: { [key: string]: string } = {};
       let placeholderIndex = 0;
-      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
-        const placeholder = `__ENTITY_${placeholderIndex++}__`;
-        entityPlaceholders[placeholder] = match;
-        return placeholder;
+      let protectedStr = str.replace(
+        /&(?:#\d+|#x[\da-fA-F]+|\w+);/g,
+        (match) => {
+          const placeholder = `__ENTITY_${placeholderIndex++}__`;
+          entityPlaceholders[placeholder] = match;
+          return placeholder;
+        }
+      );
+
+      // Now escape only <, >, and & (but not the ones we protected)
+      protectedStr = protectedStr.replace(/&/g, "&amp;");
+      protectedStr = protectedStr.replace(/</g, "&lt;");
+      protectedStr = protectedStr.replace(/>/g, "&gt;");
+
+      // Restore protected entities
+      Object.keys(entityPlaceholders).forEach((placeholder) => {
+        protectedStr = protectedStr.replace(
+          new RegExp(placeholder, "g"),
+          entityPlaceholders[placeholder]
+        );
       });
-      protectedStr = protectedStr.replace(/&/g, '&amp;');
-      protectedStr = protectedStr.replace(/</g, '&lt;');
-      protectedStr = protectedStr.replace(/>/g, '&gt;');
-      Object.keys(entityPlaceholders).forEach(placeholder => {
-        protectedStr = protectedStr.replace(new RegExp(placeholder, 'g'), entityPlaceholders[placeholder]);
-      });
+
       return protectedStr;
     };
 
+    // Decode any existing HTML entities that might be in the markdown
+    // (in case the backend already escaped them)
     const decodeHtmlEntities = (str: string): string => {
-      return str
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .replace(/&apos;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-        .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+      // Handle both named entities and numeric entities
+      return (
+        str
+          // Named entities
+          .replace(/&quot;/g, '"')
+          .replace(/&#039;/g, "'")
+          .replace(/&apos;/g, "'")
+          .replace(/&nbsp;/g, " ")
+          // Numeric entities (decimal and hex)
+          .replace(/&#(\d+);/g, (_, dec) =>
+            String.fromCharCode(parseInt(dec, 10))
+          )
+          .replace(/&#x([\da-fA-F]+);/g, (_, hex) =>
+            String.fromCharCode(parseInt(hex, 16))
+          )
+      );
+      // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
+      // and we'll handle them in escapeHtml
     };
 
-    const BR_PLACEHOLDER = '___BR_TAG_PLACEHOLDER___';
+    // Preserve safe HTML tags like <br>, <br/>, <br /> before escaping
+    // Use placeholders that won't be escaped
+    const BR_PLACEHOLDER = "___BR_TAG_PLACEHOLDER___";
     const safeHtmlTags = [
-      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER }
+      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER },
     ];
 
+    // Step 1: Decode any existing HTML entities first
+    // Step 2: Replace safe HTML tags with placeholders
     let processedText = decodeHtmlEntities(text);
     safeHtmlTags.forEach(({ pattern, replacement }) => {
       processedText = processedText.replace(pattern, replacement);
     });
 
-    let html = escapeHtml(processedText);
-    html = html.replace(/\n/g, '<br />');
-    html = html.replace(/^\| (.*) \|$/gm, (_match, content) => {
-      const cells = content.split('|').map((cell: string) => cell.trim());
-      return `<tr>${cells.map((cell: string) => `<td>${cell}</td>`).join('')}</tr>`;
-    });
-    html = html.replace(/(<tr>.*<\/tr>)/g, (match) => {
-      const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
-      if (lastTable > lastTableClose) {
-        return match;
-      }
-      return `<table class="min-w-full border-collapse border border-gray-300 my-4"><thead><tr>${match.match(/<td>(.*?)<\/td>/g)?.map((cell: string) => `<th class="border border-gray-300 p-2 bg-gray-100 font-semibold">${cell.replace(/<td>|<\/td>/g, '')}</th>`).join('') || ''}</tr></thead><tbody>${match}</tbody></table>`;
-    });
-    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
-    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
+    // Process tables FIRST (before escaping, as tables contain pipes)
+    // Note: escapeHtml is accessible here due to closure
+    const processTables = (str: string): string => {
+      // Match markdown tables: | Header | Header | followed by |---|---| followed by | Cell | Cell |
+      // More flexible regex to handle various table formats
+      const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
+
+      return str.replace(tableRegex, (match) => {
+        const lines = match
+          .trim()
+          .split(/\r?\n/)
+          .filter((line) => line.trim() && line.includes("|"));
+        if (lines.length < 2) return match; // Need at least header and separator
+
+        const headerLine = lines[0];
+        const dataLines = lines.slice(2); // Skip header and separator
+
+        // Parse header - split by | and filter empty
+        const headers = headerLine
+          .split("|")
+          .map((h) => h.trim())
+          .filter((h) => h && !h.match(/^[-:|\s]+$/));
+
+        if (headers.length === 0) return match; // No valid headers
+
+        // Build table HTML
+        let tableHtml =
+          '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+
+        // Table header
+        tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
+        headers.forEach((header) => {
+          // Escape header text (but restore BR placeholders)
+          let escapedHeader = escapeHtml(header);
+          escapedHeader = escapedHeader.replace(
+            new RegExp(BR_PLACEHOLDER, "g"),
+            "<br />"
+          );
+          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
+        });
+        tableHtml += "</tr></thead>";
+
+        // Table body
+        tableHtml += "<tbody>";
+        dataLines.forEach((line, idx) => {
+          const cells = line
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c && !c.match(/^[-:|\s]+$/));
+          // Only process if we have the right number of cells
+          if (cells.length === headers.length) {
+            tableHtml += `<tr class="${
+              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } hover:bg-gray-100">`;
+            cells.forEach((cell) => {
+              // Escape cell content first (but preserve BR placeholders)
+              let cellContent = escapeHtml(cell);
+              // Restore BR placeholders as actual <br /> tags
+              cellContent = cellContent.replace(
+                new RegExp(BR_PLACEHOLDER, "g"),
+                "<br />"
+              );
+              // Then process inline markdown in cells (bold, italic, etc.)
+              cellContent = cellContent.replace(
+                /\*\*(.*?)\*\*/g,
+                '<strong class="font-bold">$1</strong>'
+              );
+              cellContent = cellContent.replace(
+                /\*(.*?)\*/g,
+                '<em class="italic">$1</em>'
+              );
+              // Handle line breaks in cells (convert newlines to <br />)
+              cellContent = cellContent.replace(/\n/g, "<br />");
+              tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
+            });
+            tableHtml += "</tr>";
+          }
+        });
+        tableHtml += "</tbody></table></div>";
+
+        return tableHtml;
+      });
+    };
+
+    // Process tables first
+    let html = processTables(processedText);
+
+    // Now escape HTML (but preserve already-generated table HTML and BR placeholders)
+    // We need to escape only the parts that aren't already HTML
+    const escapeNonHtml = (str: string): string => {
+      // Split by HTML tags, escape non-HTML parts
+      const parts = str.split(/(<[^>]+>)/);
+      return parts
+        .map((part) => {
+          if (part.startsWith("<") && part.endsWith(">")) {
+            return part; // Already HTML, don't escape
+          }
+          return escapeHtml(part);
+        })
+        .join("");
+    };
+
+    // Escape non-HTML parts
+    html = escapeNonHtml(html);
+
+    // Headers (process from largest to smallest)
+    html = html.replace(
+      /^#### (.*$)/gim,
+      '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
+    );
+    html = html.replace(
+      /^### (.*$)/gim,
+      '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>'
+    );
+    html = html.replace(
+      /^## (.*$)/gim,
+      '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>'
+    );
+    html = html.replace(
+      /^# (.*$)/gim,
+      '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>'
+    );
+
+    // Code blocks (before inline code) - but skip if inside table
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+      // Check if this is inside a table
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
-        return match;
+        return match; // Inside table, don't process
       }
       return `<pre class="bg-gray-100 p-4 rounded my-4 overflow-x-auto border"><code>${code}</code></pre>`;
     });
+
+    // Inline code (but not inside tables)
     html = html.replace(/`([^`]+)`/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
-        return match;
+        return match; // Inside table, don't process
       }
       return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
     });
+
+    // Bold (but preserve what's already in tables)
     html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
-      if (match.includes('<td') || match.includes('</td>')) {
-        return match;
+      // Check if already inside a table cell
+      if (match.includes("<td") || match.includes("</td>")) {
+        return match; // Already processed in table
       }
       return `<strong class="font-bold text-gray-800">${text}</strong>`;
     });
+
+    // Italic
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
-      if (match.includes('<td') || match.includes('</td>') || match.includes('<strong>')) {
-        return match;
+      if (
+        match.includes("<td") ||
+        match.includes("</td>") ||
+        match.includes("<strong>")
+      ) {
+        return match; // Already processed
       }
       return `<em class="italic">${text}</em>`;
     });
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
+
+    // Links
+    html = html.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
+    );
+
+    // Lists
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
-    html = html.split(/\n\n+/).map(para => {
-      if (para.trim()) {
-        if (para.trim().startsWith('<h') || 
-            para.trim().startsWith('<ul') || 
-            para.trim().startsWith('<pre') ||
-            para.trim().startsWith('<div') && para.includes('<table')) {
-          return para;
+
+    // Wrap list items in ul
+    html = html.replace(
+      /(<li.*<\/li>)/g,
+      '<ul class="list-disc ml-6 my-4">$1</ul>'
+    );
+
+    // Line breaks - convert double newlines to paragraph breaks
+    // But skip if inside table
+    html = html
+      .split(/\n\n+/)
+      .map((para) => {
+        if (para.trim()) {
+          // Don't wrap if already a header, list, code block, or table
+          if (
+            para.trim().startsWith("<h") ||
+            para.trim().startsWith("<ul") ||
+            para.trim().startsWith("<pre") ||
+            (para.trim().startsWith("<div") && para.includes("<table"))
+          ) {
+            return para;
+          }
+          return `<p class="mb-4 leading-relaxed">${para.replace(
+            /\n/g,
+            "<br />"
+          )}</p>`;
         }
-        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
-      }
-      return '';
-    }).join('');
-    html = html.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+        return "";
+      })
+      .join("");
+
+    // Restore BR placeholders as actual <br /> tags (at the very end, after all processing)
+    html = html.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
+
     return html;
   };
 
+  // Render as plain HTML - NO React elements, just HTML string
   return (
-    <div 
+    <div
       className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
       dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
     />
@@ -439,7 +623,7 @@ export const PPE: React.FC = () => {
   };
 
   // Upload file to backend
-  const uploadSafetyFile = async (file: File) => {
+  const uploadPpeFile = async (file: File) => {
     const token = getAuthToken();
     if (!token) {
       throw new Error("User not authenticated — no token found.");
@@ -468,55 +652,100 @@ export const PPE: React.FC = () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
+    // Generate report
     const r1 = await fetch(`${BACKEND_URL}/generate-ppe-report`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!r1.ok) {
+      // Extract detailed error message from response
       let errorMessage = `Report generation failed (${r1.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse = r1.clone();
+      
       try {
-        const errorData = await r1.json().catch(() => null);
-        if (errorData?.detail) {
-          errorMessage = errorData.detail;
-        } else {
-          const errorText = await r1.text().catch(() => "");
-          if (errorText) {
-            errorMessage = `${errorMessage}: ${errorText}`;
-          }
-        }
+        const errorData = await r1.json();
+        // FastAPI returns errors in {detail: "message"} format
+        errorMessage = errorData.detail || errorData.message || errorMessage;
       } catch (e) {
-        // If we can't parse the error, use the default message
-        console.error("Failed to parse error response:", e);
+        // If JSON parsing fails, try to get text response from cloned response
+        try {
+          const errorText = await clonedResponse.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          // If both fail, use default message
+          console.error("Failed to parse error response:", e, e2);
+        }
       }
-      throw new Error(errorMessage);
+      
+      // Provide user-friendly error messages
+      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+        throw new Error("API key not configured. Please contact the administrator to set up the Google API key.");
+      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+        throw new Error("Please upload the Excel file first before generating the report.");
+      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+        throw new Error("Network error. Please check your internet connection and try again.");
+      } else {
+        throw new Error(errorMessage);
+      }
     }
 
+    // 🔥 ADD THIS LINE — prevents race condition
     await new Promise((res) => setTimeout(res, 1200));
 
+    // Generate charts
     const r2 = await fetch(`${BACKEND_URL}/generate-ppe-charts`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
     if (!r2.ok) {
+      // Extract detailed error message from response
       let errorMessage = `Chart generation failed (${r2.status})`;
+      
+      // Clone response to read it multiple times if needed
+      const clonedResponse2 = r2.clone();
+      
       try {
-        const errorData = await r2.json().catch(() => null);
-        if (errorData?.detail) {
-          errorMessage = errorData.detail;
-        } else {
-          const errorText = await r2.text().catch(() => "");
-          if (errorText) {
-            errorMessage = `${errorMessage}: ${errorText}`;
-          }
-        }
+        const errorData = await r2.json();
+        errorMessage = errorData.detail || errorData.message || errorMessage;
       } catch (e) {
-        console.error("Failed to parse error response:", e);
+        try {
+          const errorText = await clonedResponse2.text();
+          if (errorText && errorText.trim()) {
+            // Try to parse as JSON if it looks like JSON
+            if (errorText.trim().startsWith("{") || errorText.trim().startsWith("[")) {
+              try {
+                const parsed = JSON.parse(errorText);
+                errorMessage = parsed.detail || parsed.message || errorText;
+              } catch {
+                errorMessage = errorText;
+              }
+            } else {
+              errorMessage = errorText;
+            }
+          }
+        } catch (e2) {
+          console.error("Failed to parse error response:", e, e2);
+        }
       }
       throw new Error(errorMessage);
     }
@@ -534,6 +763,7 @@ export const PPE: React.FC = () => {
       },
     });
 
+    // Always get raw text first
     let raw: string;
     try {
       raw = await res.text();
@@ -542,29 +772,55 @@ export const PPE: React.FC = () => {
       throw new Error("Failed to read report response");
     }
 
+    // Log the raw response for debugging
+    console.log("🔍 Raw response type:", typeof raw);
+    console.log("🔍 Raw response length:", raw?.length || 0);
+    console.log(
+      "🔍 Raw response preview (first 200 chars):",
+      raw?.substring(0, 200) || "EMPTY"
+    );
+
+    // If backend returned JSON (error) — parse and throw
     const trimmed = raw.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       try {
         const parsed = JSON.parse(trimmed);
-        const detail = parsed.detail || parsed.message || JSON.stringify(parsed);
+        const detail =
+          parsed.detail || parsed.message || JSON.stringify(parsed);
+        console.error("Report endpoint returned JSON error:", parsed);
         throw new Error(detail);
-      } catch {
+      } catch (e) {
+        // not valid JSON - still treat as error if status not ok
         if (!res.ok) {
-          throw new Error(raw || `Fetch /report failed (${res.status})`);
+          console.error("Report endpoint returned non-json error:", raw);
+          throw new Error(raw || `Fetch /ppe-report failed (${res.status})`);
         }
       }
     }
 
     if (!res.ok) {
-      throw new Error(raw || `Fetching /report failed (${res.status})`);
+      // some non-JSON error body
+      console.error("Fetching /ppe-report failed", res.status, raw);
+      throw new Error(raw || `Fetching /ppe-report failed (${res.status})`);
     }
 
+    // ✅ ENFORCE: Always return a clean string
+    // Remove any potential React elements or objects
     if (typeof raw !== "string") {
-      console.error("❌ CRITICAL: fetchReportText received non-string:", typeof raw, raw);
+      console.error(
+        "❌ CRITICAL: fetchReportText received non-string:",
+        typeof raw,
+        raw
+      );
       return "";
     }
 
-    return String(raw).trim();
+    // Sanitize: ensure it's a plain string, no objects embedded
+    const cleaned = String(raw).trim();
+    console.log("✅ Cleaned report type:", typeof cleaned);
+    console.log("✅ Cleaned report length:", cleaned.length);
+
+    return cleaned;
   };
 
   // Fetch charts list
@@ -588,16 +844,13 @@ export const PPE: React.FC = () => {
     if (!data) return [];
 
     if (Array.isArray(data)) {
-      return data.map((item: string | { name?: string; filename?: string; path?: string }) => ({
-        name: typeof item === "string" ? item : item.name || item.filename || String(item),
-        path: typeof item === "object" && "path" in item ? item.path : undefined,
-      }));
+      return data.map((name: string) => ({ name }));
     }
 
-    if (data.charts && Array.isArray(data.charts)) {
-      return data.charts.map((item: string | { name?: string; filename?: string; path?: string }) => ({
-        name: typeof item === "string" ? item : item.name || item.filename || String(item),
-        path: typeof item === "object" && "path" in item ? item.path : undefined,
+    if (Array.isArray(data.charts)) {
+      return data.charts.map((chart: any) => ({
+        name: chart.name ?? "",
+        path: chart.path,
       }));
     }
 
@@ -609,7 +862,7 @@ export const PPE: React.FC = () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
 
-    const res = await fetch(`${BACKEND_URL}/ppe-charts/${chartName}`, {
+    const res = await fetch(`${BACKEND_URL}/charts/${chartName}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -638,9 +891,9 @@ export const PPE: React.FC = () => {
       setIsGenerating(true);
       setShowDashboard(false);
 
-      toast.info("Uploading file...");
-      await uploadSafetyFile(selectedFile);
-      toast.success("File uploaded successfully!");
+      toast.info("Uploading file...", { id: "upload" });
+      await uploadPpeFile(selectedFile);
+      toast.success("File Uploaded!", { id: "upload" });
 
       toast.info("Generating AI report...", { id: "gen_report" });
       toast.info("Generating charts...", { id: "gen_charts" });
@@ -694,14 +947,21 @@ export const PPE: React.FC = () => {
       setIsGenerating(false);
       setShowDashboard(true);
       toast.success("Dashboard is ready!");
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Could not process the file. Please try again.";
+    } catch (error: any) {
       console.error("Error generating dashboard:", error);
       setIsGenerating(false);
       setShowDashboard(false);
 
+      // Clear any pending progress toasts
+      toast.dismiss("upload");
+      toast.dismiss("gen_report");
+      toast.dismiss("gen_charts");
+
+      // Show error with detailed message
+      const errorMessage = error?.message || "Could not process the file. Please try again.";
       toast.error("Generation Failed", {
         description: errorMessage,
+        duration: 5000, // Show for 5 seconds so user can read it
       });
     }
   };
@@ -884,7 +1144,7 @@ export const PPE: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI PPE Analyzer
+              DATTU AI PPE & Assets Analyzer
             </span>
           </motion.h1>
 
@@ -894,8 +1154,8 @@ export const PPE: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
           >
-            Upload your Excel PPE data and let DATTU generate
-            a smart, interactive dashboard of inventory, usage trends, and AI insights.
+            Upload your Excel PPE and assets data and let DATTU generate a smart,
+            interactive dashboard of inventory metrics, usage patterns, and AI insights.
           </motion.p>
         </div>
 
@@ -905,17 +1165,17 @@ export const PPE: React.FC = () => {
             {
               title: "1. Upload PPE Excel",
               icon: Upload,
-              desc: "Upload your raw PPE inventory and usage Excel files.",
+              desc: "Upload your raw PPE inventory and assets Excel files.",
             },
             {
               title: "2. AI Analyzes Inventory",
               icon: Sparkles,
-              desc: "DATTU processes stock levels, consumption rates & trends.",
+              desc: "DATTU processes stock levels, usage patterns & predicts reorder needs.",
             },
             {
               title: "3. View Dashboard",
               icon: BarChart2,
-              desc: "Get interactive charts on stock levels & reorder insights.",
+              desc: "Get interactive charts on stock levels & inventory insights.",
             },
           ].map((step, i) => (
             <motion.div
@@ -973,23 +1233,24 @@ export const PPE: React.FC = () => {
                 </div>
               </motion.div>
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Upload PPE Data
+                Upload PPE & Assets Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
                 Choose an Excel file (.xlsx / .xls) to begin the analysis.
               </p>
             </CardHeader>
 
-            <CardContent className="space-y-6">
-              <label
+            <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
+              <motion.label
                 htmlFor="file-upload"
+                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
                 className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {selectedFile ? (
                     <>
                       <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         {selectedFile.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -999,7 +1260,7 @@ export const PPE: React.FC = () => {
                   ) : (
                     <>
                       <HardHat className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="mb-2 text-base text-gray-700 font-semibold">
+                      <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
@@ -1017,13 +1278,17 @@ export const PPE: React.FC = () => {
                   className="hidden"
                   id="file-upload"
                 />
-              </label>
+              </motion.label>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.99 }}>
+              <motion.div
+                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
+              >
                 <Button
                   onClick={handleGenerate}
                   disabled={!selectedFile}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
+                             shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   Generate AI Dashboard
@@ -1042,24 +1307,31 @@ export const PPE: React.FC = () => {
       <div className="w-full flex items-center justify-center py-20">
         <motion.div
           className="text-center max-w-2xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Enhanced: "Breathing" AI Icon */}
           <motion.div
             className="flex justify-center mb-8"
-            animate={{ rotate: 360 }}
+            animate={{ scale: [1, 1.05, 1] }}
             transition={{
               duration: 2,
               repeat: Infinity,
-              ease: "linear",
+              ease: "easeInOut",
             }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border border-[#0B3D91]/30">
-              <Loader2 className="w-16 h-16 text-[#0B3D91]" />
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <HardHat className="w-16 h-16 text-[#0B3D91]" />
             </div>
           </motion.div>
 
+          {/* Main Title */}
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Analyzing Your PPE & Assets Data...
+          </h2>
+
+          {/* Rotating AI Quotes */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuoteIndex}
@@ -1069,18 +1341,29 @@ export const PPE: React.FC = () => {
               transition={{ duration: 0.5 }}
               className="mb-4"
             >
-              <h2 className="text-3xl font-bold mb-6 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Analyzing Your Data...
-              </h2>
-              <div className="flex items-center justify-center gap-3 mb-6">
-                <Sparkles className="w-6 h-6 text-[#0B3D91] animate-pulse" />
+              <div className="flex items-center justify-center gap-3">
+                <Sparkles className="w-5 h-5 text-[#0B3D91] animate-pulse" />
                 <p className="text-xl text-gray-600 font-medium">
                   {aiQuotes[currentQuoteIndex]}
                 </p>
-                <Sparkles className="w-6 h-6 text-[#00A79D] animate-pulse" />
+                <Sparkles className="w-5 h-5 text-[#00A79D] animate-pulse" />
               </div>
             </motion.div>
           </AnimatePresence>
+
+          {/* Indeterminate Progress Bar */}
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+            />
+          </div>
         </motion.div>
       </div>
     );

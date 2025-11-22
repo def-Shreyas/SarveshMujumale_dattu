@@ -1,3 +1,4 @@
+import copy
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -6,7 +7,46 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 import warnings
+from typing import Dict, Any, Optional
+
 warnings.filterwarnings('ignore')
+
+_kpi_registry: Dict[str, Dict[str, Any]] = {}
+
+
+def reset_kpi_registry() -> None:
+    """Clear any KPI snapshots captured during previous chart runs."""
+    _kpi_registry.clear()
+
+
+def register_kpi_snapshot(
+    component: str,
+    table_name: str,
+    df: Optional[pd.DataFrame],
+    ui_tiles: Optional[Dict[str, Any]] = None,
+) -> None:
+    """
+    Capture the raw KPI table (as list of dict rows) and optional UI tiles for a component.
+    This data will later be persisted to the dashboard collections once charting completes.
+    """
+    if df is not None:
+        rows = df.replace({np.nan: None}).to_dict(orient="records")
+    else:
+        rows = []
+
+    _kpi_registry[component] = {
+        "table_name": table_name,
+        "rows": rows,
+        "ui_tiles": ui_tiles or {}
+    }
+
+
+def get_kpi_registry(clear: bool = True) -> Dict[str, Dict[str, Any]]:
+    """Return a deep copy of the KPI registry so callers can safely persist it."""
+    snapshot = copy.deepcopy(_kpi_registry)
+    if clear:
+        _kpi_registry.clear()
+    return snapshot
 
 # Create charts directory if it doesn't exist
 charts_dir = 'Generated/charts'
@@ -38,6 +78,151 @@ inc_with_emp = obs_incidents.merge(employees_df, left_on='ActionOwner', right_on
 nm_with_emp = obs_near_misses.merge(employees_df, left_on='ActionOwner', right_on='EmployeeID', how='left')
 
 print("Data loaded and merged successfully!")
+
+# 0. SAFETY KPI DASHBOARD
+print("\n0. Creating Safety KPI Dashboard...")
+
+def create_safety_kpi_dashboard():
+    """Create organization-wide safety KPI dashboard with summary table."""
+    total_observations = len(observations_df)
+    total_incidents = len(incidents_df)
+    total_near_misses = len(near_misses_df)
+    
+    incident_rate = (total_incidents / total_observations * 100) if total_observations > 0 else 0
+    near_miss_rate = (total_near_misses / total_observations * 100) if total_observations > 0 else 0
+    
+    # High-risk exposure
+    high_risk_events = (observations_df['RiskLevel'] == 'High').sum()
+    high_risk_percentage = (high_risk_events / total_observations * 100) if total_observations > 0 else 0
+    
+    # Incident resolution metrics
+    resolution_days = None
+    on_time_rate = 0
+    avg_resolution_days = 0
+    if not obs_incidents.empty:
+        resolution_df = obs_incidents[['ObservationDate', 'ActionClosedDate']].copy()
+        resolution_df['ResolutionDays'] = (
+            resolution_df['ActionClosedDate'] - resolution_df['ObservationDate']
+        ).dt.days
+        resolution_days = resolution_df['ResolutionDays'].dropna()
+        if not resolution_days.empty:
+            avg_resolution_days = resolution_days.mean()
+            target_days = 7
+            on_time_rate = (
+                (resolution_days <= target_days).sum() / len(resolution_days) * 100
+            )
+    
+    risk_distribution = observations_df['RiskLevel'].value_counts().sort_values(ascending=False)
+    
+    # Build KPI table
+    kpi_data = {
+        'Metric': [
+            'Total Observations',
+            'Total Incidents',
+            'Total Near Misses',
+            'Incident Rate (%)',
+            'Near Miss Rate (%)',
+            'High Risk Events (%)',
+            'Avg Resolution Days',
+            'On-time Closure Rate (%)'
+        ],
+        'Value': [
+            f"{total_observations:,}",
+            f"{total_incidents:,}",
+            f"{total_near_misses:,}",
+            f"{incident_rate:.2f}",
+            f"{near_miss_rate:.2f}",
+            f"{high_risk_percentage:.2f}",
+            f"{avg_resolution_days:.1f}",
+            f"{on_time_rate:.2f}"
+        ]
+    }
+    kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Safety",
+        table_name="Safety KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_observations": int(total_observations),
+            "total_incidents": int(total_incidents),
+            "total_near_misses": int(total_near_misses),
+            "incident_rate_pct": round(float(incident_rate), 2),
+            "near_miss_rate_pct": round(float(near_miss_rate), 2),
+            "high_risk_pct": round(float(high_risk_percentage), 2) if total_observations > 0 else None,
+            "avg_resolution_days": round(float(avg_resolution_days), 1) if resolution_days is not None else None,
+            "on_time_closure_pct": round(float(on_time_rate), 2) if resolution_days is not None else None,
+        }
+    )
+    
+    fig = make_subplots(
+        rows=2, cols=2,
+        subplot_titles=(
+            'Incident Rate (%)',
+            'Near Miss Rate (%)',
+            'Risk Level Distribution',
+            'KPI Summary'
+        ),
+        specs=[[{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "bar"}, {"type": "table"}]]
+    )
+    
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=incident_rate,
+            title={'text': "Incident Rate"},
+            gauge={
+                'axis': {'range': [0, max(incident_rate * 1.5, 20)]},
+                'bar': {'color': "crimson"},
+                'steps': [{'range': [0, incident_rate], 'color': "#ffe5e5"}]
+            }
+        ),
+        row=1, col=1
+    )
+    
+    fig.add_trace(
+        go.Indicator(
+            mode="gauge+number",
+            value=near_miss_rate,
+            title={'text': "Near Miss Rate"},
+            gauge={
+                'axis': {'range': [0, max(near_miss_rate * 1.5, 20)]},
+                'bar': {'color': "#ffa600"},
+                'steps': [{'range': [0, near_miss_rate], 'color': "#fff2db"}]
+            }
+        ),
+        row=1, col=2
+    )
+    
+    fig.add_trace(
+        go.Bar(
+            x=risk_distribution.index,
+            y=risk_distribution.values,
+            marker_color=['#51cf66', '#ffd43b', '#ff6b6b'],
+            name='Risk Mix'
+        ),
+        row=2, col=1
+    )
+    
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_df.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_df['Metric'], kpi_df['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=2, col=2
+    )
+    
+    fig.update_xaxes(title_text="Risk Level", row=2, col=1)
+    fig.update_yaxes(title_text="Count", row=2, col=1)
+    fig.update_layout(height=800, title_text="Safety KPI Dashboard", showlegend=False)
+    fig.write_html(f'{charts_dir}/0_safety_kpi_dashboard.html')
+    print(f"  ✓ Saved: {charts_dir}/0_safety_kpi_dashboard.html")
+
 
 # 1. TREND ANALYSIS (Time Series)
 print("\n1. Creating Trend Analysis...")
@@ -541,37 +726,39 @@ def create_timeline_analysis():
         fig2.write_html(f'{charts_dir}/6_timeline_scatter.html')
         print(f"  ✓ Saved: {charts_dir}/6_timeline_scatter.html")
 
-# Execute all visualizations
-print("Starting visualization generation...")
-create_trend_analysis()
-create_location_heatmap()
-create_risk_analysis()
-create_department_analysis()
-create_shift_analysis()
-create_timeline_analysis()
+def create_all_safety_charts():
+    """Convenience wrapper to generate all safety charts via CLI."""
+    print("Starting visualization generation...")
+    create_safety_kpi_dashboard()
+    create_trend_analysis()
+    create_location_heatmap()
+    create_risk_analysis()
+    create_department_analysis()
+    create_shift_analysis()
+    create_timeline_analysis()
 
-print("\nAll visualizations completed! 🎉")
+    print("\nAll visualizations completed! 🎉")
 
-# Additional summary statistics
-print("\n" + "="*50)
-print("SUMMARY STATISTICS")
-print("="*50)
+    # Additional summary statistics for CLI usage
+    print("\n" + "="*50)
+    print("SUMMARY STATISTICS")
+    print("="*50)
 
-print(f"Total Observations: {len(observations_df)}")
-print(f"Total Incidents: {len(incidents_df)}")
-print(f"Total Near Misses: {len(near_misses_df)}")
-print(f"Incident Rate: {(len(incidents_df)/len(observations_df)*100):.2f}%")
-print(f"Near Miss Rate: {(len(near_misses_df)/len(observations_df)*100):.2f}%")
+    print(f"Total Observations: {len(observations_df)}")
+    print(f"Total Incidents: {len(incidents_df)}")
+    print(f"Total Near Misses: {len(near_misses_df)}")
+    print(f"Incident Rate: {(len(incidents_df)/len(observations_df)*100):.2f}%")
+    print(f"Near Miss Rate: {(len(near_misses_df)/len(observations_df)*100):.2f}%")
 
-print(f"\nRisk Level Distribution:")
-print(observations_df['RiskLevel'].value_counts())
+    print(f"\nRisk Level Distribution:")
+    print(observations_df['RiskLevel'].value_counts())
 
-print(f"\nTop 5 Locations with Most Observations:")
-print(observations_df['Location'].value_counts().head(5))
+    print(f"\nTop 5 Locations with Most Observations:")
+    print(observations_df['Location'].value_counts().head(5))
 
-print(f"\nTop 3 Departments with Most Incidents:")
-if not inc_with_emp.empty:
-    print(inc_with_emp['Department'].value_counts().head(3))
+    print(f"\nTop 3 Departments with Most Incidents:")
+    if not inc_with_emp.empty:
+        print(inc_with_emp['Department'].value_counts().head(3))
 
 
 # ============================================================================
@@ -859,11 +1046,20 @@ def create_ptw_kpi_dashboard():
     
     # Create subplots
     fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=('PTW Closure Efficiency', 'Average Closure Time (Hours)',
-                       'Overdue Percentage', 'KPIs by Area'),
-        specs=[[{"type": "indicator"}, {"type": "indicator"}],
-               [{"type": "indicator"}, {"type": "bar"}]]
+        rows=3, cols=2,
+        subplot_titles=(
+            'PTW Closure Efficiency',
+            'Average Closure Time (Hours)',
+            'Overdue Percentage',
+            'KPIs by Area',
+            'KPI Summary',
+            ''
+        ),
+        specs=[
+            [{"type": "indicator"}, {"type": "indicator"}],
+            [{"type": "indicator"}, {"type": "bar"}],
+            [{"type": "table", "colspan": 2}, None]
+        ]
     )
     
     # Plot 1: Closure Efficiency
@@ -953,7 +1149,59 @@ def create_ptw_kpi_dashboard():
     fig.update_xaxes(title_text="Area", row=2, col=2, tickangle=45)
     fig.update_yaxes(title_text="Count", row=2, col=2)
     
-    fig.update_layout(height=900, title_text="PTW KPI Dashboard", barmode='group')
+    # Plot 5: KPI summary table
+    open_count = total_permits - closed_count
+    kpi_table = pd.DataFrame({
+        'Metric': [
+            'Total Permits',
+            'Closed Permits',
+            'Open Permits',
+            'Overdue Permits',
+            'Closure Efficiency (%)',
+            'Avg Closure Time (hrs)',
+            'Overdue Percentage (%)',
+            'On-time Closure Target (%)'
+        ],
+        'Value': [
+            f"{total_permits:,}",
+            f"{closed_count:,}",
+            f"{open_count:,}",
+            f"{overdue_count:,}",
+            f"{closure_efficiency:.2f}",
+            f"{avg_closure_time:.1f}",
+            f"{overdue_percentage:.2f}",
+            "90"
+        ]
+    })
+
+    register_kpi_snapshot(
+        component="PTW",
+        table_name="PTW KPI Summary",
+        df=kpi_table,
+        ui_tiles={
+            "total_permits": int(total_permits),
+            "closed_permits": int(closed_count),
+            "open_permits": int(open_count),
+            "overdue_permits": int(overdue_count),
+            "closure_efficiency_pct": round(float(closure_efficiency), 2),
+            "avg_closure_time_hours": round(float(avg_closure_time), 1) if avg_closure_time is not None else None,
+            "overdue_percentage": round(float(overdue_percentage), 2),
+        }
+    )
+    
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_table.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_table['Metric'], kpi_table['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=3, col=1
+    )
+    
+    fig.update_layout(height=1100, title_text="PTW KPI Dashboard", barmode='group')
     fig.write_html(f'{charts_dir}/ptw_4_kpi_dashboard.html')
     print(f"  ✓ Saved: {charts_dir}/ptw_4_kpi_dashboard.html")
 
@@ -1465,6 +1713,20 @@ def create_inspections_kpi_dashboard():
         'Value': [total_inspections, pass_count, fail_count, f"{compliance_percentage:.2f}%", f"{recurrence_percentage:.2f}%", f"{avg_closure_days:.1f}"]
     }
     kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Inspections",
+        table_name="Inspections KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_inspections": int(total_inspections),
+            "pass_count": int(pass_count),
+            "fail_count": int(fail_count),
+            "compliance_pct": round(float(compliance_percentage), 2),
+            "recurrence_pct": round(float(recurrence_percentage), 2),
+            "avg_closure_days": round(float(avg_closure_days), 1) if avg_closure_days is not None else None,
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df.columns),
@@ -1994,6 +2256,22 @@ def create_medical_kpi_dashboard():
         ]
     }
     kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Medical",
+        table_name="Medical KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_cases": int(total_cases),
+            "first_aid_cases": int(first_aid_cases),
+            "lti_cases": int(len(medical_records_df[medical_records_df['days_lost'] > 0])),
+            "fa_cases_per_month": round(float(avg_fa_per_month), 1),
+            "avg_response_time_min": round(float(avg_response_time), 1) if avg_response_time is not None else None,
+            "drill_compliance_pct": round(float(drill_compliance), 1) if drill_compliance is not None else None,
+            "total_days_lost": float(total_days_lost) if not pd.isna(total_days_lost) else None,
+            "avg_days_lost": round(float(avg_days_lost), 2) if not pd.isna(avg_days_lost) else None,
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df.columns),
@@ -2548,6 +2826,23 @@ def create_training_kpi_dashboard():
         ]
     }
     kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Training",
+        table_name="Training KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_trainings": int(total_trainings),
+            "unique_employees": int(unique_employees),
+            "unique_courses": int(unique_courses),
+            "coverage_pct": round(float(coverage_percentage), 1),
+            "effectiveness_delta": round(float(effectiveness), 2) if effectiveness is not None else None,
+            "expiry_compliance_pct": round(float(expiry_compliance), 2),
+            "avg_pre_score": round(float(avg_pre_score), 2) if not pd.isna(avg_pre_score) else None,
+            "avg_post_score": round(float(avg_post_score), 2) if not pd.isna(avg_post_score) else None,
+            "avg_final_score": round(float(avg_final_score), 2) if not pd.isna(avg_final_score) else None,
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df.columns),
@@ -3182,6 +3477,21 @@ def create_ppe_kpi_dashboard():
         ]
     }
     kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="PPE",
+        table_name="PPE KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_purchased": float(total_purchased),
+            "total_issued": float(total_issued),
+            "total_balance": float(total_balance),
+            "utilization_pct": round(float(utilization_pct), 2),
+            "stock_turnover_rate": round(float(stock_turnover), 2),
+            "low_stock_alerts": int(low_stock_count),
+            "reorder_needed_count": int(reorder_needed_count),
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df.columns),
@@ -3709,6 +4019,20 @@ def create_rca_kpi_dashboard():
         ]
     }
     kpi_df = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Corrective Actions",
+        table_name="Corrective Actions KPI Summary",
+        df=kpi_df,
+        ui_tiles={
+            "total_actions": int(total_actions),
+            "open_actions": int(open_count),
+            "closed_actions": int(closed_count),
+            "action_closure_pct": round(float(action_closure_pct), 2),
+            "overdue_actions": int(overdue_count),
+            "avg_closure_time_days": round(float(avg_closure_time), 2) if avg_closure_time is not None else None,
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df.columns),
@@ -4185,6 +4509,22 @@ def create_environmental_kpi_dashboard():
         ]
     }
     kpi_df_table = pd.DataFrame(kpi_data)
+
+    register_kpi_snapshot(
+        component="Environmental",
+        table_name="Environmental KPI Summary",
+        df=kpi_df_table,
+        ui_tiles={
+            "total_energy_kwh": float(total_energy),
+            "total_co2_tons": float(total_co2),
+            "total_waste_tons": float(total_waste),
+            "avg_recycling_pct": round(float(avg_recycling_pct), 2),
+            "avg_renewable_pct": round(float(avg_renewable_pct), 2),
+            "energy_intensity": round(float(energy_intensity), 2) if energy_intensity else None,
+            "co2_intensity": round(float(co2_intensity), 2) if co2_intensity else None,
+            "esg_score": round(float(esg_score), 2),
+        }
+    )
     fig.add_trace(
         go.Table(
             header=dict(values=list(kpi_df_table.columns),
@@ -4802,14 +5142,37 @@ def create_social_governance_kpi_dashboard():
         supplier_audit_pct = (audited_suppliers / total_suppliers * 100) if total_suppliers > 0 else 0
     else:
         supplier_audit_pct = 0
+        total_suppliers = 0
+    
+    # Supporting metrics for KPI table
+    if workforce_df is not None:
+        total_employees = len(workforce_df)
+        if 'employee_survey_score' in workforce_df.columns:
+            avg_survey_score = workforce_df['employee_survey_score'].mean()
+        elif kpi_dept_df is not None and 'avg_survey_score' in kpi_dept_df.columns:
+            avg_survey_score = kpi_dept_df['avg_survey_score'].mean()
+        else:
+            avg_survey_score = 0
+    else:
+        total_employees = int(kpi_dept_df['employees'].sum()) if kpi_dept_df is not None and 'employees' in kpi_dept_df.columns else 0
+        avg_survey_score = kpi_dept_df['avg_survey_score'].mean() if kpi_dept_df is not None and 'avg_survey_score' in kpi_dept_df.columns else 0
+    
+    if governance_df is not None:
+        board_women_pct = governance_df['board_women_%'].mean() if 'board_women_%' in governance_df.columns else 0
+        board_minority_pct = governance_df['board_minority_%'].mean() if 'board_minority_%' in governance_df.columns else 0
+    else:
+        board_women_pct = 0
+        board_minority_pct = 0
     
     # Create subplots
     fig = make_subplots(
-        rows=2, cols=2,
+        rows=3, cols=2,
         subplot_titles=('Turnover Rate', 'Absenteeism %',
-                       'Policy Compliance %', 'Supplier Audit %'),
+                       'Policy Compliance %', 'Supplier Audit %',
+                       'KPI Summary', ''),
         specs=[[{"type": "indicator"}, {"type": "indicator"}],
-               [{"type": "indicator"}, {"type": "indicator"}]]
+               [{"type": "indicator"}, {"type": "indicator"}],
+               [{"type": "table", "colspan": 2}, None]]
     )
     
     # Plot 1: Turnover Rate
@@ -4910,7 +5273,62 @@ def create_social_governance_kpi_dashboard():
         row=2, col=2
     )
     
-    fig.update_layout(height=900, title_text="Social & Governance KPI Dashboard", showlegend=False)
+    # Plot 5: KPI summary table
+    kpi_table = pd.DataFrame({
+        'Metric': [
+            'Total Employees',
+            'Total Suppliers',
+            'Avg Survey Score',
+            'Avg Turnover (%)',
+            'Avg Absenteeism (%)',
+            'Policy Compliance (%)',
+            'Supplier Audit (%)',
+            'Board Women (%)',
+            'Board Minority (%)'
+        ],
+        'Value': [
+            f"{total_employees:,}",
+            f"{total_suppliers:,}",
+            f"{avg_survey_score:.1f}",
+            f"{avg_turnover_rate:.2f}",
+            f"{avg_absenteeism_pct:.2f}",
+            f"{policy_compliance_pct:.2f}",
+            f"{supplier_audit_pct:.2f}",
+            f"{board_women_pct:.2f}",
+            f"{board_minority_pct:.2f}"
+        ]
+    })
+    
+    fig.add_trace(
+        go.Table(
+            header=dict(values=list(kpi_table.columns),
+                        fill_color='paleturquoise',
+                        align='left'),
+            cells=dict(values=[kpi_table['Metric'], kpi_table['Value']],
+                      fill_color='lavender',
+                      align='left')
+        ),
+        row=3, col=1
+    )
+
+    register_kpi_snapshot(
+        component="Social & Governance",
+        table_name="Social & Governance KPI Summary",
+        df=kpi_table,
+        ui_tiles={
+            "total_employees": int(total_employees),
+            "total_suppliers": int(total_suppliers),
+            "avg_survey_score": round(float(avg_survey_score), 1) if avg_survey_score is not None else None,
+            "avg_turnover_pct": round(float(avg_turnover_rate), 2),
+            "avg_absenteeism_pct": round(float(avg_absenteeism_pct), 2),
+            "policy_compliance_pct": round(float(policy_compliance_pct), 2),
+            "supplier_audit_pct": round(float(supplier_audit_pct), 2),
+            "board_women_pct": round(float(board_women_pct), 2),
+            "board_minority_pct": round(float(board_minority_pct), 2),
+        }
+    )
+    
+    fig.update_layout(height=1100, title_text="Social & Governance KPI Dashboard", showlegend=False)
     fig.write_html(f'{charts_dir}/social_4_kpi_dashboard.html')
     print(f"  ✓ Saved: {charts_dir}/social_4_kpi_dashboard.html")
 
@@ -5169,3 +5587,7 @@ def create_all_social_governance_charts():
     except Exception as e:
         print(f"Error generating Social & Governance charts: {str(e)}")
         raise
+
+
+if __name__ == "__main__":
+    create_all_safety_charts()

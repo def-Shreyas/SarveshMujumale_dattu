@@ -1,0 +1,46 @@
+supplier_id,name,area,CSR_audit_date,incident_count,compliance_score_%
+SUP1000,Pune Steel Co. 20,Stamping parts,2025-10-31,1,82
+SUP1001,Sakhi Textiles 86,Logistics services,2025-10-24,0,87
+SUP1002,Akash Paints 63,Plastic trims,2025-09-13,0,90
+SUP1003,Mitra Suppliers 75,Chemical supply,2025-08-17,0,85
+SUP1004,Anand Plastics 27,Fasteners,2025-10-24,0,68
+SUP1005,Omkar Foundry 9,Stamping parts,2025-10-16,0,84
+SUP1006,Rao Industries 60,Chemical supply,2025-10-15,0,96
+SUP1007,Omkar Foundry 52,Plastic trims,2025-08-30,0,74
+SUP1008,Kisan Fasteners 90,Welding fixtures,2025-09-21,0,93
+SUP1009,Omkar Foundry 17,Stamping parts,2025-10-23,0,96
+SUP1010,Vijay Logistics 72,Fasteners,2025-08-17,1,82
+SUP1011,Pune Steel Co. 17,Welding fixtures,2025-10-19,0,83
+SUP1012,Vijay Logistics 61,Plastic trims,2025-10-31,0,92
+SUP1013,Vijay Logistics 81,Chemical supply,2025-10-18,0,84
+SUP1014,Nashik Batteries 35,Battery cells,2025-10-08,3,62
+SUP1015,Global Bearings 76,Bearings,2025-10-18,0,92
+SUP1016,Sakhi Textiles 7,Logistics services,2025-08-26,1,76
+SUP1017,Omkar Foundry 85,Bearings,2025-08-27,0,73
+SUP1018,Kisan Fasteners 38,Electrical components,2025-10-10,3,56
+SUP1019,Vijay Logistics 81,Chemical supply,2025-08-15,0,75
+SUP1020,Kisan Fasteners 55,Electrical components,2025-08-09,0,82
+SUP1021,Rao Industries 83,Electrical components,2025-10-15,1,75
+SUP1022,Sakhi Textiles 67,Logistics services,2025-10-05,0,100
+SUP1023,Rao Industries 60,Stamping parts,2025-09-06,0,90
+SUP1024,Pune Steel Co. 54,Plastic trims,2025-08-17,3,40
+SUP1025,Vijay Logistics 67,Paint chemicals,2025-08-04,2,52
+SUP1026,Shree Components 61,Electrical components,2025-08-26,0,86
+SUP1027,Global Bearings 34,Electrical components,2025-10-26,1,72
+SUP1028,Pune Steel Co. 67,Stamping parts,2025-10-01,0,97
+SUP1029,Nashik Batteries 89,Logistics services,2025-08-14,0,73
+SUP1030,Shree Components 31,Welding fixtures,2025-10-07,2,64
+SUP1031,Bharat Rubber 6,Logistics services,2025-08-28,0,91
+SUP1032,Anand Plastics 98,Paint chemicals,2025-10-23,0,82
+SUP1033,Omkar Foundry 96,Fasteners,2025-10-16,0,94
+SUP1034,Omkar Foundry 18,Battery cells,2025-10-29,0,74
+SUP1035,Sakhi Textiles 28,Battery cells,2025-09-27,2,67
+SUP1036,Mitra Suppliers 19,Stamping parts,2025-08-20,1,81
+SUP1037,Nashik Batteries 17,Bearings,2025-08-01,3,47
+SUP1038,Rao Industries 30,Fasteners,2025-08-04,1,75
+SUP1039,Anand Plastics 64,Stamping parts,2025-09-29,2,58
+SUP1040,Akash Paints 94,Logistics services,2025-08-25,3,55
+SUP1041,Sakhi Textiles 47,Welding fixtures,2025-09-28,1,77
+SUP1042,Vijay Logistics 71,Chemical supply,2025-09-26,1,57
+SUP1043,Anand Plastics 43,Chemical supply,2025-10-30,2,67
+SUP1044,Nashik Batteries 62,Logistics services,2025-10-30,1,71

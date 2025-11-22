@@ -8,96 +8,114 @@ Of course. Here is a comprehensive PTW analysis report based on the provided dat
 
 ## Executive Summary
 
-This report provides a detailed analysis of the Permit to Work (PTW) system based on 75 permit records. The analysis reveals a system with high operational throughput but significant safety and administrative compliance gaps.
+This report provides a detailed analysis of the Permit to Work (PTW) system based on 75 recent permit records. The analysis reveals a mixed performance with notable strengths and critical areas for improvement.
 
-The overall PTW Closure Efficiency is strong at **90.67%**, indicating that the majority of initiated work is completed. However, a critical issue has been identified: **100% of the 7 currently open permits are overdue**, resulting in an Overdue Rate of **9.33%**. This points to systemic issues in permit tracking and closeout procedures.
+While the overall **PTW Closure Efficiency is high at 90.67%**, indicating that most permits are eventually closed, this is overshadowed by significant safety and timeliness issues. A critical finding is the **Safety Checklist Compliance Rate of only 69.33%**, with **30.67% of all permits (23 out of 75) having missing safety controls**. This represents a substantial operational risk.
 
-Furthermore, safety compliance is a major area of concern. The Safety Checklist Compliance Rate is only **69.33%**, with **23 out of 75 permits (30.7%)** flagged for having missing safety controls. This poses a considerable operational risk. The most frequent permit type is **Electrical**, highlighting a need for stringent controls in this high-risk area.
+Furthermore, the system struggles with timely closures. **All currently open permits (7) are past their expiry date**, resulting in an **Overdue PTW rate of 9.33%**. This points to a systemic failure in managing the lifecycle of active permits. The 'Maintenance Workshop' and 'Electrical' permits are identified as high-volume areas requiring focused attention.
 
-This report breaks down these findings, presents key performance indicators (KPIs), and provides specific, data-driven recommendations to enhance safety, improve compliance, and streamline the PTW management process.
+Immediate actions should prioritize enforcing safety control compliance through system checks and training, implementing an automated alert system for expiring permits, and conducting targeted audits in high-risk areas.
+
+---
 
 ## 1. PTW Status Summary
 
-The status of the 75 permits in the system provides a clear picture of the current workload and administrative backlog.
+The analysis covers a total of **75 permits**. The current status of these permits is broken down as follows, indicating a significant issue with overdue permits.
 
-| Status | Count | Percentage of Total |
+| Status | Permit Count | Percentage of Total |
 | :--- | :--- | :--- |
-| **Total Permits** | **75** | **100%** |
-| Closed | 68 | 90.67% |
-| Open | 7 | 9.33% |
-| Overdue | 7 | 9.33% |
+| **Closed** | 68 | 90.67% |
+| **Open** | 7 | 9.33% |
+| **Overdue** | 7 | 9.33% |
+| **Total** | **75** | **100%** |
 
-**Analysis:**
-- A high number of permits (**68**) are successfully closed, demonstrating that work is being completed.
-- A critical finding is that **all 7 open permits are past their expiry date**. This indicates a failure in the process of either completing the work on time, extending the permit validity, or administratively closing the permit upon work completion.
+**Key Insight:** The data from `PTW_Records/table_1.csv` shows that the number of 'Open' permits (7) exactly matches the number of 'Overdue' permits (7, where `is_past_expiry` is True). This means **100% of currently open permits are overdue**, highlighting a critical lapse in timely close-out or extension procedures.
+
+---
 
 ## 2. PTW Type Distribution Analysis
 
-Analysis of permit types helps identify which categories of work are most common and may require focused safety attention.
+The dataset includes **7 unique permit types**, indicating a diverse range of operational tasks requiring formal safety clearance.
 
-- **Total Unique Permit Types:** 7
-- **Most Frequent Permit Type:** **Electrical** (17 instances)
+*   **Most Frequent Permit Type:** 'Electrical' permits are the most common, accounting for **17 of the 75 total permits** (22.7%).
+*   **Most Active Area:** The 'Maintenance Workshop' is the busiest area, with **11 permits** issued for work within it.
 
-**Analysis:**
-The high frequency of "Electrical" permits suggests a significant volume of electrical work, which is inherently high-risk. This pattern indicates that safety protocols, specialized training for electrical work, and verification of controls for these permits should be a top priority for safety audits and supervisory checks.
+**Pattern Identification:** The high frequency of 'Electrical' permits, which are inherently high-risk, combined with the 'Maintenance Workshop' being the most active area, suggests that safety protocols and resources should be prioritized for this combination of work type and location.
+
+---
 
 ## 3. Safety Checklist Compliance Rate Analysis
 
-This analysis measures the adherence to mandatory safety controls documented within the PTW system.
+Safety compliance is a major area of concern. The analysis of `missing_controls_flag` in the `PTW_Records` data reveals significant gaps.
 
-- **Total Permits Analyzed:** 75
-- **Permits with Missing Controls:** 23
-- **Permits with All Controls Verified:** 52
-- **Safety Checklist Compliance Rate:** (52 / 75) × 100 = **69.33%**
-- **Non-Compliance Rate:** (23 / 75) × 100 = **30.67%**
+*   **Total Permits Analyzed:** 75
+*   **Permits with All Controls:** 52
+*   **Permits with Missing Controls:** 23
+*   **Calculated Compliance Rate:** (52 / 75) × 100 = **69.33%**
 
-**Analysis:**
-A compliance rate of 69.33% is a significant safety concern. Nearly one-third of all work permits were issued or processed with incomplete safety controls. The area-specific data (`PTW_KPIs_By_Area`) shows that this issue is widespread, with an average of **2.56 missing controls per area** and a maximum of **5 missing controls in a single area**. This indicates a systemic breakdown in safety verification that requires immediate intervention.
+**Interpretation:** A compliance rate of just under 70% is alarmingly low. This means that nearly one-third (**30.67%**) of all work initiated under a PTW may not have had all the required safety controls in place. The `PTW_KPIs_By_Area` data further shows this is a widespread issue, with an average of **2.56 missing controls per area** and a maximum of **5 missing controls** in a single area.
+
+---
 
 ## 4. Key Performance Indicators (KPIs)
 
-KPIs provide a quantitative measure of the PTW system's effectiveness and efficiency.
+The following KPIs provide a quantitative assessment of the PTW system's health and efficiency.
 
-| KPI | Calculation | Result | Interpretation |
-| :--- | :--- | :--- | :--- |
-| **PTW Closure Efficiency** | (Closed Permits / Total Permits) × 100 | **90.67%** | **Strong.** This indicates that the vast majority of jobs are completed and their permits are eventually closed. However, this metric is undermined by the high overdue rate. |
-| **Average Closure Time** | Mean(Close Time – Issue Time) | *Data Not Available* | This KPI measures the average time from permit issuance to final closure. **It is critical to start tracking this** to identify bottlenecks in either work execution or the administrative closeout process. |
-| **Overdue Percentage** | (Overdue Permits / Total Permits) × 100 | **9.33%** | **Critical Concern.** An overdue rate of nearly 10% is high. The fact that this accounts for 100% of open permits points to a severe weakness in the monitoring and closeout phase of the PTW lifecycle. |
+| KPI | Formula | Calculation | Result | Interpretation |
+| :--- | :--- | :--- | :--- | :--- |
+| **PTW Closure Efficiency** | (Closed Permits / Total Permits) × 100 | (68 / 75) × 100 | **90.67%** | **Strong.** This indicates a robust process for eventually closing out permits. However, this high rate masks the underlying issue of timeliness. |
+| **Overdue PTW %** | (Overdue Permits / Total Permits) × 100 | (7 / 75) × 100 | **9.33%** | **Poor.** Nearly 10% of all permits are not closed on time. This metric is critical as it directly correlates with unmonitored and potentially unsafe work conditions. |
+| **Avg. Closure Time** | Mean(Close Time – Issue Time) | *N/A* | *N/A* | **Action Required.** This KPI cannot be calculated from the provided data summaries but is essential for measuring the efficiency of work execution. It should be tracked to identify bottlenecks. |
+
+---
 
 ## 5. AI Functions Results
 
 ### Missing Controls Verification
-- **Total Permits Flagged:** **23**
-- **Insight:** The system automatically identified 23 permits where required safety controls were not documented or verified. The issue is not isolated, with the `PTW_KPIs_By_Area` data indicating that some areas have as many as **5 permits** with missing controls. This highlights a critical need for improved pre-authorization checks.
+
+The automated verification system has flagged a significant number of permits for non-compliance.
+
+*   **Permits Flagged:** **23** permits have been identified with the `missing_controls_flag` set to 'Yes'.
+*   **Percentage of Total:** This accounts for **30.67%** of all issued permits.
+*   **Distribution:** The `PTW_KPIs_By_Area` summary confirms that this is not an isolated issue. The problem is present across all 9 operational areas, indicating a systemic weakness in the permit authorization process rather than a failure in a single area.
 
 ### Permit Load Prediction per Shift
-- **Historical Data:** 75 permits were issued across 54 unique days.
-- **Average Load:** Approximately **1.4 permits per day**.
-- **Peak Load:** At least one day had **3 permits** issued.
-- **Prediction:** While the average daily load is low, the system should be prepared to handle a peak load of **3-4 permits per day**. It is recommended to plan staffing and authorization capacity accordingly to avoid delays during busy periods.
+
+Based on historical data from `PTW_Records/table_1.csv`, we can predict the daily permit workload.
+
+*   **Historical Data:** 75 permits were issued across 54 unique dates.
+*   **Average Daily Load:** ~1.4 permits per day.
+*   **Peak Daily Load:** The busiest day recorded saw **3 permits** issued.
+
+**Prediction:** Teams should be prepared to handle an average of **1-2 permits per day**, with the capacity to manage a peak load of **3-4 permits per day** to avoid delays in work commencement.
 
 ### Overdue PTW Alerts
-**<font color='red'>!!! ALERT: IMMEDIATE ACTION REQUIRED !!!</font>**
 
-- **7 permits** are currently open and have passed their designated expiry time.
-- Based on the `PTW_KPIs_By_Area` data, these overdue permits are distributed across multiple areas, with at least one area having **2 overdue permits**.
-- **Action:** These permits pose a significant risk as the work conditions may no longer be safe or validated. They must be immediately investigated. The responsible parties must either:
-  1.  **Close the permit** if the work is complete.
-  2.  **Stop the work and re-validate the permit** with a new risk assessment if work needs to continue.
+**URGENT ACTION REQUIRED:** The system has identified the following critical alert.
+
+*   **Alert:** **7 PTWs are currently OPEN and PAST THEIR EXPIRY TIME.**
+*   **Details:**
+    *   **Status:** All 7 permits are active in the system but have exceeded their authorized work duration.
+    *   **Area Distribution:** According to the `PTW_KPIs_By_Area` data, these overdue permits are distributed across multiple areas, with at least one area having **2 permits past expiry**.
+*   **Immediate Risk:** These permits represent unmonitored, unauthorized work. The associated risks have not been reassessed, and the work areas may not be safe.
+
+---
 
 ## 6. Dashboard Insights
 
-- **Contradictory Performance:** There is a major disconnect between the high *Closure Efficiency (90.67%)* and the critical *Overdue Percentage (9.33%)*. This suggests a "fire-and-forget" culture where permits are issued and work is done, but the final administrative and safety step of formal closure is neglected.
-- **Safety is the Biggest Weakness:** The most alarming metric is the **30.7% Non-Compliance Rate** for safety checklists. This is a leading indicator of potential incidents. It signals that procedural adherence is poor and that the safety assurance step in the PTW process is failing.
-- **Area of Focus:** The **Maintenance Workshop** is the area with the highest permit volume (11 permits). While the data does not single it out for non-compliance, its high activity level makes it a logical starting point for audits and improvement initiatives.
+*   **Strength vs. Weakness:** There is a clear conflict between **high closure efficiency (90.67%)** and **poor timeliness (9.33% overdue)**. This suggests that while the administrative process of closing permits is followed, the operational discipline of closing them *on time* is lacking.
+*   **Safety is Compromised:** The **30.67% rate of missing controls** is the most critical finding. This metric indicates a failure in the core purpose of the PTW system—to ensure work is conducted safely. It exposes the organization to significant operational and legal risks.
+*   **High-Risk Focus Area:** The convergence of the highest permit volume ('Maintenance Workshop') and the most frequent high-risk permit type ('Electrical') provides a clear target for immediate safety audits, supervision, and training initiatives.
+
+---
 
 ## 7. Actionable Recommendations
 
-Based on the analysis, the following actions are recommended to mitigate risks and improve the PTW process.
+The following recommendations are based on the data analysis to drive targeted improvements in the PTW management process.
 
-| No. | Problem Identified | Data Reference | Recommended Action | Owner/Department |
-| :-- | :--- | :--- | :--- | :--- |
-| 1 | **All open permits (7) are overdue.** | Overdue % = 9.33% | 1. Implement a **mandatory daily review** of all open permits by area supervisors. <br> 2. Establish a clear escalation process for permits approaching their expiry time. <br> 3. Configure automated system alerts for permit issuers and requesters 2 hours before expiry. | Operations / Area Supervisors |
-| 2 | **High rate of missing safety controls.** | Non-Compliance Rate = 30.7% (23 permits) | 1. Conduct a Root Cause Analysis (RCA) on the 23 flagged permits to understand why controls are missed. <br> 2. Implement a **mandatory pre-submission verification step** by a supervisor. <br> 3. Provide mandatory refresher training on PTW procedures for all requesters and authorisers. | HSE / Training Department |
-| 3 | **High volume of high-risk electrical work.** | 'Electrical' is the top permit type (17 permits). | 1. Conduct a focused safety audit on a sample of recently closed "Electrical" permits. <br> 2. Ensure that job-specific risk assessments (JRA) for electrical work are robust and consistently attached. <br> 3. Verify the competency and training records of personnel requesting and authorising these permits. | Electrical Maintenance / HSE |
-| 4 | **Lack of visibility on work/closeout duration.** | Avg. Closure Time KPI is not tracked. | 1. Begin tracking and reporting on **Average Closure Time**. <br> 2. Set a target for this KPI (e.g., closure within 1 hour of work completion). <br> 3. Analyze permits with long closure times to identify process delays. | PTW Coordinator / Management |
+| Recommendation | Rationale (Based on Data) | Specific Action(s) | Priority |
+| :--- | :--- | :--- | :--- |
+| **1. Enforce Safety Control Compliance** | A **30.67%** non-compliance rate (23 of 75 permits) with up to 5 missing controls in one area. | <li>Implement a mandatory, system-enforced checklist that prevents permit submission if controls are missing.</li><li>Conduct immediate refresher training for all requesters and authorizers.</li> | **High** |
+| **2. Eradicate Overdue Permits** | **100% of open permits (7)** are past their expiry date, resulting in a 9.33% total overdue rate. | <li>Configure automated email/SMS alerts to be sent to requesters and authorizers 2 hours before permit expiry.</li><li>Perform a root cause analysis on the 7 current overdue permits to understand failure points.</li> | **High** |
+| **3. Target High-Volume/High-Risk Areas** | The 'Maintenance Workshop' has the highest permit volume (11), and 'Electrical' work is the most common type (17). | <li>Increase the frequency of safety audits and field verifications in the Maintenance Workshop.</li><li>Review and enhance the standard safety control checklists specifically for Electrical permits.</li> | **Medium** |
+| **4. Enhance KPI Monitoring & Efficiency** | The `Avg. Closure Time` is a critical efficiency metric but could not be calculated. | <li>Configure the PTW dashboard to automatically calculate and display the `Avg. Closure Time` per area and permit type.</li><li>Set a target for this KPI and monitor it weekly to identify and resolve process bottlenecks.</li> | **Medium** |

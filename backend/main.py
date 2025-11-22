@@ -11,9 +11,11 @@ from pathlib import Path
 import shutil
 import os
 import time
+import importlib
 import pandas as pd
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
+from typing import Callable, Any
 
 # Load environment variables from .env file
 load_dotenv()
@@ -31,6 +33,7 @@ from auth.database import connect_to_mongo, close_mongo_connection
 from auth.dependencies import get_current_active_user, track_api_usage
 from auth.rate_limiter import check_rate_limit, check_file_size_limit
 from auth.routes import router as auth_router
+from services.dashboard import router as dashboard_router, persist_charting_kpis
 
 
 @asynccontextmanager
@@ -61,35 +64,39 @@ app.add_middleware(
 
 # Include authentication routes
 app.include_router(auth_router)
+app.include_router(dashboard_router)
 
 # Base directory
 BASE_DIR = Path(__file__).parent
-EXCEL_PATH = BASE_DIR / "sample.xlsx"
-PTW_EXCEL_PATH = BASE_DIR / "ptw&kpi.xlsx"
-INSPECTIONS_EXCEL_PATH = BASE_DIR / "inspections_audit_database.xlsx"
-MEDICAL_EXCEL_PATH = BASE_DIR / "medical_records_database.xlsx"
-TRAINING_EXCEL_PATH = BASE_DIR / "training_database.xlsx"
-PPE_EXCEL_PATH = BASE_DIR / "assets&ppe.xlsx"
-RCA_EXCEL_PATH = BASE_DIR / "corrective_actions_database.xlsx"
-ENVIRONMENTAL_EXCEL_PATH = BASE_DIR / "Environmental & Resource Use_ database.xlsx"
-SOCIAL_GOVERNANCE_EXCEL_PATH = BASE_DIR / "social_governance_database.xlsx"
 DATA_DIR = BASE_DIR / "Generated"
 EXTRACTED_DIR = DATA_DIR / "extracted_tables"
-REPORT_PATH = DATA_DIR / "report.md"
-PTW_REPORT_PATH = DATA_DIR / "ptw_report.md"
-INSPECTIONS_REPORT_PATH = DATA_DIR / "inspections_report.md"
-MEDICAL_REPORT_PATH = DATA_DIR / "medical_report.md"
-TRAINING_REPORT_PATH = DATA_DIR / "training_report.md"
-PPE_REPORT_PATH = DATA_DIR / "ppe_report.md"
-RCA_REPORT_PATH = DATA_DIR / "rca_report.md"
-ENVIRONMENTAL_REPORT_PATH = DATA_DIR / "environmental_report.md"
-SOCIAL_GOVERNANCE_REPORT_PATH = DATA_DIR / "social_governance_report.md"
 CHARTS_DIR = DATA_DIR / "charts"
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
 EXTRACTED_DIR.mkdir(exist_ok=True)
 CHARTS_DIR.mkdir(exist_ok=True)
+
+
+async def _run_charting_and_capture(user_id: str, exec_fn: Callable[[Any], None]) -> None:
+    """Helper to execute charting functions and persist captured KPI tables."""
+    original_cwd = os.getcwd()
+    kpi_payloads = {}
+    try:
+        os.chdir(BASE_DIR)
+        import services.charting as charting_module
+        importlib.reload(charting_module)
+        charting_module.charts_dir = str(CHARTS_DIR)
+        if hasattr(charting_module, "reset_kpi_registry"):
+            charting_module.reset_kpi_registry()
+        exec_fn(charting_module)
+        if hasattr(charting_module, "get_kpi_registry"):
+            kpi_payloads = charting_module.get_kpi_registry()
+    finally:
+        os.chdir(original_cwd)
+
+    if kpi_payloads:
+        await persist_charting_kpis(user_id, kpi_payloads)
 
 
 @app.get("/")
@@ -102,63 +109,54 @@ async def root():
                 "upload_excel": "/upload",
                 "generate_report": "/generate-report",
                 "generate_charts": "/generate-charts",
-                "get_report": "/report",
                 "list_charts": "/charts"
             },
             "ptw_kpi": {
                 "upload_ptw": "/upload-ptw",
                 "generate_ptw_report": "/generate-ptw-report",
                 "generate_ptw_charts": "/generate-ptw-charts",
-                "get_ptw_report": "/ptw-report",
                 "list_ptw_charts": "/ptw-charts"
             },
             "inspections_audit": {
                 "upload_inspections": "/upload-inspections",
                 "generate_inspections_report": "/generate-inspections-report",
                 "generate_inspections_charts": "/generate-inspections-charts",
-                "get_inspections_report": "/inspections-report",
                 "list_inspections_charts": "/inspections-charts"
             },
             "medical_records": {
                 "upload_medical": "/upload-medical",
                 "generate_medical_report": "/generate-medical-report",
                 "generate_medical_charts": "/generate-medical-charts",
-                "get_medical_report": "/medical-report",
                 "list_medical_charts": "/medical-charts"
             },
             "training_database": {
                 "upload_training": "/upload-training",
                 "generate_training_report": "/generate-training-report",
                 "generate_training_charts": "/generate-training-charts",
-                "get_training_report": "/training-report",
                 "list_training_charts": "/training-charts"
             },
             "ppe_assets": {
                 "upload_ppe": "/upload-ppe",
                 "generate_ppe_report": "/generate-ppe-report",
                 "generate_ppe_charts": "/generate-ppe-charts",
-                "get_ppe_report": "/ppe-report",
                 "list_ppe_charts": "/ppe-charts"
             },
             "corrective_actions_rca": {
                 "upload_rca": "/upload-rca",
                 "generate_rca_report": "/generate-rca-report",
                 "generate_rca_charts": "/generate-rca-charts",
-                "get_rca_report": "/rca-report",
                 "list_rca_charts": "/rca-charts"
             },
             "environmental_resource_use": {
                 "upload_environmental": "/upload-environmental",
                 "generate_environmental_report": "/generate-environmental-report",
                 "generate_environmental_charts": "/generate-environmental-charts",
-                "get_environmental_report": "/environmental-report",
                 "list_environmental_charts": "/environmental-charts"
             },
             "social_governance": {
                 "upload_social_governance": "/upload-social-governance",
                 "generate_social_governance_report": "/generate-social-governance-report",
                 "generate_social_governance_charts": "/generate-social-governance-charts",
-                "get_social_governance_report": "/social-governance-report",
                 "list_social_governance_charts": "/social-governance-charts"
             },
             "status": "/status"
@@ -196,14 +194,8 @@ async def upload_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as sample.xlsx
-        file_path = BASE_DIR / "sample.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -288,24 +280,23 @@ async def generate_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_report(report_content, REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Report generated successfully",
-            "report_path": str(REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -375,50 +366,50 @@ async def generate_charts(
         import warnings
         warnings.filterwarnings('ignore')
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            # This will load the data from CSV files
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all charts
-            charting.create_trend_analysis()
-            charting.create_location_heatmap()
-            charting.create_risk_analysis()
-            charting.create_department_analysis()
-            charting.create_shift_analysis()
-            charting.create_timeline_analysis()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_safety_charts(charting_module: Any) -> None:
+            charting_module.create_safety_kpi_dashboard()
+            charting_module.create_trend_analysis()
+            charting_module.create_location_heatmap()
+            charting_module.create_risk_analysis()
+            charting_module.create_department_analysis()
+            charting_module.create_shift_analysis()
+            charting_module.create_timeline_analysis()
+
+        await _run_charting_and_capture(user_id, _run_safety_charts)
         
-        # List generated charts
-        chart_files = list(CHARTS_DIR.glob("*.html"))
+        # List only safety (non-prefixed) charts similar to other chart endpoints
+        chart_files = [
+            f for f in CHARTS_DIR.glob("*.html")
+            if not (
+                f.name.startswith("ptw_")
+                or f.name.startswith("insp_")
+                or f.name.startswith("medical_")
+                or f.name.startswith("training_")
+                or f.name.startswith("ppe_")
+                or f.name.startswith("rca_")
+                or f.name.startswith("env_")
+                or f.name.startswith("social_")
+            )
+        ]
         
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(chart_files),
-            "chart_files": [f.name for f in chart_files]
+            "chart_files": [f.name for f in chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -443,43 +434,6 @@ async def generate_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating charts: {str(e)}")
-
-
-@app.get("/report")
-async def get_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/report"
-    
-    if not REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Report not found"
-        )
-        raise HTTPException(status_code=404, detail="Report not found. Please generate report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=REPORT_PATH,
-        filename="report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/charts")
@@ -590,14 +544,8 @@ async def upload_ptw_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as ptw&kpi.xlsx
-        file_path = BASE_DIR / "ptw&kpi.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -689,24 +637,23 @@ async def generate_ptw_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_ptw_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_ptw_report(report_content, PTW_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "PTW/KPI report generated successfully",
-            "report_path": str(PTW_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -759,24 +706,10 @@ async def generate_ptw_charts(
                 detail="PTW/KPI extracted tables not found. Please upload ptw&kpi.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all PTW charts
-            charting.create_all_ptw_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_ptw(charting_module: Any) -> None:
+            charting_module.create_all_ptw_charts()
+
+        await _run_charting_and_capture(user_id, _run_ptw)
         
         # List generated PTW charts
         ptw_chart_files = list(CHARTS_DIR.glob("ptw_*.html"))
@@ -784,19 +717,21 @@ async def generate_ptw_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "PTW/KPI charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(ptw_chart_files),
-            "chart_files": [f.name for f in ptw_chart_files]
+            "chart_files": [f.name for f in ptw_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -821,43 +756,6 @@ async def generate_ptw_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating PTW charts: {str(e)}")
-
-
-@app.get("/ptw-report")
-async def get_ptw_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated PTW/KPI report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/ptw-report"
-    
-    if not PTW_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="PTW report not found"
-        )
-        raise HTTPException(status_code=404, detail="PTW report not found. Please generate PTW report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=PTW_REPORT_PATH,
-        filename="ptw_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/ptw-charts")
@@ -909,87 +807,72 @@ async def get_status(
     
     status_info = {
         "safety_data": {
-            "excel_file_exists": EXCEL_PATH.exists(),
             "extracted_tables_exist": EXTRACTED_DIR.exists() and any(EXTRACTED_DIR.rglob("table_*.csv")),
-            "report_exists": REPORT_PATH.exists(),
-            "charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("*.html"))
+            "charts_exist": CHARTS_DIR.exists() and any(
+                f for f in CHARTS_DIR.glob("*.html")
+                if not f.name.startswith(("ptw_", "insp_", "medical_", "training_", "ppe_", "rca_", "env_", "social_"))
+            )
         },
         "ptw_kpi": {
-            "ptw_excel_file_exists": PTW_EXCEL_PATH.exists(),
             "ptw_tables_exist": (
                 (EXTRACTED_DIR / "PTW_Records" / "table_1.csv").exists() and
                 (EXTRACTED_DIR / "PTW_KPIs_By_Area" / "table_1.csv").exists()
             ),
-            "ptw_report_exists": PTW_REPORT_PATH.exists(),
             "ptw_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("ptw_*.html"))
         },
         "inspections_audit": {
-            "inspections_excel_file_exists": INSPECTIONS_EXCEL_PATH.exists(),
             "inspections_tables_exist": (
                 (EXTRACTED_DIR / "Inspections" / "table_1.csv").exists() and
                 (EXTRACTED_DIR / "Top_Recurring_Failures" / "table_1.csv").exists()
             ),
-            "inspections_report_exists": INSPECTIONS_REPORT_PATH.exists(),
             "inspections_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("insp_*.html"))
         },
         "medical_records": {
-            "medical_excel_file_exists": MEDICAL_EXCEL_PATH.exists(),
             "medical_tables_exist": (
                 (EXTRACTED_DIR / "Medical_Records" / "table_1.csv").exists() and
                 (EXTRACTED_DIR / "Medical_KPIs" / "table_1.csv").exists()
             ),
-            "medical_report_exists": MEDICAL_REPORT_PATH.exists(),
             "medical_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("medical_*.html"))
         },
         "training_database": {
-            "training_excel_file_exists": TRAINING_EXCEL_PATH.exists(),
             "training_tables_exist": (
                 (EXTRACTED_DIR / "Training_Records_150plus" / "table_1.csv").exists()
             ),
-            "training_report_exists": TRAINING_REPORT_PATH.exists(),
             "training_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("training_*.html"))
         },
         "ppe_assets": {
-            "ppe_excel_file_exists": PPE_EXCEL_PATH.exists(),
             "ppe_tables_exist": (
                 (EXTRACTED_DIR / "Sheet1" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "PPE" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Assets_PPE" / "table_1.csv").exists()
             ),
-            "ppe_report_exists": PPE_REPORT_PATH.exists(),
             "ppe_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("ppe_*.html"))
         },
         "corrective_actions_rca": {
-            "rca_excel_file_exists": RCA_EXCEL_PATH.exists(),
             "rca_tables_exist": (
                 (EXTRACTED_DIR / "Corrective_Actions_RCA" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Corrective_Actions" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "RCA" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Actions" / "table_1.csv").exists()
             ),
-            "rca_report_exists": RCA_REPORT_PATH.exists(),
             "rca_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("rca_*.html"))
         },
         "environmental_resource_use": {
-            "environmental_excel_file_exists": ENVIRONMENTAL_EXCEL_PATH.exists(),
             "environmental_tables_exist": (
                 (EXTRACTED_DIR / "Environmental_Data" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Monthly_KPIs" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Environmental" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Resource_Use" / "table_1.csv").exists()
             ),
-            "environmental_report_exists": ENVIRONMENTAL_REPORT_PATH.exists(),
             "environmental_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("env_*.html"))
         },
         "social_governance": {
-            "social_governance_excel_file_exists": SOCIAL_GOVERNANCE_EXCEL_PATH.exists(),
             "social_governance_tables_exist": (
                 (EXTRACTED_DIR / "Workforce_Social" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Workforce_KPIs_By_Dept" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Supplier_Audits" / "table_1.csv").exists() or
                 (EXTRACTED_DIR / "Governance_Metrics" / "table_1.csv").exists()
             ),
-            "social_governance_report_exists": SOCIAL_GOVERNANCE_REPORT_PATH.exists(),
             "social_governance_charts_exist": CHARTS_DIR.exists() and any(CHARTS_DIR.glob("social_*.html"))
         }
     }
@@ -1077,14 +960,8 @@ async def upload_inspections_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as inspections_audit_database.xlsx
-        file_path = BASE_DIR / "inspections_audit_database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -1176,24 +1053,23 @@ async def generate_inspections_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_inspections_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_inspections_report(report_content, INSPECTIONS_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Inspections/Audit report generated successfully",
-            "report_path": str(INSPECTIONS_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1245,24 +1121,10 @@ async def generate_inspections_charts(
                 detail="Inspections/Audit extracted tables not found. Please upload inspections_audit_database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all inspections charts
-            charting.create_all_inspections_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_inspections(charting_module: Any) -> None:
+            charting_module.create_all_inspections_charts()
+
+        await _run_charting_and_capture(user_id, _run_inspections)
         
         # List generated inspections charts
         inspections_chart_files = list(CHARTS_DIR.glob("insp_*.html"))
@@ -1270,19 +1132,21 @@ async def generate_inspections_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Inspections/Audit charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(inspections_chart_files),
-            "chart_files": [f.name for f in inspections_chart_files]
+            "chart_files": [f.name for f in inspections_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1307,43 +1171,6 @@ async def generate_inspections_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Inspections charts: {str(e)}")
-
-
-@app.get("/inspections-report")
-async def get_inspections_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Inspections/Audit report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/inspections-report"
-    
-    if not INSPECTIONS_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Inspections report not found"
-        )
-        raise HTTPException(status_code=404, detail="Inspections report not found. Please generate Inspections report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=INSPECTIONS_REPORT_PATH,
-        filename="inspections_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/inspections-charts")
@@ -1414,14 +1241,8 @@ async def upload_medical_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as medical_records_database.xlsx
-        file_path = BASE_DIR / "medical_records_database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -1513,24 +1334,23 @@ async def generate_medical_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_medical_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_medical_report(report_content, MEDICAL_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Medical Records report generated successfully",
-            "report_path": str(MEDICAL_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1582,24 +1402,10 @@ async def generate_medical_charts(
                 detail="Medical Records extracted tables not found. Please upload medical_records_database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all medical charts
-            charting.create_all_medical_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_medical(charting_module: Any) -> None:
+            charting_module.create_all_medical_charts()
+
+        await _run_charting_and_capture(user_id, _run_medical)
         
         # List generated medical charts
         medical_chart_files = list(CHARTS_DIR.glob("medical_*.html"))
@@ -1607,19 +1413,21 @@ async def generate_medical_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Medical Records charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(medical_chart_files),
-            "chart_files": [f.name for f in medical_chart_files]
+            "chart_files": [f.name for f in medical_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1644,43 +1452,6 @@ async def generate_medical_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Medical charts: {str(e)}")
-
-
-@app.get("/medical-report")
-async def get_medical_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Medical Records report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/medical-report"
-    
-    if not MEDICAL_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Medical report not found"
-        )
-        raise HTTPException(status_code=404, detail="Medical report not found. Please generate Medical report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=MEDICAL_REPORT_PATH,
-        filename="medical_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/medical-charts")
@@ -1751,14 +1522,8 @@ async def upload_training_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as training_database.xlsx
-        file_path = BASE_DIR / "training_database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -1849,24 +1614,23 @@ async def generate_training_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_training_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_training_report(report_content, TRAINING_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Training Database report generated successfully",
-            "report_path": str(TRAINING_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1918,24 +1682,10 @@ async def generate_training_charts(
                 detail="Training Database extracted tables not found. Please upload training_database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all training charts
-            charting.create_all_training_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_training(charting_module: Any) -> None:
+            charting_module.create_all_training_charts()
+
+        await _run_charting_and_capture(user_id, _run_training)
         
         # List generated training charts
         training_chart_files = list(CHARTS_DIR.glob("training_*.html"))
@@ -1943,19 +1693,21 @@ async def generate_training_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Training Database charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(training_chart_files),
-            "chart_files": [f.name for f in training_chart_files]
+            "chart_files": [f.name for f in training_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -1980,43 +1732,6 @@ async def generate_training_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Training charts: {str(e)}")
-
-
-@app.get("/training-report")
-async def get_training_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Training Database report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/training-report"
-    
-    if not TRAINING_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Training report not found"
-        )
-        raise HTTPException(status_code=404, detail="Training report not found. Please generate Training report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=TRAINING_REPORT_PATH,
-        filename="training_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/training-charts")
@@ -2087,14 +1802,8 @@ async def upload_ppe_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as assets&ppe.xlsx
-        file_path = BASE_DIR / "assets&ppe.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -2195,24 +1904,23 @@ async def generate_ppe_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_ppe_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_ppe_report(report_content, PPE_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "PPE (Assets & PPE) report generated successfully",
-            "report_path": str(PPE_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -2274,24 +1982,10 @@ async def generate_ppe_charts(
                 detail="PPE extracted tables not found. Please upload assets&ppe.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all PPE charts
-            charting.create_all_ppe_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_ppe(charting_module: Any) -> None:
+            charting_module.create_all_ppe_charts()
+
+        await _run_charting_and_capture(user_id, _run_ppe)
         
         # List generated PPE charts
         ppe_chart_files = list(CHARTS_DIR.glob("ppe_*.html"))
@@ -2299,19 +1993,21 @@ async def generate_ppe_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "PPE (Assets & PPE) charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(ppe_chart_files),
-            "chart_files": [f.name for f in ppe_chart_files]
+            "chart_files": [f.name for f in ppe_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -2336,43 +2032,6 @@ async def generate_ppe_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating PPE charts: {str(e)}")
-
-
-@app.get("/ppe-report")
-async def get_ppe_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated PPE (Assets & PPE) report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/ppe-report"
-    
-    if not PPE_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="PPE report not found"
-        )
-        raise HTTPException(status_code=404, detail="PPE report not found. Please generate PPE report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=PPE_REPORT_PATH,
-        filename="ppe_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/ppe-charts")
@@ -2443,14 +2102,8 @@ async def upload_rca_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as corrective_actions_database.xlsx
-        file_path = BASE_DIR / "corrective_actions_database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -2552,24 +2205,23 @@ async def generate_rca_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_rca_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_rca_report(report_content, RCA_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Corrective Actions & RCA report generated successfully",
-            "report_path": str(RCA_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -2632,24 +2284,10 @@ async def generate_rca_charts(
                 detail="Corrective Actions & RCA extracted tables not found. Please upload corrective_actions_database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all RCA charts
-            charting.create_all_rca_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_rca(charting_module: Any) -> None:
+            charting_module.create_all_rca_charts()
+
+        await _run_charting_and_capture(user_id, _run_rca)
         
         # List generated RCA charts
         rca_chart_files = list(CHARTS_DIR.glob("rca_*.html"))
@@ -2657,19 +2295,21 @@ async def generate_rca_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Corrective Actions & RCA charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(rca_chart_files),
-            "chart_files": [f.name for f in rca_chart_files]
+            "chart_files": [f.name for f in rca_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -2694,43 +2334,6 @@ async def generate_rca_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Corrective Actions & RCA charts: {str(e)}")
-
-
-@app.get("/rca-report")
-async def get_rca_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Corrective Actions & RCA report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/rca-report"
-    
-    if not RCA_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="RCA report not found"
-        )
-        raise HTTPException(status_code=404, detail="Corrective Actions & RCA report not found. Please generate RCA report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=RCA_REPORT_PATH,
-        filename="rca_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/rca-charts")
@@ -2801,14 +2404,8 @@ async def upload_environmental_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as Environmental & Resource Use_ database.xlsx
-        file_path = BASE_DIR / "Environmental & Resource Use_ database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -2916,24 +2513,23 @@ async def generate_environmental_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_environmental_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_environmental_report(report_content, ENVIRONMENTAL_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Environmental & Resource Use report generated successfully",
-            "report_path": str(ENVIRONMENTAL_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -3002,24 +2598,10 @@ async def generate_environmental_charts(
                 detail="Environmental & Resource Use extracted tables not found. Please upload Environmental & Resource Use_ database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all environmental charts
-            charting.create_all_environmental_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_environmental(charting_module: Any) -> None:
+            charting_module.create_all_environmental_charts()
+
+        await _run_charting_and_capture(user_id, _run_environmental)
         
         # List generated environmental charts
         environmental_chart_files = list(CHARTS_DIR.glob("env_*.html"))
@@ -3027,19 +2609,21 @@ async def generate_environmental_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Environmental & Resource Use charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(environmental_chart_files),
-            "chart_files": [f.name for f in environmental_chart_files]
+            "chart_files": [f.name for f in environmental_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -3064,43 +2648,6 @@ async def generate_environmental_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Environmental & Resource Use charts: {str(e)}")
-
-
-@app.get("/environmental-report")
-async def get_environmental_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Environmental & Resource Use report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/environmental-report"
-    
-    if not ENVIRONMENTAL_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Environmental report not found"
-        )
-        raise HTTPException(status_code=404, detail="Environmental & Resource Use report not found. Please generate Environmental report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=ENVIRONMENTAL_REPORT_PATH,
-        filename="environmental_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/environmental-charts")
@@ -3171,14 +2718,8 @@ async def upload_social_governance_excel(
         # Check file size limit
         await check_file_size_limit(current_user, file_size)
         
-        # Save uploaded file as social_governance_database.xlsx
-        file_path = BASE_DIR / "social_governance_database.xlsx"
-        
-        with open(file_path, "wb") as buffer:
-            buffer.write(file_content)
-        
-        # Extract tables from the Excel file
-        extract_tables(str(file_path))
+        # Extract tables directly from the uploaded Excel content
+        extract_tables(file_content, output_dir=EXTRACTED_DIR)
         
         response_time = time.time() - start_time
         
@@ -3291,24 +2832,23 @@ async def generate_social_governance_report(
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_social_governance_report_with_gemini(prompt)
         
-        # Step 4: Save report
-        phidata_agent.save_social_governance_report(report_content, SOCIAL_GOVERNANCE_REPORT_PATH)
-        
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Social & Governance report generated successfully",
-            "report_path": str(SOCIAL_GOVERNANCE_REPORT_PATH),
-            "report_length": len(report_content)
+            "report_length": len(report_content),
+            "report_content": report_content,
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -3382,24 +2922,10 @@ async def generate_social_governance_charts(
                 detail="Social & Governance extracted tables not found. Please upload social_governance_database.xlsx first."
             )
         
-        # Change to the base directory to ensure relative paths work
-        original_cwd = os.getcwd()
-        try:
-            os.chdir(BASE_DIR)
-            
-            # Import charting module now that we're in the right directory
-            import services.charting as charting
-            import importlib
-            importlib.reload(charting)
-            
-            # Update charts directory path
-            charting.charts_dir = str(CHARTS_DIR)
-            
-            # Generate all social/governance charts
-            charting.create_all_social_governance_charts()
-            
-        finally:
-            os.chdir(original_cwd)
+        def _run_social(charting_module: Any) -> None:
+            charting_module.create_all_social_governance_charts()
+
+        await _run_charting_and_capture(user_id, _run_social)
         
         # List generated social/governance charts
         social_governance_chart_files = list(CHARTS_DIR.glob("social_*.html"))
@@ -3407,19 +2933,21 @@ async def generate_social_governance_charts(
         response_time = time.time() - start_time
         
         # Track API usage
-        await track_api_usage(
+        usage_stats = await track_api_usage(
             user_id=user_id,
             endpoint=endpoint,
             method="POST",
             status_code=200,
-            response_time=response_time
+            response_time=response_time,
+            deduct_api_call=True
         )
         
         return {
             "message": "Social & Governance charts generated successfully",
             "charts_dir": str(CHARTS_DIR),
             "charts_generated": len(social_governance_chart_files),
-            "chart_files": [f.name for f in social_governance_chart_files]
+            "chart_files": [f.name for f in social_governance_chart_files],
+            "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
     except HTTPException:
@@ -3444,43 +2972,6 @@ async def generate_social_governance_charts(
             error_message=str(e)
         )
         raise HTTPException(status_code=500, detail=f"Error generating Social & Governance charts: {str(e)}")
-
-
-@app.get("/social-governance-report")
-async def get_social_governance_report(
-    current_user: dict = Depends(get_current_active_user)
-):
-    """Get the generated Social & Governance report file. Requires authentication."""
-    start_time = time.time()
-    user_id = str(current_user["_id"])
-    endpoint = "/social-governance-report"
-    
-    if not SOCIAL_GOVERNANCE_REPORT_PATH.exists():
-        response_time = time.time() - start_time
-        await track_api_usage(
-            user_id=user_id,
-            endpoint=endpoint,
-            method="GET",
-            status_code=404,
-            response_time=response_time,
-            error_message="Social & Governance report not found"
-        )
-        raise HTTPException(status_code=404, detail="Social & Governance report not found. Please generate Social & Governance report first.")
-    
-    response_time = time.time() - start_time
-    await track_api_usage(
-        user_id=user_id,
-        endpoint=endpoint,
-        method="GET",
-        status_code=200,
-        response_time=response_time
-    )
-    
-    return FileResponse(
-        path=SOCIAL_GOVERNANCE_REPORT_PATH,
-        filename="social_governance_report.md",
-        media_type="text/markdown"
-    )
 
 
 @app.get("/social-governance-charts")

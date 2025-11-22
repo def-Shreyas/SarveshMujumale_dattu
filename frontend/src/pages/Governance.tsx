@@ -504,7 +504,29 @@ export const Governance: React.FC = () => {
       },
     });
 
-    if (!r1.ok) throw new Error(`Report generation failed (${r1.status})`);
+    if (!r1.ok) {
+      let errorMessage = `Report generation failed (${r1.status})`;
+      try {
+        const contentType = r1.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          const errorBody = await r1.json();
+          if (errorBody?.detail) {
+            errorMessage = errorBody.detail;
+          } else if (errorBody?.message) {
+            errorMessage = errorBody.message;
+          }
+        } else {
+          const errorText = await r1.text();
+          if (errorText && errorText.trim()) {
+            errorMessage = errorText;
+          }
+        }
+      } catch (e) {
+        // If we can't parse the error, use the default message
+        console.error("Failed to parse error response:", e);
+      }
+      throw new Error(errorMessage);
+    }
 
     await new Promise((res) => setTimeout(res, 1200));
 
@@ -515,7 +537,28 @@ export const Governance: React.FC = () => {
       },
     });
 
-    if (!r2.ok) throw new Error(`Chart generation failed (${r2.status})`);
+    if (!r2.ok) {
+      let errorMessage = `Chart generation failed (${r2.status})`;
+      try {
+        const contentType = r2.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          const errorBody = await r2.json();
+          if (errorBody?.detail) {
+            errorMessage = errorBody.detail;
+          } else if (errorBody?.message) {
+            errorMessage = errorBody.message;
+          }
+        } else {
+          const errorText = await r2.text();
+          if (errorText && errorText.trim()) {
+            errorMessage = errorText;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse error response:", e);
+      }
+      throw new Error(errorMessage);
+    }
   };
 
   // Fetch AI report text

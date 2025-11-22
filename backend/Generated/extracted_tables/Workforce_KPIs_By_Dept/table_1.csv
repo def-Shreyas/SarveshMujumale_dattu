@@ -1,0 +1,16 @@
+dept,employees,avg_training_hours,avg_turnover_pct,avg_absenteeism_pct,avg_survey_score
+Assembly,13,14.77,7.91,2.25,72.28
+Body Shop,8,18.62,10.65,2.99,68.71
+Electrical,10,18.4,4.73,2.28,73.99
+Engineering,14,21.21,3.16,1.18,75.31
+HR,20,32.5,1.9,1.01,74.22
+Logistics,14,9.57,14.67,3.53,69.15
+Maintenance,17,21.53,5.12,2.15,70.11
+Paint,10,21.8,12.61,3.68,69.84
+Procurement,14,7.79,4.8,1.61,72.54
+Quality,11,11.09,4.13,1.67,74.67
+Safety,22,38.68,2.02,0.92,74.93
+Stamping,17,13.24,8.28,2.57,72.52
+Stores,12,6.67,5.97,2.01,74.93
+Testing,8,11.0,4.89,2.02,71.59
+Welding,10,20.8,10.46,3.06,71.02
