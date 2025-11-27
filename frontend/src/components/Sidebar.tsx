@@ -1,42 +1,52 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion"; // <-- 1. IMPORTED FRAMER MOTION
-import { ScrollArea } from "@/components/ui/scroll-area"; // <-- 2. IMPORTED SCROLL AREA
+import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
 // Import Lucide icons
 import {
   LayoutDashboard,
-  ShieldAlert,
   FileText,
-  Users,
   CheckSquare,
   HeartPulse,
   HardHat,
-  Target,
   Leaf,
-  Building,
-  MessageSquare,
+  Scale,
+  GitMerge,
+  GraduationCap,
+  AlertTriangle,
+  MoreVertical,
   Settings,
-  Eye,
+  LogOut,
 } from "lucide-react";
-
-// Import your Dattu image
-import DattuAvatar from "/logo dattu.png"; // Make sure this path is correct
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Incidents & Near-Misses", href: "/unsafety", icon:ShieldAlert  },
+  { name: "Incidents & Near-Misses", href: "/unsafety", icon: AlertTriangle },
   { name: "Permit-to-Work (PTW)", href: "/ptw", icon: FileText },
   { name: "Inspections & Audits", href: "/audits", icon: CheckSquare },
   { name: "Medical & First-Aid", href: "/medical", icon: HeartPulse },
-  { name: "Training & Competency", href: "/training", icon: Users },
+  { name: "Training & Competency", href: "/training", icon: GraduationCap },
   { name: "Assets & PPE Management", href: "/ppe", icon: HardHat },
-  { name: "Corrective Actions & RCA", href: "/rca", icon: Target },
+  { name: "Corrective Actions & RCA", href: "/rca", icon: GitMerge },
   { name: "Environmental & Resource", href: "/environmental", icon: Leaf },
-  { name: "Social & Governance", href: "/governance", icon: Building },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Social & Governance", href: "/governance", icon: Scale },
 ];
 
 interface SidebarProps {
@@ -52,27 +62,25 @@ const textVariant = {
 export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
   const location = useLocation();
   const pathname = location.pathname;
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
 
   return (
-    // 3. Replaced <aside> with <motion.aside>
     <motion.aside
       className={cn(
-        // 4. KEPT YOUR NAVY BLUE BACKGROUND
         "fixed top-16 left-0 z-40 h-[calc(100vh-64px)] border-r border-blue-900 bg-[#0B3D91] text-white"
       )}
-      // 5. Animate the width property for a smooth collapse
       animate={{ width: isCollapsed ? 80 : 260 }}
-      transition={{ 
+      transition={{
         type: "spring",
-        stiffness: 400, 
-        damping: 40 
+        stiffness: 400,
+        damping: 40
       }}
     >
       <div className="flex h-full flex-col p-4">
-        
-        {/* 6. ADDED SMOOTH SCROLLER */}
+
         <ScrollArea className="flex-1">
-          <nav className="flex flex-col gap-1 pr-2"> {/* pr-2 adds space for scrollbar */}
+          <nav className="flex flex-col gap-1 pr-2">
             {navItems.map((item) => {
               const isActive =
                 item.href === "/"
@@ -80,10 +88,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
                   : pathname.startsWith(item.href);
 
               return (
-                // 7. ADDED MOTION WRAPPER
                 <motion.div
                   key={item.name}
-                  whileHover={{ x: isCollapsed ? 0 : 5 }} // Nudges on hover
+                  whileHover={{ x: isCollapsed ? 0 : 5 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
                   <Link
@@ -98,10 +105,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
                     <item.icon
                       className={cn(
                         "h-5 w-5 flex-shrink-0",
-                        isActive && "text-[#00A79D]" // Accent teal for active icon
+                        isActive && "text-[#00A79D]"
                       )}
                     />
-                    {/* 8. THIS IS THE SMOOTH FADE FOR TEXT */}
                     <motion.span
                       className="overflow-hidden whitespace-nowrap"
                       variants={textVariant}
@@ -116,46 +122,100 @@ export const Sidebar: React.FC<SidebarProps> = ({ isCollapsed }) => {
           </nav>
         </ScrollArea>
 
-        {/* 9. UPGRADED "ASK DATTU" BUTTON */}
-        <div className="mt-auto pt-4"> 
-          <motion.div 
-            whileHover={{ scale: 1.03 }} 
-            whileTap={{ scale: 0.98 }}
-            title={isCollapsed ? "Ask DATTU" : undefined}
-          >
+        {/* Footer Section: Settings & Profile */}
+        <div className="mt-auto pt-4 flex flex-col gap-2">
+
+          {/* Settings Button - OUTSIDE the dropdown, directly in sidebar */}
+          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
             <Button
-              variant="outline" 
+              variant="outline"
+              onClick={() => navigate("/settings")}
               className={cn(
-                // White button, Navy text
                 "w-full gap-3 border-2 border-[#0B3D91] bg-white text-[#0B3D91] text-base font-semibold transition-all duration-200 shadow-md",
-                "hover:bg-gray-100 hover:shadow-lg", 
+                "hover:bg-gray-100 hover:shadow-lg",
                 isCollapsed ? "justify-center" : "justify-start"
               )}
               size="lg"
             >
-              {/* Avatar with "bouncy" hover */}
-              <motion.div 
-                className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-full border-2 border-[#0B3D91]"
-                whileHover={{ rotate: [0, 10, -5, 0], scale: 1.1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <img
-                  src={DattuAvatar}
-                  alt="Dattu Assistant"
-                  className="h-full w-full object-cover"
-                />
-              </motion.div>
-              
-              {/* Animated text that fades smoothly */}
+              <Settings className="h-5 w-5" />
               <motion.span
                 className="overflow-hidden whitespace-nowrap"
                 variants={textVariant}
                 animate={isCollapsed ? "hidden" : "visible"}
               >
-                Ask DATTU
+                Settings
               </motion.span>
             </Button>
           </motion.div>
+
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full gap-3 h-auto py-2 px-2 hover:bg-white/10 text-white hover:text-white transition-all duration-200 outline-none ring-0 focus-visible:ring-0",
+                  isCollapsed ? "justify-center" : "justify-start"
+                )}
+              >
+                <Avatar className="h-9 w-9 border-2 border-white/20">
+                  <AvatarImage src={user?.avatar_url} alt={user?.username} />
+                  <AvatarFallback className="bg-[#00A79D] text-white font-bold">
+                    {user?.username?.charAt(0).toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+
+                <motion.div
+                  className="flex flex-col items-start text-left overflow-hidden"
+                  variants={textVariant}
+                  animate={isCollapsed ? "hidden" : "visible"}
+                >
+                  <span className="text-sm font-bold truncate w-40">{user?.username || "User"}</span>
+                  <span className="text-xs text-gray-300 truncate w-40">{user?.company_name || "Company"}</span>
+                </motion.div>
+
+                {!isCollapsed && (
+                  <MoreVertical className="h-4 w-4 ml-auto text-gray-400" />
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+
+            {/* Dropdown Content */}
+            <DropdownMenuContent
+              side="top"
+              align="center"
+              sideOffset={8}
+              className={cn(
+                "w-[220px] p-2",
+                // Matches sidebar blue, adds subtle border
+                "bg-[#FAF9F6] border border-white/10 text-black shadow-xl z-50"
+              )}
+            >
+              {/* Minimal Header */}
+              <DropdownMenuLabel className="font-normal p-2">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none text-black">
+                    {user?.username}
+                  </p>
+                  <p className="text-xs leading-none text-black opacity-70">
+                    {user?.email || "user@example.com"}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+
+              <DropdownMenuSeparator className="bg-black" />
+
+              {/* Only Logout Button as requested */}
+              <DropdownMenuItem
+                onClick={() => { logout(); navigate("/login"); }}
+                className="text-black hover:text-black focus:text-black cursor-pointer"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </motion.aside>

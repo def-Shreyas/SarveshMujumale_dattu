@@ -1,7 +1,7 @@
 // This is the complete and final types file.
 // It includes all interfaces for all 9 modules plus the dashboard.
 
-import type { ReactNode, ReactElement } from "react";
+import React from "react";
 
 // --- For AuthContext & Settings ---
 export interface User {
@@ -11,7 +11,7 @@ export interface User {
   role: "admin" | "user" | "CEO" | "CFO" | "CHRO" | "COO" | "SafetyManager";
   company_name?: string;
   subscription_tier: string;
-  status: string; 
+  status: string;
 }
 
 export interface ApiUsage {
@@ -101,12 +101,12 @@ export interface InjuryTypeData {
 
 // --- For PTW.tsx (Module 2) ---
 export type PtwStatus = "Open" | "Closed" | "Overdue";
-export type PtwWorkType = 
-  | "Hot Work" 
-  | "Confined Space" 
-  | "Working at Height" 
-  | "Electrical" 
-  | "Excavation" 
+export type PtwWorkType =
+  | "Hot Work"
+  | "Confined Space"
+  | "Working at Height"
+  | "Electrical"
+  | "Excavation"
   | "Other";
 
 export interface Ptw {
@@ -197,7 +197,7 @@ export interface AuditKpi {
   value: string;
   formula: string;
   progress?: number;
-  invertProgressColor?: boolean; 
+  invertProgressColor?: boolean;
 }
 
 export interface ComplianceByAreaData {
@@ -363,7 +363,7 @@ export interface ResourceTrendData {
   month: string;
   "Energy (kWh)": number;
   "Water (m³)": number;
-  [key:string]: any;
+  [key: string]: any;
 }
 
 export interface WasteSummaryData {

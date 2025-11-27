@@ -176,9 +176,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             .map((c) => c.trim())
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${
-              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-            } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               let cellContent = escapeHtml(cell);
               cellContent = cellContent.replace(
@@ -356,6 +355,18 @@ export const Environmental: React.FC = () => {
         .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
         setSelectedFile(file);
         setFileUploaded(false);
         setShowReport(false);
@@ -411,12 +422,12 @@ export const Environmental: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-environmental-report");
-      
+
       if (response && response.report_content) {
-        const reportContent = typeof response.report_content === "string" 
-          ? response.report_content 
+        const reportContent = typeof response.report_content === "string"
+          ? response.report_content
           : String(response.report_content || "");
-        
+
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
@@ -428,7 +439,7 @@ export const Environmental: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating report:", error);
       const errorMessage = error?.message || "Failed to generate report. Please try again.";
-      
+
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
         toast.error("API Configuration Error", {
           description: "API key not configured. Please contact the administrator.",
@@ -463,7 +474,7 @@ export const Environmental: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-environmental-charts");
-      
+
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
@@ -477,7 +488,7 @@ export const Environmental: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating charts:", error);
       const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-      
+
       if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
         toast.error("Upload Required", {
           description: "Please upload the Excel file first before generating charts.",
@@ -568,8 +579,8 @@ export const Environmental: React.FC = () => {
       return;
     }
 
-    toast.info("Generating PDF", { 
-      description: "Capturing report and charts... This may take a moment." 
+    toast.info("Generating PDF", {
+      description: "Capturing report and charts... This may take a moment."
     });
 
     const originalBG = document.body.style.backgroundColor;
@@ -658,7 +669,7 @@ export const Environmental: React.FC = () => {
       if (reportContentRef.current) {
         reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
         await new Promise(resolve => setTimeout(resolve, 100));
-        
+
         const reportCanvas = await html2canvas(reportContentRef.current, {
           scale: 2,
           useCORS: true,
@@ -679,7 +690,7 @@ export const Environmental: React.FC = () => {
           chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const chartsCanvas = await html2canvas(chartsContentRef.current, {
@@ -738,7 +749,7 @@ export const Environmental: React.FC = () => {
       const filename = `Dattu_Environmental_Report_${timestamp}.pdf`;
 
       pdf.save(filename);
-      
+
       toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
     } catch (error: any) {
       console.error("Error generating PDF:", error);
@@ -789,7 +800,7 @@ export const Environmental: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI Environmental & Resource Use Analyzer
+               Environmental & Resource Use Analyzer
             </span>
           </motion.h1>
 
@@ -881,7 +892,7 @@ export const Environmental: React.FC = () => {
                 Upload Environmental & Resource Use Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) containing environmental and resource use data to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing environmental safety and impact data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -904,12 +915,12 @@ export const Environmental: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Leaf className="w-12 h-12 text-gray-400 mb-3" />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only
+                        Excel (.xlsx, .xls) files only (Max 10MB)
                       </p>
                     </>
                   )}
@@ -1031,7 +1042,7 @@ export const Environmental: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your environmental and resource use data.
+                  Generate a comprehensive AI-powered analysis report of your environmental safety and impact data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1068,7 +1079,7 @@ export const Environmental: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your data.
+                  Generate interactive charts and visualizations from your environmental safety and impact data.
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -138,19 +138,19 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const stripHtmlAttributes = (str: string): string => {
       // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      
+
       // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      
+
       // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      
+
       // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-      
+
       return str;
     };
 
@@ -276,9 +276,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
           // Only process if we have the right number of cells
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${
-              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-            } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               // Escape cell content first (but preserve BR placeholders)
               let cellContent = escapeHtml(cell);
@@ -606,6 +605,18 @@ export const PPE: React.FC = () => {
         .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
         setSelectedFile(file);
         setFileUploaded(false);
         setShowReport(false);
@@ -661,13 +672,13 @@ export const PPE: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-ppe-report");
-      
+
       if (response && response.report_content) {
         // Use report_content directly from API response
-        const reportContent = typeof response.report_content === "string" 
-          ? response.report_content 
+        const reportContent = typeof response.report_content === "string"
+          ? response.report_content
           : String(response.report_content || "");
-        
+
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
@@ -679,7 +690,7 @@ export const PPE: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating report:", error);
       const errorMessage = error?.message || "Failed to generate report. Please try again.";
-      
+
       // Provide user-friendly error messages
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
         toast.error("API Configuration Error", {
@@ -716,11 +727,11 @@ export const PPE: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-ppe-charts");
-      
+
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
-        
+
         // Don't auto-load first chart - let user select from dropdown
         // Only set showCharts to true so the dropdown appears
         setShowCharts(true);
@@ -733,7 +744,7 @@ export const PPE: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating charts:", error);
       const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-      
+
       if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
         toast.error("Upload Required", {
           description: "Please upload the Excel file first before generating charts.",
@@ -919,7 +930,7 @@ export const PPE: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI PPE & Assets Analyzer
+              PPE & Assets Analyzer
             </span>
           </motion.h1>
 
@@ -1008,10 +1019,10 @@ export const PPE: React.FC = () => {
                 </div>
               </motion.div>
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Upload PPE & Assets Report
+                Upload PPE & Assets Data
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing PPE inventory and asset data.
               </p>
             </CardHeader>
 
@@ -1034,12 +1045,12 @@ export const PPE: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <HardHat className="w-12 h-12 text-gray-400 mb-3" />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only
+                        Excel (.xlsx, .xls) files only (Max 10MB)
                       </p>
                     </>
                   )}
@@ -1062,8 +1073,7 @@ export const PPE: React.FC = () => {
                 <Button
                   onClick={handleUpload}
                   disabled={!selectedFile || isUploading}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50
-                             shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
                 >
                   {isUploading ? (
                     <>
@@ -1082,54 +1092,11 @@ export const PPE: React.FC = () => {
           </Card>
         </motion.div>
       </div>
+
+
     );
   }
 
-  // 2. Uploading screen
-  if (isUploading) {
-    return (
-      <div className="w-full flex items-center justify-center py-20">
-        <motion.div
-          className="text-center max-w-2xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div
-            className="flex justify-center mb-8"
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
-              <Upload className="w-16 h-16 text-[#0B3D91]" />
-            </div>
-          </motion.div>
-          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-            Uploading Your File...
-          </h2>
-          <p className="text-lg text-gray-600 mb-8">
-            Please wait while we process your Excel file.
-          </p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
-            <motion.div
-              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
-              initial={{ x: "-100%" }}
-              animate={{ x: "100%" }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "linear",
-              }}
-            />
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
 
   // 3. After upload - show Generate buttons
   if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
@@ -1161,7 +1128,7 @@ export const PPE: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your PPE & Assets data.
+                  Generate a comprehensive AI-powered analysis report of your Personal Protective Equipment (PPE) compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1198,7 +1165,7 @@ export const PPE: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your data.
+                  Generate interactive charts and visualizations from your Personal Protective Equipment (PPE) compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1649,213 +1616,213 @@ export const PPE: React.FC = () => {
                     </TabsTrigger>
                   </TabsList>
 
-                    {/* Ledger Tab */}
-                    <TabsContent value="ledger" className="mt-4">
+                  {/* Ledger Tab */}
+                  <TabsContent value="ledger" className="mt-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>PPE Inventory Ledger</CardTitle>
+                        <CardDescription>
+                          Live inventory of all PPE items.
+                        </CardDescription>
+                        {/* Filters */}
+                        <div className="flex flex-wrap items-center gap-2 pt-4">
+                          <Filter className="h-4 w-4 text-gray-500" />
+                          <Select onValueChange={handleFilterChange}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select PPE Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="helmet">Safety Helmet</SelectItem>
+                              <SelectItem value="gloves">Cut-Resist Gloves</SelectItem>
+                              <SelectItem value="goggles">Safety Goggles</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select onValueChange={handleFilterChange}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="in-stock">In Stock</SelectItem>
+                              <SelectItem value="low-stock">Low Stock</SelectItem>
+                              <SelectItem value="expired">Expired</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <PpeTable
+                          stock={stock}
+                          onRowClick={(item) => setSelectedPpe(item)}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  {/* Analytics Tab */}
+                  <TabsContent value="analytics" className="mt-4">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                      className="grid grid-cols-1 gap-6 md:grid-cols-2"
+                    >
                       <Card>
                         <CardHeader>
-                          <CardTitle>PPE Inventory Ledger</CardTitle>
-                          <CardDescription>
-                            Live inventory of all PPE items.
-                          </CardDescription>
-                          {/* Filters */}
-                          <div className="flex flex-wrap items-center gap-2 pt-4">
-                            <Filter className="h-4 w-4 text-gray-500" />
-                            <Select onValueChange={handleFilterChange}>
-                              <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select PPE Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="helmet">Safety Helmet</SelectItem>
-                                <SelectItem value="gloves">Cut-Resist Gloves</SelectItem>
-                                <SelectItem value="goggles">Safety Goggles</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Select onValueChange={handleFilterChange}>
-                              <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Select Status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="in-stock">In Stock</SelectItem>
-                                <SelectItem value="low-stock">Low Stock</SelectItem>
-                                <SelectItem value="expired">Expired</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
+                          <CardTitle>Usage vs. Purchase (6 Months)</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                          <PpeTable
-                            stock={stock}
-                            onRowClick={(item) => setSelectedPpe(item)}
-                          />
+                        <CardContent className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={mockUsageData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="month" fontSize={12} />
+                              <YAxis fontSize={12} />
+                              <RechartsTooltip />
+                              <Legend />
+                              <Bar dataKey="Purchased" fill="#0B3D91" />
+                              <Bar dataKey="Issued" fill="#00A79D" />
+                            </BarChart>
+                          </ResponsiveContainer>
                         </CardContent>
                       </Card>
-                    </TabsContent>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Stock Summary by Type</CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-[300px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={mockStockData}
+                                cx="50%"
+                                cy="50%"
+                                outerRadius={100}
+                                fill="#8884d8"
+                                dataKey="value"
+                                label={(entry) => `${entry.name} (${entry.value})`}
+                              >
+                                {mockStockData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                                ))}
+                              </Pie>
+                              <RechartsTooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  </TabsContent>
 
-                    {/* Analytics Tab */}
-                    <TabsContent value="analytics" className="mt-4">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                        className="grid grid-cols-1 gap-6 md:grid-cols-2"
-                      >
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Usage vs. Purchase (6 Months)</CardTitle>
-                          </CardHeader>
-                          <CardContent className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={mockUsageData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="month" fontSize={12} />
-                                <YAxis fontSize={12} />
-                                <RechartsTooltip />
-                                <Legend />
-                                <Bar dataKey="Purchased" fill="#0B3D91" />
-                                <Bar dataKey="Issued" fill="#00A79D" />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Stock Summary by Type</CardTitle>
-                          </CardHeader>
-                          <CardContent className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
-                                <Pie
-                                  data={mockStockData}
-                                  cx="50%"
-                                  cy="50%"
-                                  outerRadius={100}
-                                  fill="#8884d8"
-                                  dataKey="value"
-                                  label={(entry) => `${entry.name} (${entry.value})`}
-                                >
-                                  {mockStockData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                                  ))}
-                                </Pie>
-                                <RechartsTooltip />
-                              </PieChart>
-                            </ResponsiveContainer>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    </TabsContent>
-
-                    {/* Reorder Alerts Tab */}
-                    <TabsContent value="alerts" className="mt-4">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.5 }}
-                      >
-                        <Accordion type="multiple" defaultValue={["low-stock", "expired"]}>
-                          <AccordionItem value="low-stock">
-                            <AccordionTrigger className="text-lg font-semibold text-yellow-600">
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5" />
-                                Low Stock Items (1)
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              {/* TODO: Populate with real data */}
-                              <p>PPE-002: Cut-Resist Gloves - 20 remaining</p>
-                            </AccordionContent>
-                          </AccordionItem>
-                          <AccordionItem value="out-of-stock">
-                            <AccordionTrigger className="text-lg font-semibold text-red-600">
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5" />
-                                Out of Stock Items (1)
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              {/* TODO: Populate with real data */}
-                              <p>PPE-004: Respirator Cartridge - 0 remaining</p>
-                            </AccordionContent>
-                          </AccordionItem>
-                          <AccordionItem value="expired">
-                            <AccordionTrigger className="text-lg font-semibold text-red-600">
-                              <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5" />
-                                Expired Stock (1)
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              {/* TODO: Populate with real data */}
-                              <p>PPE-005: Fall Arrest Harness - 5 expired on 2025-09-30</p>
-                            </AccordionContent>
-                          </AccordionItem>
-                        </Accordion>
-                      </motion.div>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-
-                {/* Right AI Panel */}
-                <div className="lg:col-span-1">
-                  <Card className="sticky top-20">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Brain className="h-5 w-5 text-[#0B3D91]" />
-                        AI Co-Pilot
-                      </CardTitle>
-                      <CardDescription>
-                        {selectedPpe
-                          ? `Insights for ${selectedPpe.name}`
-                          : "Select an item to see AI insights"}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {selectedPpe ? (
-                        <>
-                          <div>
-                            <h4 className="font-semibold">Predicted Stock-Out</h4>
-                            <p className={cn(
-                              "text-sm font-bold",
-                              selectedPpe.status === "Low Stock" ? "text-red-600" : "text-gray-600"
-                            )}>
-                              {/* TODO: Populate from AI API */}
-                              {selectedPpe.status === "Low Stock" ? "In approx. 3 days" : "In 25 days"}
-                            </p>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold">High-Usage Departments</h4>
-                            <ul className="list-disc pl-5 text-sm text-gray-600">
-                              {/* TODO: Populate from AI API */}
-                              <li>Assembly (60%)</li>
-                              <li>Welding (30%)</li>
-                              <li>Maintenance (10%)</li>
-                            </ul>
-                          </div>
-                          <div>
-                            <h4 className="font-semibold">Suggested Reorder Qty</h4>
-                            <p className="text-lg font-bold text-gray-900">
-                              {/* TODO: Populate from AI API */}
-                              {selectedPpe.name === "Cut-Resist Gloves" ? 500 : 200} units
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
-                          <p>Select a PPE item from the table</p>
-                        </div>
-                      )}
-                      <Button 
-                        className="w-full gap-2" 
-                        onClick={handleGenerateReorderList}
-                      >
-                        <Zap className="h-4 w-4" />
-                        Auto-Generate Reorder List
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
+                  {/* Reorder Alerts Tab */}
+                  <TabsContent value="alerts" className="mt-4">
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Accordion type="multiple" defaultValue={["low-stock", "expired"]}>
+                        <AccordionItem value="low-stock">
+                          <AccordionTrigger className="text-lg font-semibold text-yellow-600">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5" />
+                              Low Stock Items (1)
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {/* TODO: Populate with real data */}
+                            <p>PPE-002: Cut-Resist Gloves - 20 remaining</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="out-of-stock">
+                          <AccordionTrigger className="text-lg font-semibold text-red-600">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5" />
+                              Out of Stock Items (1)
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {/* TODO: Populate with real data */}
+                            <p>PPE-004: Respirator Cartridge - 0 remaining</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="expired">
+                          <AccordionTrigger className="text-lg font-semibold text-red-600">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5" />
+                              Expired Stock (1)
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            {/* TODO: Populate with real data */}
+                            <p>PPE-005: Fall Arrest Harness - 5 expired on 2025-09-30</p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </motion.div>
+                  </TabsContent>
+                </Tabs>
               </div>
-            )}
+
+              {/* Right AI Panel */}
+              <div className="lg:col-span-1">
+                <Card className="sticky top-20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Brain className="h-5 w-5 text-[#0B3D91]" />
+                      AI Co-Pilot
+                    </CardTitle>
+                    <CardDescription>
+                      {selectedPpe
+                        ? `Insights for ${selectedPpe.name}`
+                        : "Select an item to see AI insights"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {selectedPpe ? (
+                      <>
+                        <div>
+                          <h4 className="font-semibold">Predicted Stock-Out</h4>
+                          <p className={cn(
+                            "text-sm font-bold",
+                            selectedPpe.status === "Low Stock" ? "text-red-600" : "text-gray-600"
+                          )}>
+                            {/* TODO: Populate from AI API */}
+                            {selectedPpe.status === "Low Stock" ? "In approx. 3 days" : "In 25 days"}
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">High-Usage Departments</h4>
+                          <ul className="list-disc pl-5 text-sm text-gray-600">
+                            {/* TODO: Populate from AI API */}
+                            <li>Assembly (60%)</li>
+                            <li>Welding (30%)</li>
+                            <li>Maintenance (10%)</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">Suggested Reorder Qty</h4>
+                          <p className="text-lg font-bold text-gray-900">
+                            {/* TODO: Populate from AI API */}
+                            {selectedPpe.name === "Cut-Resist Gloves" ? 500 : 200} units
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
+                        <p>Select a PPE item from the table</p>
+                      </div>
+                    )}
+                    <Button
+                      className="w-full gap-2"
+                      onClick={handleGenerateReorderList}
+                    >
+                      <Zap className="h-4 w-4" />
+                      Auto-Generate Reorder List
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AI Reorder List Modal */}
@@ -1998,11 +1965,11 @@ const PpeTable: React.FC<PpeTableProps> = ({ stock, onRowClick }) => (
           <TableCell>
             <div className="flex items-center gap-2">
               <span className="font-bold">{item.balance}</span>
-              <Progress 
-                value={(item.balance / item.totalPurchased) * 100} 
+              <Progress
+                value={(item.balance / item.totalPurchased) * 100}
                 className="h-2 w-20"
                 indicatorClassName={cn(
-                  "!bg-primary", 
+                  "!bg-primary",
                   item.balance / item.totalPurchased < 0.15 ? "bg-red-500" : "bg-green-500"
                 )}
               />

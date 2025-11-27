@@ -7,6 +7,7 @@ export interface User {
   email: string;
   role: "admin" | "user" | "CEO" | "CFO" | "CHRO" | "COO" | "SafetyManager";
   company_name?: string;
+  avatar_url?: string;
   subscription_tier: string;
   status: string;
 }
@@ -15,7 +16,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
-  login: (user: User, token: string) => void; 
+  login: (user: User, token: string) => void;
   logout: () => void;
 }
 
@@ -31,7 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return null;
     }
   });
-  
+
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('dattu-token');
   });
@@ -55,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout }}>
       {children}
-    </AuthContext.Provider> 
+    </AuthContext.Provider>
   );
 };
 

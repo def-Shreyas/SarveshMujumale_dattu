@@ -20,6 +20,7 @@ import {
   Sparkles,
   Target,
   BarChart2,
+  GitMerge,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -102,19 +103,19 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const stripHtmlAttributes = (str: string): string => {
       // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      
+
       // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      
+
       // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      
+
       // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-      
+
       return str;
     };
 
@@ -246,10 +247,10 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
     html = html.split(/\n\n+/).map(para => {
       if (para.trim()) {
-        if (para.trim().startsWith('<h') || 
-            para.trim().startsWith('<ul') || 
-            para.trim().startsWith('<pre') ||
-            para.trim().startsWith('<div') && para.includes('<table')) {
+        if (para.trim().startsWith('<h') ||
+          para.trim().startsWith('<ul') ||
+          para.trim().startsWith('<pre') ||
+          para.trim().startsWith('<div') && para.includes('<table')) {
           return para;
         }
         return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
@@ -261,7 +262,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   };
 
   return (
-    <div 
+    <div
       className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
       dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
     />
@@ -382,6 +383,18 @@ export const RCA: React.FC = () => {
         .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
         setSelectedFile(file);
         setFileUploaded(false);
         setShowReport(false);
@@ -437,12 +450,12 @@ export const RCA: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-rca-report");
-      
+
       if (response && response.report_content) {
-        const reportContent = typeof response.report_content === "string" 
-          ? response.report_content 
+        const reportContent = typeof response.report_content === "string"
+          ? response.report_content
           : String(response.report_content || "");
-        
+
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
@@ -454,7 +467,7 @@ export const RCA: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating report:", error);
       const errorMessage = error?.message || "Failed to generate report. Please try again.";
-      
+
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
         toast.error("API Configuration Error", {
           description: "API key not configured. Please contact the administrator.",
@@ -489,7 +502,7 @@ export const RCA: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-rca-charts");
-      
+
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
@@ -503,7 +516,7 @@ export const RCA: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating charts:", error);
       const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-      
+
       if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
         toast.error("Upload Required", {
           description: "Please upload the Excel file first before generating charts.",
@@ -596,8 +609,8 @@ export const RCA: React.FC = () => {
       return;
     }
 
-    toast.info("Generating PDF", { 
-      description: "Capturing report and charts... This may take a moment." 
+    toast.info("Generating PDF", {
+      description: "Capturing report and charts... This may take a moment."
     });
 
     const originalBG = document.body.style.backgroundColor;
@@ -691,13 +704,13 @@ export const RCA: React.FC = () => {
 
       // 1. Capture Report Tab
       toast.info("Capturing report...", { id: "pdf-progress" });
-      
+
       // Scroll to top of report content
       if (reportContentRef.current) {
         reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       const reportCanvas = await html2canvas(reportContentRef.current, {
         scale: 2,
         useCORS: true,
@@ -710,8 +723,8 @@ export const RCA: React.FC = () => {
         scrollY: 0,
         onclone: (clonedDoc) => {
           // Ensure colors are preserved in cloned document
-          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
-                               clonedDoc.body.querySelector('.shadow-lg');
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') ||
+            clonedDoc.body.querySelector('.shadow-lg');
           if (clonedElement) {
             (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
           }
@@ -723,13 +736,13 @@ export const RCA: React.FC = () => {
       // 2. Capture Charts Tab (if charts exist)
       if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
         toast.info("Capturing charts...", { id: "pdf-progress" });
-        
+
         // Scroll to top of charts content
         if (chartsContentRef.current) {
           chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         // Wait a bit more for iframe to fully render
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -805,7 +818,7 @@ export const RCA: React.FC = () => {
 
       // Save PDF - this will trigger the file explorer dialog
       pdf.save(filename);
-      
+
       toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
     } catch (error: any) {
       console.error("Error generating PDF:", error);
@@ -864,7 +877,7 @@ export const RCA: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI RCA Analyzer
+              Corrective Action & RCA Analyzer
             </span>
           </motion.h1>
 
@@ -948,7 +961,7 @@ export const RCA: React.FC = () => {
                       ease: "easeInOut",
                     }}
                   >
-                    <Target className="w-12 h-12 text-[#0B3D91]" />
+                    <GitMerge className="w-12 h-12 text-[#0B3D91]" />
                   </motion.div>
                 </div>
               </motion.div>
@@ -956,7 +969,7 @@ export const RCA: React.FC = () => {
                 Upload Corrective Actions & RCA Data
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) containing corrective actions and root cause analysis data to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing Root Cause Analysis (RCA) data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -980,12 +993,12 @@ export const RCA: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <Target className="w-12 h-12 text-gray-400 mb-3" />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only
+                        Excel (.xlsx, .xls) files only (Max 10MB)
                       </p>
                     </>
                   )}
@@ -1108,7 +1121,7 @@ export const RCA: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your corrective actions and RCA data.
+                  Generate a comprehensive AI-powered analysis report of your Root Cause Analysis (RCA) data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1145,7 +1158,7 @@ export const RCA: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your data.
+                  Generate interactive charts and visualizations from your Root Cause Analysis (RCA) data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1587,53 +1600,53 @@ export const RCA: React.FC = () => {
                     </TabsTrigger>
                   </TabsList>
 
-                {/* Ledger Tab */}
-                <TabsContent value="ledger" className="mt-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>All Corrective Actions (CAPA)</CardTitle>
-                      <CardDescription>
-                        Track all open, overdue, and closed actions.
-                      </CardDescription>
-                      {/* Filters */}
-                      <div className="flex flex-wrap items-center gap-2 pt-4">
-                        <Filter className="h-4 w-4 text-gray-500" />
-                        <Input
-                          placeholder="Filter by Incident ID..."
-                          className="w-[180px]"
-                          onChange={handleFilterChange}
+                  {/* Ledger Tab */}
+                  <TabsContent value="ledger" className="mt-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>All Corrective Actions (CAPA)</CardTitle>
+                        <CardDescription>
+                          Track all open, overdue, and closed actions.
+                        </CardDescription>
+                        {/* Filters */}
+                        <div className="flex flex-wrap items-center gap-2 pt-4">
+                          <Filter className="h-4 w-4 text-gray-500" />
+                          <Input
+                            placeholder="Filter by Incident ID..."
+                            className="w-[180px]"
+                            onChange={handleFilterChange}
+                          />
+                          <Select onValueChange={handleFilterChange}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Assigned To" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="s-gupta">S. Gupta</SelectItem>
+                              <SelectItem value="v-patel">V. Patel</SelectItem>
+                              <SelectItem value="r-singh">R. Singh</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select onValueChange={handleFilterChange}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="open">Open</SelectItem>
+                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="closed">Closed</SelectItem>
+                              <SelectItem value="overdue">Overdue</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <RcaTable
+                          actions={actions}
                         />
-                        <Select onValueChange={handleFilterChange}>
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Assigned To" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="s-gupta">S. Gupta</SelectItem>
-                            <SelectItem value="v-patel">V. Patel</SelectItem>
-                            <SelectItem value="r-singh">R. Singh</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Select onValueChange={handleFilterChange}>
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="open">Open</SelectItem>
-                            <SelectItem value="in-progress">In Progress</SelectItem>
-                            <SelectItem value="closed">Closed</SelectItem>
-                            <SelectItem value="overdue">Overdue</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <RcaTable
-                        actions={actions}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               )}
             </div>
           </div>

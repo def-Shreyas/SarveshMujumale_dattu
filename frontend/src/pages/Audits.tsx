@@ -84,19 +84,19 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const stripHtmlAttributes = (str: string): string => {
       // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      
+
       // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      
+
       // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      
+
       // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-      
+
       return str;
     };
 
@@ -114,17 +114,17 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         entityPlaceholders[placeholder] = match;
         return placeholder;
       });
-      
+
       // Now escape only <, >, and & (but not the ones we protected)
       protectedStr = protectedStr.replace(/&/g, '&amp;');
       protectedStr = protectedStr.replace(/</g, '&lt;');
       protectedStr = protectedStr.replace(/>/g, '&gt;');
-      
+
       // Restore protected entities
       Object.keys(entityPlaceholders).forEach(placeholder => {
         protectedStr = protectedStr.replace(new RegExp(placeholder, 'g'), entityPlaceholders[placeholder]);
       });
-      
+
       return protectedStr;
     };
 
@@ -141,8 +141,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         // Numeric entities (decimal and hex)
         .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
         .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-        // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
-        // and we'll handle them in escapeHtml
+      // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
+      // and we'll handle them in escapeHtml
     };
 
     // Preserve safe HTML tags like <br>, <br/>, <br /> before escaping
@@ -165,22 +165,22 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       // Match markdown tables: | Header | Header | followed by |---|---| followed by | Cell | Cell |
       // More flexible regex to handle various table formats
       const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
-      
+
       return str.replace(tableRegex, (match) => {
         const lines = match.trim().split(/\r?\n/).filter(line => line.trim() && line.includes('|'));
         if (lines.length < 2) return match; // Need at least header and separator
-        
+
         const headerLine = lines[0];
         const dataLines = lines.slice(2); // Skip header and separator
-        
+
         // Parse header - split by | and filter empty
         const headers = headerLine.split('|').map(h => h.trim()).filter(h => h && !h.match(/^[-:|\s]+$/));
-        
+
         if (headers.length === 0) return match; // No valid headers
-        
+
         // Build table HTML
         let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
-        
+
         // Table header
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
         headers.forEach(header => {
@@ -190,7 +190,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
           tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
         });
         tableHtml += '</tr></thead>';
-        
+
         // Table body
         tableHtml += '<tbody>';
         dataLines.forEach((line, idx) => {
@@ -214,14 +214,14 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
           }
         });
         tableHtml += '</tbody></table></div>';
-        
+
         return tableHtml;
       });
     };
 
     // Process tables first
     let html = processTables(processedText);
-    
+
     // Now escape HTML (but preserve already-generated table HTML and BR placeholders)
     // We need to escape only the parts that aren't already HTML
     const escapeNonHtml = (str: string): string => {
@@ -234,16 +234,16 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         return escapeHtml(part);
       }).join('');
     };
-    
+
     // Escape non-HTML parts
     html = escapeNonHtml(html);
-    
+
     // Headers (process from largest to smallest)
     html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
     html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
-    
+
     // Code blocks (before inline code) - but skip if inside table
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
       // Check if this is inside a table
@@ -255,7 +255,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       }
       return `<pre class="bg-gray-100 p-4 rounded my-4 overflow-x-auto border"><code>${code}</code></pre>`;
     });
-    
+
     // Inline code (but not inside tables)
     html = html.replace(/`([^`]+)`/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
@@ -266,7 +266,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       }
       return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
     });
-    
+
     // Bold (but preserve what's already in tables)
     html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
       // Check if already inside a table cell
@@ -275,7 +275,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       }
       return `<strong class="font-bold text-gray-800">${text}</strong>`;
     });
-    
+
     // Italic
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
       if (match.includes('<td') || match.includes('</td>') || match.includes('<strong>')) {
@@ -283,42 +283,42 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       }
       return `<em class="italic">${text}</em>`;
     });
-    
+
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
-    
+
     // Lists
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
-    
+
     // Wrap list items in ul
     html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
-    
+
     // Line breaks - convert double newlines to paragraph breaks
     // But skip if inside table
     html = html.split(/\n\n+/).map(para => {
       if (para.trim()) {
         // Don't wrap if already a header, list, code block, or table
-        if (para.trim().startsWith('<h') || 
-            para.trim().startsWith('<ul') || 
-            para.trim().startsWith('<pre') ||
-            para.trim().startsWith('<div') && para.includes('<table')) {
+        if (para.trim().startsWith('<h') ||
+          para.trim().startsWith('<ul') ||
+          para.trim().startsWith('<pre') ||
+          para.trim().startsWith('<div') && para.includes('<table')) {
           return para;
         }
         return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
       }
       return '';
     }).join('');
-    
+
     // Restore BR placeholders as actual <br /> tags (at the very end, after all processing)
     html = html.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
-    
+
     return html;
   };
 
   // Render as plain HTML - NO React elements, just HTML string
   return (
-    <div 
+    <div
       className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
       dangerouslySetInnerHTML={{ __html: formatMarkdown(content) }}
     />
@@ -382,6 +382,18 @@ export const Audits: React.FC = () => {
         .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
         setSelectedFile(file);
         setFileUploaded(false);
         setShowReport(false);
@@ -437,13 +449,13 @@ export const Audits: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-inspections-report");
-      
+
       if (response && response.report_content) {
         // Use report_content directly from API response
-        const reportContent = typeof response.report_content === "string" 
-          ? response.report_content 
+        const reportContent = typeof response.report_content === "string"
+          ? response.report_content
           : String(response.report_content || "");
-        
+
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
@@ -455,7 +467,7 @@ export const Audits: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating report:", error);
       const errorMessage = error?.message || "Failed to generate report. Please try again.";
-      
+
       // Provide user-friendly error messages
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
         toast.error("API Configuration Error", {
@@ -492,11 +504,11 @@ export const Audits: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-inspections-charts");
-      
+
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
-        
+
         // Don't auto-load first chart - let user select from dropdown
         // Only set showCharts to true so the dropdown appears
         setShowCharts(true);
@@ -509,7 +521,7 @@ export const Audits: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating charts:", error);
       const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-      
+
       if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
         toast.error("Upload Required", {
           description: "Please upload the Excel file first before generating charts.",
@@ -601,8 +613,8 @@ export const Audits: React.FC = () => {
       return;
     }
 
-    toast.info("Generating PDF", { 
-      description: "Capturing report and charts... This may take a moment." 
+    toast.info("Generating PDF", {
+      description: "Capturing report and charts... This may take a moment."
     });
 
     const originalBG = document.body.style.backgroundColor;
@@ -696,13 +708,13 @@ export const Audits: React.FC = () => {
 
       // 1. Capture Report Tab
       toast.info("Capturing report...", { id: "pdf-progress" });
-      
+
       // Scroll to top of report content
       if (reportContentRef.current) {
         reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       const reportCanvas = await html2canvas(reportContentRef.current, {
         scale: 2,
         useCORS: true,
@@ -715,8 +727,8 @@ export const Audits: React.FC = () => {
         scrollY: 0,
         onclone: (clonedDoc) => {
           // Ensure colors are preserved in cloned document
-          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
-                               clonedDoc.body.querySelector('.shadow-lg');
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') ||
+            clonedDoc.body.querySelector('.shadow-lg');
           if (clonedElement) {
             (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
           }
@@ -728,13 +740,13 @@ export const Audits: React.FC = () => {
       // 2. Capture Charts Tab (if charts exist)
       if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
         toast.info("Capturing charts...", { id: "pdf-progress" });
-        
+
         // Scroll to top of charts content
         if (chartsContentRef.current) {
           chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         // Wait a bit more for iframe to fully render
         await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -810,7 +822,7 @@ export const Audits: React.FC = () => {
 
       // Save PDF - this will trigger the file explorer dialog
       pdf.save(filename);
-      
+
       toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
     } catch (error: any) {
       console.error("Error generating PDF:", error);
@@ -867,7 +879,7 @@ export const Audits: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI Audit Analyzer
+              Inspections & Audits Analyzer
             </span>
           </motion.h1>
 
@@ -917,8 +929,8 @@ export const Audits: React.FC = () => {
           ))}
         </div>
 
-{/* UPLOAD CARD */}
-<motion.div
+        {/* UPLOAD CARD */}
+        <motion.div
           className="w-full flex items-center justify-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -950,18 +962,15 @@ export const Audits: React.FC = () => {
                   </motion.div>
                 </div>
               </motion.div>
-
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                {/* --- Text for Audits --- */}
                 Upload Inspections & Audits Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing safety audit and inspection data to begin the analysis.
               </p>
             </CardHeader>
 
             <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
-              {/* --- DRAG & DROP HOVER EFFECT --- */}
               <motion.label
                 htmlFor="file-upload"
                 whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
@@ -980,12 +989,12 @@ export const Audits: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <ClipboardCheck className="w-12 h-12 text-gray-400 mb-3" />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only
+                        Excel (.xlsx, .xls) files only (Max 10MB)
                       </p>
                     </>
                   )}
@@ -1001,7 +1010,6 @@ export const Audits: React.FC = () => {
                 />
               </motion.label>
 
-              {/* --- ENHANCED BUTTON HOVER --- */}
               <motion.div
                 whileHover={{ scale: selectedFile ? 1.02 : 1 }}
                 whileTap={{ scale: selectedFile ? 0.99 : 1 }}
@@ -1031,7 +1039,6 @@ export const Audits: React.FC = () => {
       </div>
     );
   }
-
 
   // 2. Uploading screen
   if (isUploading) {
@@ -1109,7 +1116,7 @@ export const Audits: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your inspections and audit data.
+                  Generate a comprehensive AI-powered analysis report of your safety audit and inspection data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1146,7 +1153,7 @@ export const Audits: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your data.
+                  Generate interactive charts and visualizations from your safety audit and inspection data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1170,7 +1177,7 @@ export const Audits: React.FC = () => {
               </CardContent>
             </Card>
           </motion.div>
-        </div>
+        </div >
 
         <div className="flex justify-center mt-8">
           <Button
@@ -1188,7 +1195,7 @@ export const Audits: React.FC = () => {
             Upload New File
           </Button>
         </div>
-      </div>
+      </div >
     );
   }
 

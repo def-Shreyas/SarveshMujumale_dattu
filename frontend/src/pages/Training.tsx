@@ -83,19 +83,19 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const stripHtmlAttributes = (str: string): string => {
       // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      
+
       // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      
+
       // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      
+
       // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-      
+
       return str;
     };
 
@@ -200,9 +200,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
           // Only process if we have the right number of cells
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${
-              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-            } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               // Escape cell content first (but preserve BR placeholders)
               let cellContent = escapeHtml(cell);
@@ -398,6 +397,18 @@ export const Training: React.FC = () => {
         .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
         setSelectedFile(file);
         setFileUploaded(false);
         setShowReport(false);
@@ -453,13 +464,13 @@ export const Training: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-training-report");
-      
+
       if (response && response.report_content) {
         // Use report_content directly from API response
-        const reportContent = typeof response.report_content === "string" 
-          ? response.report_content 
+        const reportContent = typeof response.report_content === "string"
+          ? response.report_content
           : String(response.report_content || "");
-        
+
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
@@ -471,7 +482,7 @@ export const Training: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating report:", error);
       const errorMessage = error?.message || "Failed to generate report. Please try again.";
-      
+
       // Provide user-friendly error messages
       if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
         toast.error("API Configuration Error", {
@@ -508,11 +519,11 @@ export const Training: React.FC = () => {
 
     try {
       const response = await apiClient.post("/generate-training-charts");
-      
+
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
-        
+
         // Don't auto-load first chart - let user select from dropdown
         // Only set showCharts to true so the dropdown appears
         setShowCharts(true);
@@ -525,7 +536,7 @@ export const Training: React.FC = () => {
     } catch (error: any) {
       console.error("Error generating charts:", error);
       const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-      
+
       if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
         toast.error("Upload Required", {
           description: "Please upload the Excel file first before generating charts.",
@@ -616,8 +627,8 @@ export const Training: React.FC = () => {
       return;
     }
 
-    toast.info("Generating PDF", { 
-      description: "Capturing report and charts... This may take a moment." 
+    toast.info("Generating PDF", {
+      description: "Capturing report and charts... This may take a moment."
     });
 
     const originalBG = document.body.style.backgroundColor;
@@ -704,12 +715,12 @@ export const Training: React.FC = () => {
       };
 
       toast.info("Capturing report...", { id: "pdf-progress" });
-      
+
       if (reportContentRef.current) {
         reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       const reportCanvas = await html2canvas(reportContentRef.current, {
         scale: 2,
         useCORS: true,
@@ -721,8 +732,8 @@ export const Training: React.FC = () => {
         scrollX: 0,
         scrollY: 0,
         onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') || 
-                               clonedDoc.body.querySelector('.shadow-lg');
+          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') ||
+            clonedDoc.body.querySelector('.shadow-lg');
           if (clonedElement) {
             (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
           }
@@ -733,12 +744,12 @@ export const Training: React.FC = () => {
 
       if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
         toast.info("Capturing charts...", { id: "pdf-progress" });
-        
+
         if (chartsContentRef.current) {
           chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         const chartsCanvas = await html2canvas(chartsContentRef.current, {
@@ -805,7 +816,7 @@ export const Training: React.FC = () => {
       const filename = `Dattu_Training_Report_${timestamp}.pdf`;
 
       pdf.save(filename);
-      
+
       toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
     } catch (error: any) {
       console.error("Error generating PDF:", error);
@@ -858,7 +869,7 @@ export const Training: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              DATTU AI Training Analyzer
+               Training Analyzer
             </span>
           </motion.h1>
 
@@ -950,7 +961,7 @@ export const Training: React.FC = () => {
                 Upload Training Database
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing safety training and certification data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -973,12 +984,12 @@ export const Training: React.FC = () => {
                     </>
                   ) : (
                     <>
-                      <GraduationCap className="w-12 h-12 text-gray-400 mb-3" />
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
                       <p className="mb-2 text-base font-semibold text-gray-700">
                         Click to upload or drag and drop
                       </p>
                       <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only
+                        Excel (.xlsx, .xls) files only (Max 10MB)
                       </p>
                     </>
                   )}
@@ -1100,7 +1111,7 @@ export const Training: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your training data.
+                  Generate a comprehensive AI-powered analysis report of your safety training and certification data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1137,7 +1148,7 @@ export const Training: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your data.
+                  Generate interactive charts and visualizations from your safety training and certification data.
                 </CardDescription>
               </CardHeader>
               <CardContent>

@@ -15,7 +15,7 @@
 //  */
 // function getAuthHeader(isJson: boolean = true) {
 //   const token = getAuthToken();
-  
+
 //   // Start with standard headers
 //   const headers: HeadersInit = {};
 
@@ -29,7 +29,7 @@
 //   } else {
 //     console.warn("No auth token found for API request.");
 //   }
-  
+
 //   return headers;
 // }
 
@@ -39,15 +39,15 @@
 //  * It now checks the Content-Type before parsing.
 //  */
 // async function handleResponse(response: Response) {
-  
+
 //   // First, check if the request was successful
 //   if (!response.ok) {
 //     // If it's not 'ok', it's an error. Try to parse as JSON.
 //     const errorData = await response.json().catch(() => ({ detail: "An unknown API error occurred" }));
 //     const errorMessage = errorData.detail || "Unknown API error";
-    
+
 //     console.error("API Error:", errorMessage, errorData);
-    
+
 //     if (response.status !== 401) { // Don't toast for "Unauthorized"
 //       toast.error("API Error", { description: errorMessage });
 //     }
@@ -62,7 +62,7 @@
 //     const text = await response.text();
 //     return text ? JSON.parse(text) : {}; // Handle empty JSON
 //   }
-  
+
 //   // If it's not JSON (e.g., text/markdown or text/html), return as plain text.
 //   return await response.text();
 // }
@@ -88,7 +88,7 @@
 //     });
 //     return handleResponse(response);
 //   },
-  
+
 //   put: async (endpoint: string, body: any) => {
 //     const response = await fetch(`${API_URL}${endpoint}`, {
 //       method: "PUT",
@@ -119,7 +119,7 @@
 //     },
 //     body: formData,
 //   });
-  
+
 //   return handleResponse(response);
 // };
 
@@ -156,13 +156,20 @@ function getAuthHeader(isJson: boolean = true) {
 async function handleResponse(response: Response) {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ detail: "Unknown API error" }));
-    const errorMessage = errorData.detail || "API request failed";
+    let errorMessage = errorData.detail || "API request failed";
+
+    // Fix: Ensure errorMessage is a string. Backend might return an object (e.g. for 429s)
+    if (typeof errorMessage === "object") {
+      errorMessage = errorMessage.message || errorMessage.error || JSON.stringify(errorMessage);
+    }
 
     console.error("API Error:", errorMessage);
     if (response.status !== 401)
       toast.error("API Error", { description: errorMessage });
 
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    (error as any).data = errorData; // Attach raw data for consumers to use
+    throw error;
   }
 
   const contentType = response.headers.get("content-type");

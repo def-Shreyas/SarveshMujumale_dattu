@@ -52,9 +52,9 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api"; 
+import { apiClient } from "@/lib/api";
 import type { User as AuthUser } from "@/contexts/AuthContext";
-import { cn } from "@/lib/utils"; 
+import { cn } from "@/lib/utils";
 
 // --- Type for API Usage data ---
 interface ApiUsage {
@@ -151,7 +151,7 @@ const AnimatedButton: React.FC<React.ComponentProps<typeof motion.button>> = (pr
 
 const UserProfile: React.FC = () => {
   const { user } = useAuth();
-  
+
   // This component is now READ-ONLY as requested
   return (
     <SectionCard
@@ -191,10 +191,10 @@ const UserApiUsage: React.FC = () => {
       setIsLoading(true);
     }
     setApiError(null);
-    
+
     try {
       const data = await apiClient.get("/auth/rate-limit");
-      
+
       if (data && typeof data.api_calls_limit !== 'undefined') {
         setUsage(data);
         setApiError(null); // Clear any previous errors
@@ -204,10 +204,28 @@ const UserApiUsage: React.FC = () => {
     } catch (error: any) {
       console.error("Failed to fetch API usage:", error);
       const errorMessage = error.message || "Failed to fetch API usage.";
-      setApiError(errorMessage);
-      
-      // Don't show toast for connection errors in Settings - let the UI handle it
-      // The error will be displayed in the component's error state
+
+      // Check if we have usage data in the error (e.g. from 429 Limit Exceeded)
+      // The backend might return { detail: { ... }, limit: 10, used: 11 } or similar
+      // We check for 'limit' and 'used' in error.data
+      if (error.data && (typeof error.data.limit === 'number' || typeof error.data.daily_limit === 'number')) {
+        const fallbackUsage: ApiUsage = {
+          api_calls_limit: error.data.api_calls_limit ?? error.data.limit ?? 1000,
+          api_calls_used: error.data.api_calls_used ?? error.data.used ?? 0,
+          api_calls_remaining: error.data.api_calls_remaining ?? 0,
+          daily_limit: error.data.daily_limit ?? error.data.limit ?? 100, // Fallback to limit if daily_limit missing
+          daily_used: error.data.daily_used ?? error.data.used ?? 0,
+          daily_remaining: error.data.daily_remaining ?? 0,
+          monthly_limit: error.data.monthly_limit ?? 1000,
+          monthly_used: error.data.monthly_used ?? 0,
+          monthly_remaining: error.data.monthly_remaining ?? 0,
+          subscription_tier: error.data.subscription_tier ?? "basic"
+        };
+        setUsage(fallbackUsage);
+        setApiError(null); // Clear error so UI renders the bars
+      } else {
+        setApiError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -217,7 +235,7 @@ const UserApiUsage: React.FC = () => {
   useEffect(() => {
     // Prevent multiple concurrent fetches
     if (hasFetchedRef.current) return;
-    
+
     let isMounted = true;
     hasFetchedRef.current = true;
     const abortController = new AbortController();
@@ -226,9 +244,9 @@ const UserApiUsage: React.FC = () => {
       if (!isMounted || abortController.signal.aborted) return;
       await fetchUsage(false);
     };
-    
+
     loadUsage();
-    
+
     return () => {
       isMounted = false;
       abortController.abort();
@@ -241,7 +259,7 @@ const UserApiUsage: React.FC = () => {
     return (
       <SectionCard title="API & Subscription" description="Loading usage data...">
         <div className="h-24 flex justify-center items-center">
-           <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       </SectionCard>
     )
@@ -251,31 +269,33 @@ const UserApiUsage: React.FC = () => {
     return (
       <SectionCard title="API & Subscription" description="Could not load usage data.">
         <div className="h-24 flex justify-center items-center text-red-500">
-           <AlertTriangle className="h-6 w-6" />
-           <p className="ml-2">{apiError || "User not found."}</p>
+          <AlertTriangle className="h-6 w-6" />
+          <p className="ml-2">{apiError || "User not found."}</p>
         </div>
       </SectionCard>
     )
   }
-  
+
   if (!usage) {
-     return (
-       <SectionCard title="API & Subscription" description="No usage data available.">
-         <div className="h-24 flex justify-center items-center text-gray-500">
-           <p>Use an AI tool (like the Vision Report) to see your usage.</p>
-         </div>
-       </SectionCard>
-     )
+    return (
+      <SectionCard title="API & Subscription" description="No usage data available.">
+        <div className="h-24 flex justify-center items-center text-gray-500">
+          <p>Use an AI tool (like the Vision Report) to see your usage.</p>
+        </div>
+      </SectionCard>
+    )
   }
 
   // Calculate percentages for progress bars
-  const monthlyUsagePercent = usage.api_calls_limit > 0 
-    ? (usage.api_calls_used / usage.api_calls_limit) * 100 
+  const monthlyUsagePercent = usage.api_calls_limit > 0
+    ? (usage.api_calls_used / usage.api_calls_limit) * 100
     : 0;
-  
-  const dailyUsagePercent = usage.daily_limit > 0 
-    ? (usage.daily_used / usage.daily_limit) * 100 
+
+  const dailyUsagePercent = usage.daily_limit > 0
+    ? (usage.daily_used / usage.daily_limit) * 100
     : 0;
+
+
 
   // Format remaining APIs
   const formatRemaining = (remaining: number) => {
@@ -311,7 +331,7 @@ const UserApiUsage: React.FC = () => {
         {/* Monthly API Calls (Main Limit) */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">Monthly API Calls</Label>
+            <Label className="text-base font-semibold">API Calls</Label>
             <div className="text-right">
               <span className="text-lg font-bold text-[#0B3D91]">
                 {usage.api_calls_used.toLocaleString()} / {formatLimit(usage.api_calls_limit)}
@@ -321,16 +341,16 @@ const UserApiUsage: React.FC = () => {
               </span>
             </div>
           </div>
-          <Progress 
-            value={monthlyUsagePercent} 
+          <Progress
+            value={monthlyUsagePercent}
             className="h-3"
             indicatorClassName={
-              monthlyUsagePercent >= 90 
-                ? "bg-red-500" 
-                : monthlyUsagePercent >= 75 
-                ? "bg-yellow-500" 
-                : "bg-teal-500"
-            } 
+              monthlyUsagePercent >= 90
+                ? "bg-red-500"
+                : monthlyUsagePercent >= 75
+                  ? "bg-yellow-500"
+                  : "bg-teal-500"
+            }
           />
           <div className="flex justify-between text-xs text-gray-500">
             <span>Used: {usage.api_calls_used.toLocaleString()}</span>
@@ -338,12 +358,12 @@ const UserApiUsage: React.FC = () => {
           </div>
         </div>
 
-        {/* Daily API Calls (Subscription Limit) */}
-        <div className="space-y-2 pt-2 border-t">
+        {/* Daily API Calls (New Section) */}
+        <div className="space-y-2 pt-4 border-t">
           <div className="flex justify-between items-center">
             <Label className="text-base font-semibold">Daily API Calls</Label>
             <div className="text-right">
-              <span className="text-lg font-bold text-[#00A79D]">
+              <span className="text-lg font-bold text-[#0B3D91]">
                 {usage.daily_used.toLocaleString()} / {formatLimit(usage.daily_limit)}
               </span>
               <span className="text-sm text-gray-500 ml-2">
@@ -351,22 +371,24 @@ const UserApiUsage: React.FC = () => {
               </span>
             </div>
           </div>
-          <Progress 
-            value={dailyUsagePercent} 
+          <Progress
+            value={dailyUsagePercent}
             className="h-3"
             indicatorClassName={
-              dailyUsagePercent >= 90 
-                ? "bg-red-500" 
-                : dailyUsagePercent >= 75 
-                ? "bg-yellow-500" 
-                : "bg-teal-500"
-            } 
+              dailyUsagePercent >= 90
+                ? "bg-red-500"
+                : dailyUsagePercent >= 75
+                  ? "bg-yellow-500"
+                  : "bg-teal-500"
+            }
           />
           <div className="flex justify-between text-xs text-gray-500">
             <span>Used: {usage.daily_used.toLocaleString()}</span>
             <span>Remaining: {formatRemaining(usage.daily_remaining)}</span>
           </div>
         </div>
+
+
 
         {/* Monthly Subscription Limit (Info) */}
         {usage.monthly_limit !== usage.api_calls_limit && (
@@ -391,7 +413,7 @@ const UserApiUsage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
         {monthlyUsagePercent >= 75 && monthlyUsagePercent < 90 && (
           <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="flex items-center gap-2 text-yellow-700">
@@ -415,9 +437,9 @@ const UserSubscription: React.FC = () => {
     >
       <div className="flex flex-col md:flex-row gap-4">
         {/* Fixed the 'variant' bug by wrapping Button in motion.div */}
-        <motion.div 
-          whileHover={{ scale: 1.02 }} 
-          whileTap={{ scale: 0.98 }} 
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           className="w-full md:w-auto"
         >
           <Button className="w-full bg-green-600 hover:bg-green-700">
@@ -425,9 +447,9 @@ const UserSubscription: React.FC = () => {
           </Button>
         </motion.div>
 
-        <motion.div 
-          whileHover={{ scale: 1.02 }} 
-          whileTap={{ scale: 0.98 }} 
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
           className="w-full md:w-auto"
         >
           <Button className="w-full" variant="outline">
@@ -504,22 +526,22 @@ const AdminUserManagement: React.FC = () => {
 
   const handleCreateUser = async () => {
     if (!newUser.username || !newUser.email || !newUser.password) {
-      toast.error("Error", { description: "Username, Email, and Password are required."});
+      toast.error("Error", { description: "Username, Email, and Password are required." });
       return;
     }
-    
+
     setIsCreating(true);
     try {
       // Calls POST /auth/admin/create-user
       await apiClient.post("/auth/admin/create-user", newUser);
-      
+
       toast.success("User Created", { description: `Account for ${newUser.username} created.` });
       setNewUser({ // Clear form
-        username: "", email: "", password: "", company_name: "", 
+        username: "", email: "", password: "", company_name: "",
         contact_person: "", role: "user", subscription_tier: "basic", api_calls_limit: 1000
-      }); 
+      });
       await fetchUsers(); // Refresh the user list
-      
+
     } catch (error: any) {
       console.error("Failed to create user:", error);
     } finally {
@@ -556,63 +578,63 @@ const AdminUserManagement: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} />
+            <Input id="username" value={newUser.username} onChange={(e) => setNewUser({ ...newUser, username: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} />
+            <Input id="email" type="email" value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="password"> Password</Label>
-            <Input id="password" type="text" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} />
+            <Input id="password" type="text" value={newUser.password} onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="company">Company Name</Label>
-            <Input id="company" value={newUser.company_name} onChange={(e) => setNewUser({...newUser, company_name: e.target.value})} />
+            <Input id="company" value={newUser.company_name} onChange={(e) => setNewUser({ ...newUser, company_name: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="contact">Contact Person</Label>
-            <Input id="contact" value={newUser.contact_person} onChange={(e) => setNewUser({...newUser, contact_person: e.target.value})} />
+            <Input id="contact" value={newUser.contact_person} onChange={(e) => setNewUser({ ...newUser, contact_person: e.target.value })} />
           </div>
           <div className="space-y-1">
             <Label>Role</Label>
-            <Select value={newUser.role} onValueChange={(val: AuthUser['role']) => setNewUser({...newUser, role: val})}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select Role" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="SafetyManager">Safety Manager</SelectItem>
-                    <SelectItem value="CEO">CEO</SelectItem>
-                    <SelectItem value="CFO">CFO</SelectItem>
-                    <SelectItem value="CHRO">CHRO</SelectItem>
-                    <SelectItem value="COO">COO</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
+            <Select value={newUser.role} onValueChange={(val: AuthUser['role']) => setNewUser({ ...newUser, role: val })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="SafetyManager">Safety Manager</SelectItem>
+                <SelectItem value="CEO">CEO</SelectItem>
+                <SelectItem value="CFO">CFO</SelectItem>
+                <SelectItem value="CHRO">CHRO</SelectItem>
+                <SelectItem value="COO">COO</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
             <Label>Subscription Tier</Label>
-            <Select value={newUser.subscription_tier} onValueChange={(val: any) => setNewUser({...newUser, subscription_tier: val})}>
-                <SelectTrigger>
-                    <SelectValue placeholder="Select Tier" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
+            <Select value={newUser.subscription_tier} onValueChange={(val: any) => setNewUser({ ...newUser, subscription_tier: val })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Tier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="free">Free</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+                <SelectItem value="enterprise">Enterprise</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1 md:col-span-2">
             <Label htmlFor="limit">API Call Limit (Monthly)</Label>
-            <Input id="limit" type="number" value={newUser.api_calls_limit} onChange={(e) => setNewUser({...newUser, api_calls_limit: parseInt(e.target.value) || 0})} />
+            <Input id="limit" type="number" value={newUser.api_calls_limit} onChange={(e) => setNewUser({ ...newUser, api_calls_limit: parseInt(e.target.value) || 0 })} />
           </div>
         </div>
         <div className="flex justify-end pt-4">
-          <AnimatedButton 
-            onClick={handleCreateUser} 
+          <AnimatedButton
+            onClick={handleCreateUser}
             disabled={isCreating}
             className="bg-green-600 text-white px-6 py-2 shadow-md hover:bg-green-700 transition-colors"
           >
@@ -621,7 +643,7 @@ const AdminUserManagement: React.FC = () => {
           </AnimatedButton>
         </div>
       </SectionCard>
-      
+
       <SectionCard
         title="Manage Existing Users"
         description="View and manage all user accounts in the system."
@@ -637,7 +659,7 @@ const SubscriptionManager: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  
+
   const [updateData, setUpdateData] = useState({
     subscription_tier: "basic" as "basic" | "premium" | "enterprise" | "free",
     api_calls_limit: 1000,
@@ -658,7 +680,7 @@ const SubscriptionManager: React.FC = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
-  
+
   // When user is selected, update form with their current data
   useEffect(() => {
     const selectedUser = users.find(u => u.id === selectedUserId);
@@ -666,32 +688,32 @@ const SubscriptionManager: React.FC = () => {
       setUpdateData({
         subscription_tier: selectedUser.subscription_tier as any,
         // Your Python 'UserResponse' model includes 'api_calls_limit'
-        api_calls_limit: (selectedUser as any).api_calls_limit || 1000, 
+        api_calls_limit: (selectedUser as any).api_calls_limit || 1000,
       });
     }
   }, [selectedUserId, users]);
 
   const handleUpdateSubscription = async () => {
     if (!selectedUserId) {
-      toast.error("Error", { description: "Please select a user to update."});
+      toast.error("Error", { description: "Please select a user to update." });
       return;
     }
-    
+
     setIsUpdating(true);
     try {
       // Calls PUT /auth/admin/users/{user_id}/upgrade
       await apiClient.put(`/auth/admin/users/${selectedUserId}/upgrade`, updateData);
-      
+
       toast.success("Subscription Updated");
       await fetchUsers(); // Refresh list to show new data
-      
+
     } catch (error: any) {
       console.error("Failed to update subscription:", error);
     } finally {
       setIsUpdating(false);
     }
   };
-  
+
   if (isLoading) {
     return (
       <SectionCard title="Manage Subscriptions & API Limits" description="Grant or upgrade subscription tiers and API call limits for a specific user.">
@@ -711,50 +733,50 @@ const SubscriptionManager: React.FC = () => {
         <div className="space-y-1">
           <Label>Select User</Label>
           <Select onValueChange={setSelectedUserId}>
-              <SelectTrigger>
-                  <SelectValue placeholder="Select a user to manage..." />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.username} ({user.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a user to manage..." />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map(user => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.username} ({user.email})
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         </div>
-        
+
         {/* This form appears once a user is selected */}
         {selectedUserId && (
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="space-y-1">
               <Label>Subscription Tier</Label>
-              <Select value={updateData.subscription_tier} onValueChange={(val: any) => setUpdateData({...updateData, subscription_tier: val})}>
-                  <SelectTrigger>
-                      <SelectValue placeholder="Select Tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="free">Free</SelectItem>
-                      <SelectItem value="basic">Basic</SelectItem>
-                      <SelectItem value="premium">Premium</SelectItem>
-                      <SelectItem value="enterprise">Enterprise</SelectItem>
-                  </SelectContent>
+              <Select value={updateData.subscription_tier} onValueChange={(val: any) => setUpdateData({ ...updateData, subscription_tier: val })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="free">Free</SelectItem>
+                  <SelectItem value="basic">Basic</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="limit">API Call Limit (Monthly)</Label>
-              <Input id="limit" type="number" value={updateData.api_calls_limit} onChange={(e) => setUpdateData({...updateData, api_calls_limit: parseInt(e.target.value) || 0})} />
+              <Input id="limit" type="number" value={updateData.api_calls_limit} onChange={(e) => setUpdateData({ ...updateData, api_calls_limit: parseInt(e.target.value) || 0 })} />
             </div>
           </motion.div>
         )}
       </div>
       <div className="flex justify-end pt-4">
-        <AnimatedButton 
-          onClick={handleUpdateSubscription} 
+        <AnimatedButton
+          onClick={handleUpdateSubscription}
           disabled={isUpdating || !selectedUserId}
           className="bg-[#00A79D] text-white px-6 py-2 shadow-md hover:bg-[#008a7e] transition-colors"
         >
@@ -822,8 +844,8 @@ const GrantApiCalls: React.FC = () => {
         api_calls_limit: newLimit
       });
 
-      toast.success("API Calls Granted", { 
-        description: `Successfully granted ${additionalCalls.toLocaleString()} API calls to ${selectedUser.username}. New limit: ${newLimit.toLocaleString()}` 
+      toast.success("API Calls Granted", {
+        description: `Successfully granted ${additionalCalls.toLocaleString()} API calls to ${selectedUser.username}. New limit: ${newLimit.toLocaleString()}`
       });
 
       // Reset form
@@ -967,14 +989,14 @@ const UserApiUsageMonitor: React.FC = () => {
     setIsLoading(true);
     try {
       const data = await apiClient.get("/auth/admin/users");
-      
+
       // Calculate usage info for each user
       const usageInfo: UserApiUsageInfo[] = data.map((user: any) => {
         const limit = user.api_calls_limit || 1000;
         const used = user.api_calls_used || 0;
         const remaining = limit - used;
         const percentage = limit > 0 ? (used / limit) * 100 : 0;
-        
+
         let status: "critical" | "warning" | "good" = "good";
         if (percentage >= 90) status = "critical";
         else if (percentage >= 75) status = "warning";
@@ -1008,8 +1030,8 @@ const UserApiUsageMonitor: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredUsage = filter === "all" 
-    ? userUsage 
+  const filteredUsage = filter === "all"
+    ? userUsage
     : userUsage.filter(u => u.status === filter);
 
   const criticalUsers = userUsage.filter(u => u.status === "critical").length;
@@ -1148,8 +1170,8 @@ const UserApiUsageMonitor: React.FC = () => {
                           usage.status === "critical"
                             ? "bg-red-600 text-white"
                             : usage.status === "warning"
-                            ? "bg-yellow-600 text-white"
-                            : "bg-green-600 text-white"
+                              ? "bg-yellow-600 text-white"
+                              : "bg-green-600 text-white"
                         }
                       >
                         {usage.status === "critical" && <AlertTriangle className="h-3 w-3 mr-1" />}
@@ -1269,7 +1291,7 @@ const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) =>
 
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
-    
+
     setIsDeleting(true);
     try {
       await onDelete(userToDelete.id);
@@ -1311,14 +1333,14 @@ const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) =>
                 <TableCell className="font-medium">{user.username}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     className={cn("text-white capitalize", user.role === 'admin' ? "bg-[#0B3D91]" : "bg-gray-500")}
                   >
                     {user.role}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     className={cn("text-white capitalize", user.status === 'active' ? "bg-green-600" : "bg-red-600")}
                   >
                     {user.status}
@@ -1330,8 +1352,8 @@ const UserListTable: React.FC<{ users: AuthUser[]; onDelete: (userId: string) =>
                 <TableCell>
                   <div className="flex items-center gap-2 min-w-[120px]">
                     <div className="flex-1">
-                      <Progress 
-                        value={usagePercent} 
+                      <Progress
+                        value={usagePercent}
                         className="h-2"
                         indicatorClassName={
                           isCritical ? "bg-red-500" : isWarning ? "bg-yellow-500" : "bg-green-500"
@@ -1442,9 +1464,9 @@ const LogoutSection: React.FC = () => {
   const handleLogout = () => {
     logout();
     toast.info("Logged Out", { description: "You have securely signed out." });
-    navigate('/login'); 
+    navigate('/login');
   };
-  
+
   return (
     <div className="space-y-6">
       <SectionCard
@@ -1454,10 +1476,10 @@ const LogoutSection: React.FC = () => {
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
           <div className="space-y-1">
             <p className="font-semibold flex items-center gap-2">
-                <User className="h-5 w-5 text-[#0B3D91]" /> Active Session
+              <User className="h-5 w-5 text-[#0B3D91]" /> Active Session
             </p>
             <p className="text-sm text-gray-600 capitalize">
-                Current user: {user?.username} ({user?.role})
+              Current user: {user?.username} ({user?.role})
             </p>
           </div>
           <AnimatedButton
@@ -1522,7 +1544,7 @@ const AdminSettings: React.FC = () => {
           <GrantHistory />
         </TabsContent>
         <TabsContent value="logout">
-           <LogoutSection />
+          <LogoutSection />
         </TabsContent>
       </div>
     </Tabs>
@@ -1531,7 +1553,7 @@ const AdminSettings: React.FC = () => {
 
 const UserSettings: React.FC = () => {
   return (
-     <Tabs defaultValue="profile">
+    <Tabs defaultValue="profile">
       <TabsList className="w-full justify-start h-12 bg-gray-100">
         <TabsTrigger value="profile" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <User className="h-5 w-5" /> Profile & Subscription
@@ -1549,7 +1571,7 @@ const UserSettings: React.FC = () => {
           </div>
         </TabsContent>
         <TabsContent value="logout">
-           <LogoutSection />
+          <LogoutSection />
         </TabsContent>
       </div>
     </Tabs>
@@ -1588,7 +1610,7 @@ export const Settings: React.FC = () => {
         ELSE, show the regular User dashboard.
       */}
       {user.role === 'admin' ? <AdminSettings /> : <UserSettings />}
-      
+
     </motion.div>
   );
 };
