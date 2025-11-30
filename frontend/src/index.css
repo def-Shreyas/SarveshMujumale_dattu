@@ -334,5 +334,20 @@ button:focus-visible {
   .md-h1 { font-size:1.5rem; }
 }
 
+
 /* Minor visuals for safe-markdown */
 .safe-markdown .md-paragraph + .md-paragraph { margin-top: .35rem; }
+
+/* Force Sonner toast text to be black */
+[data-sonner-toast] {
+  color: black !important;
+}
+
+[data-sonner-toast] [data-title] {
+  color: black !important;
+}
+
+[data-sonner-toast] [data-description] {
+  color: black !important;
+}
+

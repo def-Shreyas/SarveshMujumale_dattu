@@ -29,10 +29,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast:
-            "bg-popover text-popover-foreground border-border shadow-lg",
-          title: "font-semibold",
+            "bg-popover text-black border-border shadow-lg",
+          title: "font-semibold text-gray-900",
           // This line makes the description text darker and readable
-          description: "text-popover-foreground/80 text-sm",
+          description: "text-black text-sm",
           actionButton: "bg-primary text-primary-foreground",
           cancelButton: "bg-muted text-muted-foreground",
         },
@@ -42,7 +42,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
       style={
         {
           "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
+          "--normal-text": "hsl(0, 0%, 0%)",  // Black color instead of var(--popover-foreground)
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
         } as React.CSSProperties

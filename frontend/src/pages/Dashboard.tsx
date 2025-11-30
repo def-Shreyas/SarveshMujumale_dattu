@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Upload, Activity, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -255,21 +256,50 @@ const getTableName = (payload?: ModuleKpiPayload) => {
 
 // --- Components ---
 
-const DashboardHero = () => (
-  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0B3D91] to-[#00A79D] p-8 text-white shadow-2xl">
-    <div className="relative z-10">
-      <h1 className="mb-2 text-4xl font-extrabold tracking-tight">
-        Executive Dashboard
-      </h1>
-      <p className="max-w-2xl text-lg text-blue-100 opacity-90">
-        Welcome to your centralized command center. Monitor real-time KPIs, track
-        safety performance, and visualize data trends across all operational
-        modules. Please note: The data you see here is displayed only after the
-        detailed charts have been successfully generated from your uploaded files.
-      </p>
+const DashboardHero = ({ onUploadClick }: { onUploadClick?: () => void }) => (
+  <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0B3D91] to-[#00A79D] p-8 text-white shadow-2xl transition-all duration-300 hover:shadow-blue-900/20 hover:scale-[1.002]">
+    <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+
+      {/* Left Column: Title & Information */}
+      <div className="max-w-3xl space-y-4">
+        <h1 className="flex items-center gap-3 text-4xl font-extrabold tracking-tight">
+          Executive Dashboard
+          <Activity className="h-6 w-6 opacity-80" />
+        </h1>
+
+        {/* Information about the Executive Dashboard */}
+        <p className="text-lg text-blue-50 opacity-90 leading-relaxed">
+          Centralized safety command center. Monitor KPIs, incident trends, and compliance status across all modules in one view.
+        </p>
+
+        {/* Highlighted Restriction Section */}
+        <div className="mt-2 flex items-start gap-3 rounded-xl bg-white/10 border border-white/20 p-4 backdrop-blur-md shadow-inner">
+          <AlertCircle className="mt-1 h-5 w-5 shrink-0 text-yellow-300" />
+          <div className="text-sm">
+            <p className="font-bold text-yellow-300">Data Visualization Requirement</p>
+            <p className="text-blue-50">
+              Please note: This dashboard is <strong>generated only when you generate the charts</strong>.
+              The metrics above will remain empty until you have uploaded your files and processed the visual reports.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column: Call to Action */}
+      {/* <div className="mt-4 md:mt-2 shrink-0">
+        <button 
+            onClick={onUploadClick}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-8 py-4 font-bold text-[#0B3D91] shadow-lg transition-transform hover:-translate-y-1 hover:bg-blue-50 active:scale-95 md:w-auto"
+        >
+          <Upload size={20} />
+          Generate Charts
+        </button>
+      </div> */}
     </div>
-    <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-10 blur-3xl"></div>
-    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-white opacity-10 blur-2xl"></div>
+
+    {/* Decorative Background Elements */}
+    <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white opacity-10 blur-3xl transition-transform duration-700 group-hover:scale-110"></div>
+    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-white opacity-10 blur-2xl transition-transform duration-700 group-hover:scale-110"></div>
   </div>
 );
 
@@ -317,8 +347,8 @@ const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon: Icon, color, load
           )}
         </div>
       </CardContent>
-    </Card>
-  </motion.div>
+    </Card >
+  </motion.div >
 );
 
 interface ModuleCardProps {
@@ -339,14 +369,15 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ config, payload, uiTiles, loadi
     return rows.slice(0, 10).map(row => {
       const name = row.Metric ?? humanizeKey(Object.keys(row)[0] ?? "");
       const value = row.Value ?? Object.values(row).find(v => typeof v === 'number');
-      return { name, value: Number(value) || 0 };
+          return { name, value: typeof value === 'string' ? Number(value.replace(/[%,\s]/g, '')) || 0 : Number(value) || 0 };
     });
   }, [rows]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0 }
+      }
       transition={{ duration: 0.3 }}
       className="h-full"
     >
@@ -465,7 +496,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ config, payload, uiTiles, loadi
           )}
         </CardFooter>
       </Card>
-    </motion.div>
+    </motion.div >
   );
 };
 

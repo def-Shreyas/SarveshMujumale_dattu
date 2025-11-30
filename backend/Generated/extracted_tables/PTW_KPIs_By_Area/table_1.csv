@@ -1,6 +1,6 @@
 area,open_permits,permits_past_expiry,missing_controls,total_permits
-Assembly - Line 5,3,4,0,6
-Battery Area,2,3,2,10
+Assembly - Line 5,0,4,0,6
+Battery Area,0,3,2,10
 Body Shop - Booth A,1,1,3,9
 Maintenance Workshop,1,1,5,11
 Paint - Oven Area,1,1,2,7

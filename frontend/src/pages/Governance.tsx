@@ -23,6 +23,7 @@ import {
   Building,
   AlertCircle,
   Scale,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -323,6 +324,7 @@ export const Governance: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isGeneratingCharts, setIsGeneratingCharts] = useState(false);
@@ -382,6 +384,55 @@ export const Governance: React.FC = () => {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+      }
+    }
+  };
+
+  // --- Drag & Drop Handlers ---
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      const validExtensions = [".xlsx", ".xls"];
+      const fileExtension = file.name
+        .substring(file.name.lastIndexOf("."))
+        .toLowerCase();
+
+      if (validExtensions.includes(fileExtension)) {
+        // Check file size (limit to 10MB)
+        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        if (file.size > maxSize) {
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
+        setSelectedFile(file);
+        setFileUploaded(false);
+        setShowReport(false);
+        setShowCharts(false);
+        setAiReport("");
+        setChartList([]);
+      } else {
+        toast.error("Invalid File Type", {
+          description: "Please upload a valid Excel (.xlsx, .xls) file.",
+        });
       }
     }
   };
@@ -802,7 +853,7 @@ export const Governance: React.FC = () => {
             className="text-4xl font-extrabold text-[#0B3D91]"
           >
             <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-               Social & Governance Analyzer
+              Social & Governance Analyzer
             </span>
           </motion.h1>
 
@@ -901,8 +952,15 @@ export const Governance: React.FC = () => {
             <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
               <motion.label
                 htmlFor="file-upload"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
-                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#0B3D91] transition-colors duration-300 bg-gray-50"
+                animate={{
+                  borderColor: isDragging ? "#0B3D91" : "#e5e7eb",
+                  backgroundColor: isDragging ? "#f0f9ff" : "#f9fafb",
+                }}
+                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   {selectedFile ? (
@@ -1289,7 +1347,7 @@ export const Governance: React.FC = () => {
               {(() => {
                 const safeContent: string =
                   typeof aiReport === "string"
-                    ? aiReport
+                    ? aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n')
                     : String(aiReport || "");
 
                 if (
@@ -1392,8 +1450,8 @@ export const Governance: React.FC = () => {
       >
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <Building className="w-8 h-8 text-[#0B3D91]" />
-            {showReport ? "AI Social & Governance Report" : showCharts ? "Interactive Charts" : "Dashboard"}
+            <Scale className="w-8 h-8 text-[#0B3D91]" />
+            {showReport ? " Social & Governance Report" : showCharts ? "Social & Governance Charts" : "Dashboard"}
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1469,6 +1527,27 @@ export const Governance: React.FC = () => {
           )}
         </div>
       </motion.div>
+
+      {/* ⚠️ WARNING: Download PDF Before Switching Modules */}
+      {(showReport || showCharts) && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 p-4 rounded-lg shadow-md"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
+              <p className="text-amber-800 leading-relaxed">
+                <strong>Download the PDF before switching to another module or refreshing the page!</strong>
+                {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* PDF capture region */}
       <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">

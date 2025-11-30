@@ -60,18 +60,18 @@ def decode_access_token(token: str) -> Optional[dict]:
 # Subscription tier limits
 SUBSCRIPTION_LIMITS = {
     "free": {
-        "daily_limit": 10,
-        "monthly_limit": 100,
+        "daily_limit": 50,
+        "monthly_limit": 250,
         "file_size_limit": 5 * 1024 * 1024,  # 5MB
     },
     "basic": {
-        "daily_limit": 50,
+        "daily_limit": 100,
         "monthly_limit": 1000,
         "file_size_limit": 10 * 1024 * 1024,  # 10MB
     },
     "premium": {
-        "daily_limit": 200,
-        "monthly_limit": 5000,
+        "daily_limit": 350,
+        "monthly_limit": 7500,
         "file_size_limit": 25 * 1024 * 1024,  # 25MB
     },
     "enterprise": {

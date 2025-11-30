@@ -310,12 +310,12 @@ const UserApiUsage: React.FC = () => {
 
   return (
     <SectionCard
-      title="API & Subscription"
+      title="Tokens"
       description={`You are currently on the ${user.subscription_tier} plan.`}
     >
       <div className="space-y-6">
         {/* Refresh Button */}
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <Button
             variant="outline"
             size="sm"
@@ -326,12 +326,12 @@ const UserApiUsage: React.FC = () => {
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? "Refreshing..." : "Refresh Usage"}
           </Button>
-        </div>
+        </div> */}
 
         {/* Monthly API Calls (Main Limit) */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">API Calls</Label>
+            <Label className="text-base font-semibold">Tokens</Label>
             <div className="text-right">
               <span className="text-lg font-bold text-[#0B3D91]">
                 {usage.api_calls_used.toLocaleString()} / {formatLimit(usage.api_calls_limit)}
@@ -361,7 +361,7 @@ const UserApiUsage: React.FC = () => {
         {/* Daily API Calls (New Section) */}
         <div className="space-y-2 pt-4 border-t">
           <div className="flex justify-between items-center">
-            <Label className="text-base font-semibold">Daily API Calls</Label>
+            <Label className="text-base font-semibold">Daily Tokens</Label>
             <div className="text-right">
               <span className="text-lg font-bold text-[#0B3D91]">
                 {usage.daily_used.toLocaleString()} / {formatLimit(usage.daily_limit)}
@@ -429,37 +429,37 @@ const UserApiUsage: React.FC = () => {
   );
 };
 
-const UserSubscription: React.FC = () => {
-  return (
-    <SectionCard
-      title="Manage Subscription"
-      description="Upgrade your plan to access more features and higher API limits."
-    >
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Fixed the 'variant' bug by wrapping Button in motion.div */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full md:w-auto"
-        >
-          <Button className="w-full bg-green-600 hover:bg-green-700">
-            <Star className="mr-2 h-4 w-4" /> Upgrade to Premium
-          </Button>
-        </motion.div>
+// const UserSubscription: React.FC = () => {
+//   return (
+//     <SectionCard
+//       title="Manage Subscription"
+//       description="Upgrade your plan to access more features and higher API limits."
+//     >
+//       <div className="flex flex-col md:flex-row gap-4">
 
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full md:w-auto"
-        >
-          <Button className="w-full" variant="outline">
-            <CreditCard className="mr-2 h-4 w-4" /> Update Billing
-          </Button>
-        </motion.div>
-      </div>
-    </SectionCard>
-  );
-};
+//         <motion.div
+//           whileHover={{ scale: 1.02 }}
+//           whileTap={{ scale: 0.98 }}
+//           className="w-full md:w-auto"
+//         >
+//           <Button className="w-full bg-green-600 hover:bg-green-700">
+//             <Star className="mr-2 h-4 w-4" /> Upgrade to Premium
+//           </Button>
+//         </motion.div>
+
+//         <motion.div
+//           whileHover={{ scale: 1.02 }}
+//           whileTap={{ scale: 0.98 }}
+//           className="w-full md:w-auto"
+//         >
+//           <Button className="w-full" variant="outline">
+//             <CreditCard className="mr-2 h-4 w-4" /> Update Billing
+//           </Button>
+//         </motion.div>
+//       </div>
+//     </SectionCard>
+//   );
+// };
 
 // ===================================================================
 // --- 2. ADMIN SETTINGS COMPONENTS (For 'admin' role) ---
@@ -550,14 +550,11 @@ const AdminUserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    try {
-      // Calls DELETE /auth/admin/users/{user_id}
-      await apiClient.delete(`/auth/admin/users/${userId}`);
-      await fetchUsers(); // Refresh the user list after deletion
-    } catch (error: any) {
-      console.error("Failed to delete user:", error);
-      throw error; // Re-throw to let the dialog handle the error display
-    }
+    // Delete endpoint not available in backend yet
+    toast.error("Feature Not Available", {
+      description: "User deletion is currently disabled for safety. Please contact system administrator."
+    });
+    throw new Error("User deletion is not available");
   };
 
   if (isLoading) {
@@ -1511,15 +1508,15 @@ const AdminSettings: React.FC = () => {
         <TabsTrigger value="subscriptions" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <Star className="h-5 w-5 text-yellow-500" /> Manage Subscriptions
         </TabsTrigger>
-        <TabsTrigger value="grant_calls" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+        {/* <TabsTrigger value="grant_calls" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <Gift className="h-5 w-5 text-green-600" /> Grant API Calls
-        </TabsTrigger>
+        </TabsTrigger> */}
         <TabsTrigger value="usage_monitor" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <TrendingUp className="h-5 w-5 text-blue-600" /> Usage Monitor
         </TabsTrigger>
-        <TabsTrigger value="grant_history" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
+        {/* <TabsTrigger value="grant_history" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
           <History className="h-5 w-5 text-purple-600" /> Grant History
-        </TabsTrigger>
+        </TabsTrigger> */}
         <TabsTrigger value="logout" className="flex items-center gap-2 text-red-500 data-[state=active]:bg-white">
           <LogOut className="h-5 w-5" /> Log Out
         </TabsTrigger>
@@ -1567,7 +1564,7 @@ const UserSettings: React.FC = () => {
           <div className="space-y-6">
             <UserProfile />
             <UserApiUsage />
-            <UserSubscription />
+            {/* <UserSubscription /> */}
           </div>
         </TabsContent>
         <TabsContent value="logout">

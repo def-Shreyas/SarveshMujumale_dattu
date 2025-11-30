@@ -1,7 +1,7 @@
 // src/components/Header.tsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, User, Sparkles, Activity } from "lucide-react";
+import { Sparkles, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApiUsage } from "@/contexts/ApiUsageContext";
@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 
 import DattuLogo from "/logo dattu.png";
 
@@ -23,14 +24,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ isCollapsed, setIsCollapsed }) => {
-  const { logout, user } = useAuth();
-  const { apiLimit, apiUsed, remainingApi, moduleUsage } = useApiUsage();
-  const navigate = useNavigate();
-
-  // const handleLogout = () => {
-  //   logout();
-  //   navigate("/login");
-  // };
+  const { user } = useAuth();
+  const { apiLimit, apiUsed, remainingApi, dailyLimit, dailyUsed, dailyRemaining, moduleUsage } = useApiUsage();
 
   const handleAskDattu = () => {
     toast.info("Coming Soon!", {
@@ -83,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ isCollapsed, setIsCollapsed }) =
                 <div className="flex items-center gap-2 mb-1">
                   <Activity className="h-3 w-3 text-gray-500" />
                   <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    API Limit
+                    Tokens Limit
                   </span>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
@@ -101,18 +96,51 @@ export const Header: React.FC<HeaderProps> = ({ isCollapsed, setIsCollapsed }) =
                 </div>
               </motion.div>
             </TooltipTrigger>
-            <TooltipContent className="p-3" side="bottom" align="end">
-              <div className="text-xs font-semibold text-gray-700">
-                <span className="block mb-1">API Calls</span>
-                <div className="space-y-1">
-                  {Object.entries(moduleUsage)
-                    .filter(([module]) => module !== "Dashboard")
-                    .map(([module, count]) => (
-                      <div key={module} className="flex justify-between text-sm">
-                        <span className="text-gray-600">{module}</span>
-                        <span className="font-medium text-gray-900">{count}</span>
-                      </div>
-                    ))}
+            <TooltipContent className="p-4 min-w-[280px]" side="bottom" align="end">
+              <div className="space-y-3">
+                {/* Daily Limit Section */}
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Daily Limit</div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-gray-700">Used / Total</span>
+                    <span className="text-sm font-bold text-gray-900">{dailyUsed} / {dailyLimit}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">Remaining</span>
+                    <span className="text-sm font-bold text-[#00A79D]">{dailyRemaining.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Monthly Limit Section */}
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Monthly Limit</div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm text-gray-700">Used / Total</span>
+                    <span className="text-sm font-bold text-gray-900">{apiUsed} / {apiLimit}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-700">Remaining</span>
+                    <span className="text-sm font-bold text-[#00A79D]">{remainingApi.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Module Usage Section */}
+                <div>
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Module Usage</div>
+                  <div className="space-y-1">
+                    {Object.entries(moduleUsage)
+                      .filter(([module]) => module !== "Dashboard")
+                      .map(([module, count]) => (
+                        <div key={module} className="flex justify-between text-sm">
+                          <span className="text-gray-600">{module}</span>
+                          <span className="font-medium text-gray-900">{count}</span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
               </div>
             </TooltipContent>
