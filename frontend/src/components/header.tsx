@@ -1,9 +1,9 @@
 // src/components/Header.tsx
 import React from "react";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import { Sparkles, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+//import { useAuth } from "@/contexts/AuthContext";
 import { useApiUsage } from "@/contexts/ApiUsageContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
@@ -24,7 +24,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ isCollapsed, setIsCollapsed }) => {
-  const { user } = useAuth();
+  //const { user } = useAuth();
   const { apiLimit, apiUsed, remainingApi, dailyLimit, dailyUsed, dailyRemaining, moduleUsage } = useApiUsage();
 
   const handleAskDattu = () => {

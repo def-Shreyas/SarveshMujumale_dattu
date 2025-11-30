@@ -42,7 +42,6 @@ import {
   UserPlus,
   Users as UsersIcon,
   Star,
-  CreditCard,
   Trash2,
   Gift,
   History,
@@ -180,7 +179,7 @@ const UserApiUsage: React.FC = () => {
   const { user } = useAuth();
   const [usage, setUsage] = useState<ApiUsage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [__isRefreshing, setIsRefreshing] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
 
@@ -549,7 +548,7 @@ const AdminUserManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async () => {
     // Delete endpoint not available in backend yet
     toast.error("Feature Not Available", {
       description: "User deletion is currently disabled for safety. Please contact system administrator."

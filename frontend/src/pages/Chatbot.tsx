@@ -104,8 +104,8 @@ export default function ChatbotUI() {
   }]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [typingId, setTypingId] = useState<string | null>(null);
-  const [lastPromptForRegenerate, setLastPromptForRegenerate] = useState<string | null>(null);
+  const [__typingId, setTypingId] = useState<string | null>(null);
+  const [__lastPromptForRegenerate, setLastPromptForRegenerate] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -182,49 +182,49 @@ export default function ChatbotUI() {
     setTypingId(null);
   };
 
-  const regenerate = async () => {
-    if (!lastPromptForRegenerate) return;
-    const userMsg: Message = {
-      id: `u_regen_${Date.now()}`,
-      role: "user",
-      text: "(regenerate) " + lastPromptForRegenerate,
-      time: nowTime()
-    };
-    pushMessage(userMsg);
+  // const regenerate = async () => {
+  //   if (!lastPromptForRegenerate) return;
+  //   const userMsg: Message = {
+  //     id: `u_regen_${Date.now()}`,
+  //     role: "user",
+  //     text: "(regenerate) " + lastPromptForRegenerate,
+  //     time: nowTime()
+  //   };
+  //   pushMessage(userMsg);
 
-    setIsTyping(true);
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
+  //   setIsTyping(true);
+  //   abortControllerRef.current?.abort();
+  //   abortControllerRef.current = new AbortController();
 
-    try {
-      const botText = await simulateBotResponse(lastPromptForRegenerate, abortControllerRef.current.signal);
-      const botMsg: Message = {
-        id: `b_regen_${Date.now()}`,
-        role: "bot",
-        text: botText,
-        time: nowTime()
-      };
-      pushMessage(botMsg);
-    } catch {
-      pushMessage({
-        id: `b_err_${Date.now()}`,
-        role: "bot",
-        text: "Failed to regenerate response.",
-        time: nowTime()
-      });
-    } finally {
-      setIsTyping(false);
-    }
-  };
+  //   try {
+  //     const botText = await simulateBotResponse(lastPromptForRegenerate, abortControllerRef.current.signal);
+  //     const botMsg: Message = {
+  //       id: `b_regen_${Date.now()}`,
+  //       role: "bot",
+  //       text: botText,
+  //       time: nowTime()
+  //     };
+  //     pushMessage(botMsg);
+  //   } catch {
+  //     pushMessage({
+  //       id: `b_err_${Date.now()}`,
+  //       role: "bot",
+  //       text: "Failed to regenerate response.",
+  //       time: nowTime()
+  //     });
+  //   } finally {
+  //     setIsTyping(false);
+  //   }
+  // };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied to clipboard ✔️");
-    } catch {
-      toast.error("Unable to copy text");
-    }
-  };
+  // const copyToClipboard = async (text: string) => {
+  //   try {
+  //     await navigator.clipboard.writeText(text);
+  //     toast.success("Copied to clipboard ✔️");
+  //   } catch {
+  //     toast.error("Unable to copy text");
+  //   }
+  // };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

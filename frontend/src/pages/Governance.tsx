@@ -18,7 +18,6 @@ import {
   Sparkles,
   BarChart2,
   Bot,
-  Building,
   AlertCircle,
   Scale,
   AlertTriangle,

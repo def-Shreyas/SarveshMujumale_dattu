@@ -22,7 +22,6 @@ import {
   Bot,
   AlertTriangle,
   ChevronDown,
-  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { read } from "xlsx";

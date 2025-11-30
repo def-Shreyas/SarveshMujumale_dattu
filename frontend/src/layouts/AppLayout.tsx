@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Header } from "@/components/header"; // Corrected import path
 import { Sidebar } from "@/components/Sidebar";
-import { cn } from "@/lib/utils";
+//import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { motion } from "framer-motion"; // <-- 1. Import motion
 

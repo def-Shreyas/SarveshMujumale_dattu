@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Upload, Activity, AlertCircle } from "lucide-react";
+import { Activity, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -80,7 +80,7 @@ interface ModuleConfig {
 
 const QUICK_TILE_CONFIG: QuickTileConfig[] = [
   { key: "incidents_open", label: "Open Incidents", icon: AlertTriangle, color: "text-red-500", module: "Incidents & Near-Misses" },
-  { key: "ptws_active", label: "Active PTWs", icon: FileText, color: "text-orange-500", module: "Permit-to-Work" },
+  { key: "ptws_active", label: "Open Permits", icon: FileText, color: "text-orange-500", module: "Permit-to-Work" },
   {
     key: "training_effectiveness",
     label: "Training Effectiveness",
@@ -258,7 +258,7 @@ const getTableName = (payload?: ModuleKpiPayload) => {
 
 // --- Components ---
 
-const DashboardHero = ({ onUploadClick }: { onUploadClick?: () => void }) => (
+const DashboardHero = ({ onUploadClick: __ }: { onUploadClick?: () => void }) => (
   <div className="group relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0B3D91] to-[#00A79D] p-8 text-white shadow-2xl transition-all duration-300 hover:shadow-blue-900/20 hover:scale-[1.002]">
     <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
 

@@ -22,7 +22,6 @@ import {
   Bot,
   AlertTriangle,
   ChevronDown,
-  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -334,7 +333,7 @@ export const PTW: React.FC = () => {
 
   // helper: validate excel file content
   const validateExcelFile = async (file: File): Promise<boolean> => {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, __reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {

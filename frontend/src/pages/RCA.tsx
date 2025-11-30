@@ -45,10 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
   Table,
@@ -60,9 +57,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+//import { Progress } from "@/components/ui/progress";
 import {
-  Info,
   Filter,
 } from "lucide-react";
 import type { RcaAction, RcaKpi } from "@/types";
@@ -345,7 +341,7 @@ export const RCA: React.FC = () => {
   const reportRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [kpis, setKpis] = useState<RcaKpi[]>([]);
+  const [__kpis, setKpis] = useState<RcaKpi[]>([]);
   const [actions, setActions] = useState<RcaAction[]>([]);
 
   // Backend integration state
@@ -1839,50 +1835,50 @@ export const RCA: React.FC = () => {
 };
 
 // --- Sub-component: KPI Card ---
-const KpiCard: React.FC<RcaKpi> = ({
-  title,
-  value,
-  formula,
-  progress,
-  invertProgressColor = false,
-}) => {
-  let progressColor = "bg-blue-600";
-  if (progress !== undefined) {
-    if (invertProgressColor) {
-      progressColor = progress > 15 ? "bg-red-500" : (progress > 5 ? "bg-yellow-500" : "bg-green-600");
-    } else {
-      progressColor = progress < 80 ? "bg-red-500" : (progress < 90 ? "bg-yellow-500" : "bg-green-600");
-    }
-  }
+// const KpiCard: React.FC<RcaKpi> = ({
+//   title,
+//   value,
+//   formula,
+//   progress,
+//   invertProgressColor = false,
+// }) => {
+//   let progressColor = "bg-blue-600";
+//   if (progress !== undefined) {
+//     if (invertProgressColor) {
+//       progressColor = progress > 15 ? "bg-red-500" : (progress > 5 ? "bg-yellow-500" : "bg-green-600");
+//     } else {
+//       progressColor = progress < 80 ? "bg-red-500" : (progress < 90 ? "bg-yellow-500" : "bg-green-600");
+//     }
+//   }
 
-  return (
-    <motion.div whileHover={{ scale: 1.03 }}>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="h-4 w-4 text-gray-400" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{formula}</p>
-            </TooltipContent>
-          </Tooltip>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">{value}</div>
-          {progress !== undefined && (
-            <Progress
-              value={progress}
-              className="mt-2 h-2"
-              indicatorClassName={cn("!bg-primary", progressColor)}
-            />
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
+//   return (
+//     <motion.div whileHover={{ scale: 1.03 }}>
+//       <Card>
+//         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+//           <CardTitle className="text-sm font-medium">{title}</CardTitle>
+//           <Tooltip>
+//             <TooltipTrigger>
+//               <Info className="h-4 w-4 text-gray-400" />
+//             </TooltipTrigger>
+//             <TooltipContent>
+//               <p>{formula}</p>
+//             </TooltipContent>
+//           </Tooltip>
+//         </CardHeader>
+//         <CardContent>
+//           <div className="text-3xl font-bold">{value}</div>
+//           {progress !== undefined && (
+//             <Progress
+//               value={progress}
+//               className="mt-2 h-2"
+//               indicatorClassName={cn("!bg-primary", progressColor)}
+//             />
+//           )}
+//         </CardContent>
+//       </Card>
+//     </motion.div>
+//   );
+// };
 
 // --- Sub-component: RCA Table ---
 interface RcaTableProps {

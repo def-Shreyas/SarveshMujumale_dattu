@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Zap, Lightbulb, ShieldCheck, Heart, Users, TrendingUp, Layout } from "lucide-react";
+import { Eye, EyeOff, Zap, Lightbulb, ShieldCheck, Heart, Users, TrendingUp } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
