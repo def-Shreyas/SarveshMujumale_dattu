@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { apiClient } from "@/lib/api";
+import { useAuth } from "./AuthContext";
 
 interface ApiUsageContextType {
     apiLimit: number;          // Monthly limit
@@ -21,9 +22,15 @@ export const ApiUsageProvider = ({ children }: { children: ReactNode }) => {
     const [dailyLimit, setDailyLimit] = useState(100);
     const [dailyUsed, setDailyUsed] = useState(0);
     const [moduleUsage, setModuleUsage] = useState<Record<string, number>>({});
+    const { isAuthenticated } = useAuth();
 
-    // Fetch initial usage from backend
+    // Fetch initial usage from backend - ONLY when authenticated
     useEffect(() => {
+        // Only fetch if user is authenticated
+        if (!isAuthenticated) {
+            return;
+        }
+
         const fetchInitialUsage = async () => {
             try {
                 const data = await apiClient.get("/auth/rate-limit");
@@ -36,11 +43,12 @@ export const ApiUsageProvider = ({ children }: { children: ReactNode }) => {
                     setDailyUsed(data.daily_used || 0);
                 }
             } catch (error) {
+                // Silently fail if not authenticated - this is expected on login page
                 console.error("Failed to fetch initial API usage:", error);
             }
         };
         fetchInitialUsage();
-    }, []);
+    }, [isAuthenticated]);
 
     const remainingApi = apiLimit - apiUsed;
     const dailyRemaining = dailyLimit - dailyUsed;
