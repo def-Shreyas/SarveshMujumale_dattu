@@ -238,7 +238,7 @@ export default function Login() {
               className="text-3xl font-extrabold text-[#10243A] mb-2"
               variants={formItemVariant}
             >
-              Sign in to DATTU AI
+              Sign in to DATTU 
             </motion.h2>
             <motion.p 
               className="text-sm text-gray-500 mb-6"
@@ -339,7 +339,7 @@ export default function Login() {
                       <p>These Terms shall be governed under the jurisdiction of [Your Jurisdiction, e.g., Maharashtra, India].</p>
                       
                       <h3 className="font-bold text-lg mt-4">7. Contact</h3>
-                      <p>For any questions about these Terms, please contact us at <a href="mailto:support@dattu.com" className="text-blue-600 underline">support@dattu.com</a>.</p>
+                      <p>For any questions about these Terms, please contact us at <a href="mailto:info.dattu@gurumaulient.in" className="text-blue-600 underline">info.dattu@gurumaulient.in</a>.</p>
                     </ScrollArea>
                     <DialogFooter>
                       <DialogClose asChild>
@@ -388,7 +388,7 @@ export default function Login() {
                       <p>You have the right to access, amend, and delete your data. Upon contract termination, all your data will be permanently deleted from our systems within 30 days.</p>
                       
                       <h3 className="font-bold text-lg mt-4">6. Contact</h3>
-                      <p>For any data privacy questions, please contact our Data Protection Officer at <a href="mailto:privacy@dattu.com" className="text-blue-600 underline">privacy@dattu.com</a>.</p>
+                      <p>For any data privacy questions, please contact our Data Protection Officer at <a href="mailto:info.dattu@gurumaulient.in" className="text-blue-600 underline">info.dattu@gurumaulient.in</a>.</p>
                     </ScrollArea>
                     <DialogFooter>
                       <DialogClose asChild>
