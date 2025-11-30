@@ -1,5 +1,5 @@
-// src/pages/PPE.tsx
-import React, { useState, useEffect, useRef } from "react";
+"use client";
+import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuthToken, apiClient } from "@/lib/api";
 import {
@@ -11,21 +11,26 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Upload,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+  Sparkles,
+  HardHat,
+  BarChart2,
+  Bot,
+  AlertTriangle,
+  ChevronDown,
+  AlertCircle
+} from "lucide-react";
+import { toast } from "sonner";
+import { read } from "xlsx";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -34,94 +39,39 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Legend,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
-import {
-  HardHat,
-  FileText,
-  TrendingUp,
-  Brain,
-  Info,
-  Filter,
-  Zap,
-  AlertTriangle,
-  ShoppingCart,
-  Truck,
-  Upload,
-  FileSpreadsheet,
-  Loader2,
-  Sparkles,
-  BarChart2,
-  Bot,
-} from "lucide-react";
-import type {
-  PpeItem,
-  PpeKpi,
-  PpeUsageData,
-  PpeStockData,
-  ReorderItem,
-} from "@/types";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 
-// Backend URL
+// 👇 change this if your backend runs on a different URL/port
 const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-// AI Quotes
+// --- AI Motivational Quotes ---
 const aiQuotes = [
   "AI is analyzing PPE inventory and usage patterns...",
   "Machine learning helps predict stock-outs and optimize reorder points...",
   "Every PPE item tells a safety story, AI helps us manage it better...",
+  "Scanning asset allocation for compliance gaps...",
+  "Calculating optimal inventory levels based on historical usage...",
 ];
 
-// Types for backend integration
+// --- Types ---
 interface ChartFile {
   name: string;
   path?: string;
 }
 
-// ✅ Safe Markdown Renderer Component - NO ReactMarkdown, just plain HTML
+// ✅ Safe Markdown Renderer Component
 interface SafeMarkdownProps {
   content: string;
 }
 
-// ✅ ULTRA-SIMPLE SOLUTION: Convert markdown to HTML string, then render as HTML
-// This completely avoids ReactMarkdown and any React element issues
 const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
-  // Validate content is a string
   if (typeof content !== "string") {
-    console.error(
-      "❌ SafeMarkdown received non-string content:",
-      typeof content,
-      content
-    );
+    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
     return (
       <div className="text-red-500 p-4">
         <p>Invalid content type: {typeof content}</p>
@@ -133,52 +83,33 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     return <p className="text-gray-500">No content to display</p>;
   }
 
-  // Simple markdown-to-HTML converter
   const formatMarkdown = (text: string): string => {
-    // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
     const stripHtmlAttributes = (str: string): string => {
-      // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-
-      // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-
-      // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-
-      // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-
       return str;
     };
 
-    // Clean the text first to remove HTML attributes
     text = stripHtmlAttributes(text);
 
-    // Escape HTML for content (not attributes) - only escape <, >, and & (when not part of valid entities)
-    // Quotes don't need to be escaped in HTML content, only in attribute values
     const escapeHtml = (str: string) => {
-      // First, protect existing HTML entities
       const entityPlaceholders: { [key: string]: string } = {};
       let placeholderIndex = 0;
-      let protectedStr = str.replace(
-        /&(?:#\d+|#x[\da-fA-F]+|\w+);/g,
-        (match) => {
-          const placeholder = `__ENTITY_${placeholderIndex++}__`;
-          entityPlaceholders[placeholder] = match;
-          return placeholder;
-        }
-      );
+      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
+        const placeholder = `__ENTITY_${placeholderIndex++}__`;
+        entityPlaceholders[placeholder] = match;
+        return placeholder;
+      });
 
-      // Now escape only <, >, and & (but not the ones we protected)
       protectedStr = protectedStr.replace(/&/g, "&amp;");
       protectedStr = protectedStr.replace(/</g, "&lt;");
       protectedStr = protectedStr.replace(/>/g, "&gt;");
 
-      // Restore protected entities
       Object.keys(entityPlaceholders).forEach((placeholder) => {
         protectedStr = protectedStr.replace(
           new RegExp(placeholder, "g"),
@@ -189,114 +120,62 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       return protectedStr;
     };
 
-    // Decode any existing HTML entities that might be in the markdown
-    // (in case the backend already escaped them)
     const decodeHtmlEntities = (str: string): string => {
-      // Handle both named entities and numeric entities
       return (
         str
-          // Named entities
           .replace(/&quot;/g, '"')
           .replace(/&#039;/g, "'")
           .replace(/&apos;/g, "'")
           .replace(/&nbsp;/g, " ")
-          // Numeric entities (decimal and hex)
-          .replace(/&#(\d+);/g, (_, dec) =>
-            String.fromCharCode(parseInt(dec, 10))
-          )
-          .replace(/&#x([\da-fA-F]+);/g, (_, hex) =>
-            String.fromCharCode(parseInt(hex, 16))
-          )
+          .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
+          .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
       );
-      // Note: We don't decode &amp;, &lt;, &gt; here as they might be intentional
-      // and we'll handle them in escapeHtml
     };
 
-    // Preserve safe HTML tags like <br>, <br/>, <br /> before escaping
-    // Use placeholders that won't be escaped
     const BR_PLACEHOLDER = "___BR_TAG_PLACEHOLDER___";
     const safeHtmlTags = [
       { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER },
     ];
 
-    // Step 1: Decode any existing HTML entities first
-    // Step 2: Replace safe HTML tags with placeholders
     let processedText = decodeHtmlEntities(text);
     safeHtmlTags.forEach(({ pattern, replacement }) => {
       processedText = processedText.replace(pattern, replacement);
     });
 
-    // Process tables FIRST (before escaping, as tables contain pipes)
-    // Note: escapeHtml is accessible here due to closure
     const processTables = (str: string): string => {
-      // Match markdown tables: | Header | Header | followed by |---|---| followed by | Cell | Cell |
-      // More flexible regex to handle various table formats
       const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
 
       return str.replace(tableRegex, (match) => {
-        const lines = match
-          .trim()
-          .split(/\r?\n/)
-          .filter((line) => line.trim() && line.includes("|"));
-        if (lines.length < 2) return match; // Need at least header and separator
+        const lines = match.trim().split(/\r?\n/).filter((line) => line.trim() && line.includes("|"));
+        if (lines.length < 2) return match;
 
         const headerLine = lines[0];
-        const dataLines = lines.slice(2); // Skip header and separator
+        const dataLines = lines.slice(2);
 
-        // Parse header - split by | and filter empty
-        const headers = headerLine
-          .split("|")
-          .map((h) => h.trim())
-          .filter((h) => h && !h.match(/^[-:|\s]+$/));
+        const headers = headerLine.split("|").map((h) => h.trim()).filter((h) => h && !h.match(/^[-:|\s]+$/));
 
-        if (headers.length === 0) return match; // No valid headers
+        if (headers.length === 0) return match;
 
-        // Build table HTML
-        let tableHtml =
-          '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+        let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
 
-        // Table header
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
         headers.forEach((header) => {
-          // Escape header text (but restore BR placeholders)
           let escapedHeader = escapeHtml(header);
-          escapedHeader = escapedHeader.replace(
-            new RegExp(BR_PLACEHOLDER, "g"),
-            "<br />"
-          );
+          escapedHeader = escapedHeader.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
           tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
         });
         tableHtml += "</tr></thead>";
 
-        // Table body
         tableHtml += "<tbody>";
         dataLines.forEach((line, idx) => {
-          const cells = line
-            .split("|")
-            .map((c) => c.trim())
-            .filter((c) => c && !c.match(/^[-:|\s]+$/));
-          // Only process if we have the right number of cells
+          const cells = line.split("|").map((c) => c.trim()).filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-              } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100">`;
             cells.forEach((cell) => {
-              // Escape cell content first (but preserve BR placeholders)
               let cellContent = escapeHtml(cell);
-              // Restore BR placeholders as actual <br /> tags
-              cellContent = cellContent.replace(
-                new RegExp(BR_PLACEHOLDER, "g"),
-                "<br />"
-              );
-              // Then process inline markdown in cells (bold, italic, etc.)
-              cellContent = cellContent.replace(
-                /\*\*(.*?)\*\*/g,
-                '<strong class="font-bold">$1</strong>'
-              );
-              cellContent = cellContent.replace(
-                /\*(.*?)\*/g,
-                '<em class="italic">$1</em>'
-              );
-              // Handle line breaks in cells (convert newlines to <br />)
+              cellContent = cellContent.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
+              cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
+              cellContent = cellContent.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
               cellContent = cellContent.replace(/\n/g, "<br />");
               tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
             });
@@ -309,136 +188,79 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       });
     };
 
-    // Process tables first
     let html = processTables(processedText);
 
-    // Now escape HTML (but preserve already-generated table HTML and BR placeholders)
-    // We need to escape only the parts that aren't already HTML
     const escapeNonHtml = (str: string): string => {
-      // Split by HTML tags, escape non-HTML parts
       const parts = str.split(/(<[^>]+>)/);
-      return parts
-        .map((part) => {
-          if (part.startsWith("<") && part.endsWith(">")) {
-            return part; // Already HTML, don't escape
-          }
-          return escapeHtml(part);
-        })
-        .join("");
+      return parts.map((part) => {
+        if (part.startsWith("<") && part.endsWith(">")) {
+          return part;
+        }
+        return escapeHtml(part);
+      }).join("");
     };
 
-    // Escape non-HTML parts
     html = escapeNonHtml(html);
 
-    // Headers (process from largest to smallest)
-    html = html.replace(
-      /^#### (.*$)/gim,
-      '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
-    );
-    html = html.replace(
-      /^### (.*$)/gim,
-      '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>'
-    );
-    html = html.replace(
-      /^## (.*$)/gim,
-      '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>'
-    );
-    html = html.replace(
-      /^# (.*$)/gim,
-      '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>'
-    );
+    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
+    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
+    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
+    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
 
-    // Code blocks (before inline code) - but skip if inside table
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
-      // Check if this is inside a table
       const beforeMatch = html.substring(0, html.indexOf(match));
       const lastTable = beforeMatch.lastIndexOf("<table");
       const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
-        return match; // Inside table, don't process
+        return match;
       }
       return `<pre class="bg-gray-100 p-4 rounded my-4 overflow-x-auto border"><code>${code}</code></pre>`;
     });
 
-    // Inline code (but not inside tables)
     html = html.replace(/`([^`]+)`/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
       const lastTable = beforeMatch.lastIndexOf("<table");
       const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
-        return match; // Inside table, don't process
+        return match;
       }
       return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
     });
 
-    // Bold (but preserve what's already in tables)
     html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
-      // Check if already inside a table cell
       if (match.includes("<td") || match.includes("</td>")) {
-        return match; // Already processed in table
+        return match;
       }
       return `<strong class="font-bold text-gray-800">${text}</strong>`;
     });
 
-    // Italic
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
-      if (
-        match.includes("<td") ||
-        match.includes("</td>") ||
-        match.includes("<strong>")
-      ) {
-        return match; // Already processed
+      if (match.includes("<td") || match.includes("</td>") || match.includes("<strong>")) {
+        return match;
       }
       return `<em class="italic">${text}</em>`;
     });
 
-    // Links
-    html = html.replace(
-      /\[([^\]]+)\]\(([^)]+)\)/g,
-      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
-    );
-
-    // Lists
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
+    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
 
-    // Wrap list items in ul
-    html = html.replace(
-      /(<li.*<\/li>)/g,
-      '<ul class="list-disc ml-6 my-4">$1</ul>'
-    );
-
-    // Line breaks - convert double newlines to paragraph breaks
-    // But skip if inside table
-    html = html
-      .split(/\n\n+/)
-      .map((para) => {
-        if (para.trim()) {
-          // Don't wrap if already a header, list, code block, or table
-          if (
-            para.trim().startsWith("<h") ||
-            para.trim().startsWith("<ul") ||
-            para.trim().startsWith("<pre") ||
-            (para.trim().startsWith("<div") && para.includes("<table"))
-          ) {
-            return para;
-          }
-          return `<p class="mb-4 leading-relaxed">${para.replace(
-            /\n/g,
-            "<br />"
-          )}</p>`;
+    html = html.split(/\n\n+/).map((para) => {
+      if (para.trim()) {
+        if (para.trim().startsWith("<h") || para.trim().startsWith("<ul") || para.trim().startsWith("<pre") || (para.trim().startsWith("<div") && para.includes("<table"))) {
+          return para;
         }
-        return "";
-      })
-      .join("");
+        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, "<br />")}</p>`;
+      }
+      return "";
+    }).join("");
 
-    // Restore BR placeholders as actual <br /> tags (at the very end, after all processing)
     html = html.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
 
     return html;
   };
 
-  // Render as plain HTML - NO React elements, just HTML string
   return (
     <div
       className="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600"
@@ -447,123 +269,14 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   );
 };
 
-// --- Mock Data (Replace with API calls) ---
-
-const mockKpis: PpeKpi[] = [
-  {
-    title: "Overall Utilization",
-    value: "78%",
-    formula: "(Issued / Purchased) × 100",
-    progress: 78,
-  },
-  {
-    title: "Stock Turnover Rate",
-    value: "2.5",
-    formula: "COGS / Avg. Inventory",
-  },
-  {
-    title: "Low Stock Alerts",
-    value: "3 Items",
-    formula: "Items < 15% threshold",
-    progress: 10, // Assuming 3/30 items are low
-    invertProgressColor: true,
-  },
-  {
-    title: "Expired Stock",
-    value: "1 Item",
-    formula: "Items past expiry date",
-    progress: 3, // Assuming 1/30 items
-    invertProgressColor: true,
-  },
-];
-
-const mockPpeStock: PpeItem[] = [
-  {
-    id: "PPE-001",
-    name: "Safety Helmet",
-    supplier: "SafeInc",
-    totalPurchased: 200,
-    totalIssued: 150,
-    balance: 50,
-    expiryDate: new Date("2026-10-31"),
-    status: "In Stock",
-  },
-  {
-    id: "PPE-002",
-    name: "Cut-Resist Gloves",
-    supplier: "GloveCo",
-    totalPurchased: 500,
-    totalIssued: 480,
-    balance: 20,
-    expiryDate: new Date("2026-05-31"),
-    status: "Low Stock",
-  },
-  {
-    id: "PPE-003",
-    name: "Safety Goggles",
-    supplier: "SafeInc",
-    totalPurchased: 300,
-    totalIssued: 200,
-    balance: 100,
-    expiryDate: new Date("2027-01-31"),
-    status: "In Stock",
-  },
-  {
-    id: "PPE-004",
-    name: "Respirator Cartridge",
-    supplier: "3M",
-    totalPurchased: 100,
-    totalIssued: 100,
-    balance: 0,
-    expiryDate: new Date("2025-11-30"),
-    status: "Out of Stock",
-  },
-  {
-    id: "PPE-005",
-    name: "Fall Arrest Harness",
-    supplier: "SafeInc",
-    totalPurchased: 50,
-    totalIssued: 45,
-    balance: 5,
-    expiryDate: new Date("2025-09-30"),
-    status: "Expired",
-  },
-];
-
-const mockUsageData: PpeUsageData[] = [
-  { month: "May", Purchased: 200, Issued: 150 },
-  { month: "Jun", Purchased: 150, Issued: 180 },
-  { month: "Jul", Purchased: 300, Issued: 250 },
-  { month: "Aug", Purchased: 200, Issued: 220 },
-  { month: "Sep", Purchased: 400, Issued: 350 },
-  { month: "Oct", Purchased: 100, Issued: 120 },
-];
-
-const mockStockData: PpeStockData[] = [
-  { name: "Helmets", value: 50, fill: "#0B3D91" },
-  { name: "Gloves", value: 20, fill: "#E53935" },
-  { name: "Goggles", value: 100, fill: "#00A79D" },
-  { name: "Harnesses", value: 5, fill: "#FFC107" },
-];
-
-const mockReorderList: ReorderItem[] = [
-  { id: "PPE-002", name: "Cut-Resist Gloves", supplier: "GloveCo", currentStock: 20, predictedStockOut: "In 3 days", suggestedQuantity: 500 },
-  { id: "PPE-004", name: "Respirator Cartridge", supplier: "3M", currentStock: 0, predictedStockOut: "Now", suggestedQuantity: 150 },
-  { id: "PPE-005", name: "Fall Arrest Harness", supplier: "SafeInc", currentStock: 5, predictedStockOut: "In 2 days", suggestedQuantity: 50 },
-];
-
 // --- Main PPE Page Component ---
 
 export const PPE: React.FC = () => {
   const reportRef = useRef<HTMLDivElement | null>(null);
+  const reportContentRef = useRef<HTMLDivElement | null>(null);
+  const chartsContentRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [kpis, setKpis] = useState<PpeKpi[]>([]);
-  const [stock, setStock] = useState<PpeItem[]>([]);
-  const [isReorderOpen, setIsReorderOpen] = useState(false);
-  const [selectedPpe, setSelectedPpe] = useState<PpeItem | null>(null);
-
-  // Backend integration state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -573,14 +286,13 @@ export const PPE: React.FC = () => {
   const [showReport, setShowReport] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [currentQuoteIndex, setCurrentQuoteIndex] = useState(0);
+
+  // backend data
   const [aiReport, setAiReport] = useState<string>("");
   const [chartList, setChartList] = useState<ChartFile[]>([]);
   const [selectedChartName, setSelectedChartName] = useState<string>("");
   const [selectedChartHtml, setSelectedChartHtml] = useState<string>("");
-  const reportContentRef = useRef<HTMLDivElement | null>(null);
-  const chartsContentRef = useRef<HTMLDivElement | null>(null);
 
-  // Rotate quotes while generating
   useEffect(() => {
     if (isGeneratingReport || isGeneratingCharts) {
       const quoteInterval = setInterval(() => {
@@ -590,32 +302,75 @@ export const PPE: React.FC = () => {
     }
   }, [isGeneratingReport, isGeneratingCharts]);
 
-  // --- Data Fetching (Backend Logic) ---
   useEffect(() => {
-    // Keep mock data for existing UI components
-    setKpis(mockKpis);
-    setStock(mockPpeStock);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, []);
 
-  // Handle file pick
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Validate Excel file content
+  const validateExcelFile = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = read(data, { type: "array" });
+          const sheetNames = workbook.SheetNames;
+
+          // Check for required sheets (PPE module specific)
+          const requiredSheets = ["Sheet1", "PPE", "Assets_PPE"];
+          const hasRequiredSheets = requiredSheets.some(sheet =>
+            sheetNames.some(name => name.includes(sheet))
+          );
+
+          // Also allow if there's a sheet explicitly named "PPE" or "Assets"
+          const hasGenericSheet = sheetNames.some(name =>
+            name.toLowerCase().includes("ppe") ||
+            name.toLowerCase().includes("asset")
+          );
+
+          if (hasRequiredSheets || hasGenericSheet) {
+            resolve(true);
+          } else {
+            toast.error("Invalid File Content", {
+              description: "The uploaded file does not appear to be a PPE/Assets file. Expected sheets like 'PPE', 'Assets_PPE', etc.",
+              duration: 5000,
+            });
+            resolve(false);
+          }
+        } catch (error) {
+          console.error("Error reading Excel file:", error);
+          toast.error("File Read Error", {
+            description: "Could not read the Excel file structure.",
+          });
+          resolve(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error("File Read Error", {
+          description: "Failed to read the file.",
+        });
+        resolve(false);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (file) {
       const validExtensions = [".xlsx", ".xls"];
-      const fileExtension = file.name
-        .substring(file.name.lastIndexOf("."))
-        .toLowerCase();
+      const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
-        // Check file size (limit to 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          toast.error("File Too Large", {
-            description: "Please upload a file smaller than 10MB.",
-          });
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          toast.error("File Too Large", { description: "Please upload a file smaller than 10MB." });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+        const isValid = await validateExcelFile(file);
+        if (!isValid) {
+          if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
 
@@ -626,48 +381,31 @@ export const PPE: React.FC = () => {
         setAiReport("");
         setChartList([]);
       } else {
-        toast.error("Invalid File Type", {
-          description: "Please upload a valid Excel (.xlsx, .xls) file.",
-        });
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
+        toast.error("Invalid File Type", { description: "Please upload a valid Excel (.xlsx, .xls) file." });
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     }
   };
 
-  // --- Drag & Drop Handlers ---
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-
     const file = e.dataTransfer.files?.[0];
     if (file) {
       const validExtensions = [".xlsx", ".xls"];
-      const fileExtension = file.name
-        .substring(file.name.lastIndexOf("."))
-        .toLowerCase();
-
+      const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
       if (validExtensions.includes(fileExtension)) {
-        // Check file size (limit to 10MB)
-        const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+        const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          toast.error("File Too Large", {
-            description: "Please upload a file smaller than 10MB.",
-          });
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          toast.error("File Too Large", { description: "Please upload a file smaller than 10MB." });
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+        const isValid = await validateExcelFile(file);
+        if (!isValid) {
+          if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
 
@@ -678,173 +416,92 @@ export const PPE: React.FC = () => {
         setAiReport("");
         setChartList([]);
       } else {
-        toast.error("Invalid File Type", {
-          description: "Please upload a valid Excel (.xlsx, .xls) file.",
-        });
+        toast.error("Invalid File Type", { description: "Please upload a valid Excel (.xlsx, .xls) file." });
       }
     }
   };
 
-  // Upload file to backend
   const uploadPpeFile = async (file: File) => {
     const token = getAuthToken();
-    if (!token) {
-      throw new Error("User not authenticated — no token found.");
-    }
-
+    if (!token) throw new Error("User not authenticated");
     const formData = new FormData();
     formData.append("file", file);
-
     const res = await fetch(`${BACKEND_URL}/upload-ppe`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
-
-    if (!res.ok) {
-      const text = await res.text().catch(() => `${res.statusText}`);
-      console.error("Upload error body:", text);
-      throw new Error(`Upload failed (${res.status}): ${text}`);
-    }
-
-    const data = await res.json();
-    return data;
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    return await res.json();
   };
 
-  // helper: generate report
   const generateReport = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
-
     setIsGeneratingReport(true);
     setCurrentQuoteIndex(0);
-
     try {
       const response = await apiClient.post("/generate-ppe-report");
-
       if (response && response.report_content) {
-        // Use report_content directly from API response
-        const reportContent = typeof response.report_content === "string"
-          ? response.report_content
-          : String(response.report_content || "");
-
+        const reportContent = typeof response.report_content === "string" ? response.report_content : String(response.report_content || "");
         setAiReport(reportContent);
         setShowReport(true);
-        toast.success("Report Generated!", {
-          description: `Report generated successfully (${response.report_length || 0} characters)`,
-        });
+        toast.success("Report Generated!");
       } else {
-        throw new Error("Invalid response from server: missing report_content");
+        throw new Error("Invalid response");
       }
     } catch (error: any) {
       console.error("Error generating report:", error);
-      const errorMessage = error?.message || "Failed to generate report. Please try again.";
-
-      // Provide user-friendly error messages
-      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
-        toast.error("API Configuration Error", {
-          description: "API key not configured. Please contact the administrator.",
-        });
-      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
-        toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating the report.",
-        });
-      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
-        toast.error("Network Error", {
-          description: "Please check your internet connection and try again.",
-        });
-      } else {
-        toast.error("Report Generation Failed", {
-          description: errorMessage,
-        });
-      }
+      toast.error("Report Generation Failed", { description: error?.message });
     } finally {
       setIsGeneratingReport(false);
     }
   };
 
-  // helper: generate charts
   const generateCharts = async () => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
-
     setIsGeneratingCharts(true);
     setCurrentQuoteIndex(0);
-    // Reset chart state - don't show charts until user selects one
     setSelectedChartName("");
     setSelectedChartHtml("");
-
     try {
       const response = await apiClient.post("/generate-ppe-charts");
-
       if (response && response.chart_files && Array.isArray(response.chart_files)) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
-
-        // Don't auto-load first chart - let user select from dropdown
-        // Only set showCharts to true so the dropdown appears
         setShowCharts(true);
-        toast.success("Charts Generated!", {
-          description: `${charts.length} chart(s) generated successfully. Please select a chart to view.`,
-        });
+        toast.success("Charts Generated!");
       } else {
-        throw new Error("Invalid response from server: missing chart_files");
+        throw new Error("Invalid response");
       }
     } catch (error: any) {
       console.error("Error generating charts:", error);
-      const errorMessage = error?.message || "Failed to generate charts. Please try again.";
-
-      if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
-        toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating charts.",
-        });
-      } else {
-        toast.error("Chart Generation Failed", {
-          description: errorMessage,
-        });
-      }
+      toast.error("Chart Generation Failed", { description: error?.message });
     } finally {
       setIsGeneratingCharts(false);
     }
   };
 
-  // Fetch chart HTML
   const fetchChartHtml = async (chartName: string): Promise<string> => {
     const token = getAuthToken();
     if (!token) throw new Error("Authentication required");
-
     const res = await fetch(`${BACKEND_URL}/charts/${chartName}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) {
-      const body = await res.text().catch(() => "");
-      throw new Error(`Fetching chart failed (${res.status}): ${body}`);
-    }
-
-    const html = await res.text();
-    return html;
+    if (!res.ok) throw new Error(`Fetching chart failed`);
+    return await res.text();
   };
 
-  // main "Upload" button flow
   const handleUpload = async () => {
-    if (!selectedFile) {
-      toast.error("No File Selected");
-      return;
-    }
-
+    if (!selectedFile) { toast.error("No File Selected"); return; }
     setIsUploading(true);
     setFileUploaded(false);
     setShowReport(false);
     setShowCharts(false);
     setAiReport("");
     setChartList([]);
-
     try {
       toast.info("Uploading file...", { id: "upload" });
       await uploadPpeFile(selectedFile);
@@ -852,309 +509,211 @@ export const PPE: React.FC = () => {
       setFileUploaded(true);
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      const errorMessage = error?.message || "Could not upload the file. Please try again.";
-      toast.error("Upload Failed", {
-        description: errorMessage,
-        duration: 5000,
-      });
+      toast.error("Upload Failed", { description: error?.message, duration: 5000 });
     } finally {
       setIsUploading(false);
     }
   };
 
-  // Handle chart selection
   const handleChartSelect = async (chartName: string) => {
     setSelectedChartName(chartName);
-
     try {
       const html = await fetchChartHtml(chartName);
       setSelectedChartHtml(html);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      console.error("Failed to load chart:", error);
-      toast.error("Failed to load chart", {
-        description: errorMessage,
-      });
+      toast.error("Failed to load chart", { description: errorMessage });
       setSelectedChartHtml("<p>Error loading chart.</p>");
     }
   };
 
-  // Download PDF
+  // --- DOWNLOAD FUNCTIONS (Using Print Window Logic) ---
+
+  const downloadTXT = () => {
+    if (!aiReport) { toast.error("Error", { description: "Cannot find report content." }); return; }
+    try {
+      const cleanContent = aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n');
+      const plainText = cleanContent.replace(/<[^>]*>/g, "").replace(/\n\n+/g, "\n").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+      const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().split("T")[0];
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Dattu_PPE_Report_${timestamp}.txt`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Report downloaded as TXT!");
+    } catch (error: any) {
+      toast.error("Failed to download TXT");
+    }
+  };
+
   const downloadPDF = async () => {
-    const element = reportRef.current;
-    if (!element) {
-      toast.error("Error", {
-        description: "Cannot find report to download.",
-      });
-      return;
+    if (!reportContentRef.current) { toast.error("Error", { description: "Cannot find report content." }); return; }
+    try {
+      toast.info("Generating PDF", { description: "Opening print dialog... Select 'Save as PDF'" });
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) throw new Error("Could not open print window");
+      let reportHTML = reportContentRef.current.innerHTML;
+      if (chartsContentRef.current && Array.isArray(chartList) && chartList.length > 0 && selectedChartHtml) {
+        reportHTML += '<div style="page-break-before:always"></div>' + chartsContentRef.current.innerHTML;
+      }
+      const printDocument = `
+         <!DOCTYPE html>
+         <html>
+         <head>
+           <meta charset="UTF-8">
+           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+           <title>DATTU PPE Report</title>
+           <script src="https://cdn.tailwindcss.com"></script>
+           <style>
+             @media print {
+               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+               body { margin: 0; padding: 20px; background: white; }
+               @page { margin: 10mm; size: A4; }
+             }
+             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif; }
+             .prose { max-width: none; }
+           </style>
+         </head>
+         <body>
+           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2">
+             ${reportHTML}
+           </div>
+           <script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 500); });</script>
+         </body>
+         </html>`;
+      printWindow.document.open();
+      printWindow.document.write(printDocument);
+      printWindow.document.close();
+      toast.success("Print dialog opened!");
+    } catch (error: any) {
+      toast.error("Failed to generate PDF");
     }
+  };
 
-    toast.info("Generating PDF", { description: "Please wait..." });
-
-    const originalBG = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#FFFFFF";
-
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#FFFFFF",
-    });
-
-    document.body.style.backgroundColor = originalBG;
-
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-
-    const pageImgHeight =
-      imgWidth > 0 ? (pdfWidth - 20) * (imgHeight / imgWidth) : 0;
-    let heightLeft = pageImgHeight;
-    let position = 10;
-    const pageMargin = 10;
-    const safePdfHeight = pdfHeight - pageMargin * 2;
-
-    pdf.addImage(
-      imgData,
-      "PNG",
-      pageMargin,
-      position,
-      pdfWidth - pageMargin * 2,
-      pageImgHeight
-    );
-    heightLeft -= safePdfHeight;
-
-    while (heightLeft > 0) {
-      position = -heightLeft + pageMargin;
-      pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "PNG",
-        pageMargin,
-        position,
-        pdfWidth - pageMargin * 2,
-        pageImgHeight
-      );
-      heightLeft -= safePdfHeight;
+  const downloadChartsPDF = async () => {
+    try {
+      toast.info("Generating Charts PDF", { description: "Opening print dialog... Select 'Save as PDF'" });
+      const chartHtml = (selectedChartHtml && selectedChartHtml.length > 0 ? selectedChartHtml : chartsContentRef.current?.innerHTML) || "";
+      if (!chartHtml) { toast.error("No chart available"); return; }
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) throw new Error("Could not open print window");
+      const printDocument = `
+         <!DOCTYPE html>
+         <html>
+         <head>
+           <meta charset="UTF-8">
+           <title>DATTU Chart</title>
+           <script src="https://cdn.tailwindcss.com"></script>
+           <style>
+             @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } body { margin: 0; padding: 12px; background: white; } @page { margin: 10mm; size: A4; } }
+             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+           </style>
+         </head>
+         <body><div class="prose max-w-none">${chartHtml}</div><script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 500); });</script></body>
+         </html>`;
+      printWindow.document.open();
+      printWindow.document.write(printDocument);
+      printWindow.document.close();
+      toast.success("Print dialog opened!");
+    } catch (error: any) {
+      toast.error("Failed to generate Charts PDF");
     }
-
-    pdf.save("DATTU_PPE_Report.pdf");
   };
 
-  const handleFilterChange = () => {
-    // TODO: Add filter state and re-fetch data
-    // const query = new URLSearchParams({ type, status }).toString();
-    // fetch(`/api/ppe/filter?${query}`)
-    //   .then(res => res.json())
-    //   .then(data => setStock(data));
-    console.log("Filtering data...");
+  const downloadChartsHTML = () => {
+    try {
+      const chartHtml = (selectedChartHtml && selectedChartHtml.length > 0 ? selectedChartHtml : chartsContentRef.current?.innerHTML) || "";
+      if (!chartHtml) { toast.error("No chart available"); return; }
+      const blob = new Blob([chartHtml], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().split("T")[0];
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Dattu_Chart_${timestamp}.html`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("Chart downloaded!");
+    } catch (error: any) {
+      toast.error("Failed to download chart");
+    }
   };
 
-
-  const handleGenerateReorderList = () => {
-    // TODO: API call to AI backend
-    // fetch(`/api/ppe/ai-reorder-list`)
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     // setReorderList(data);
-    //   })
-    setIsReorderOpen(true); // Open the reorder list modal
-  };
+  // --- RENDER LOGIC ---
 
   // 1. Upload screen
   if (!fileUploaded && !isUploading) {
     return (
       <div className="w-full py-12">
-        {/* TOP PAGE HEADING */}
         <div className="text-center mb-10">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-4xl font-extrabold text-[#0B3D91]"
-          >
-            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
-              PPE & Assets Analyzer
-            </span>
+          <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-4xl font-extrabold text-[#0B3D91]">
+            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">PPE & Assets Analyzer</span>
           </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
-          >
-            Upload your Excel PPE and assets data and let DATTU generate a smart,
-            interactive dashboard of inventory metrics, usage patterns, and AI insights.
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-lg text-gray-600 max-w-2xl mx-auto mt-3">
+            Upload your Excel PPE and assets data and let DATTU generate a smart, interactive dashboard of inventory metrics, usage patterns, and AI insights.
           </motion.p>
         </div>
-
-        {/* HOW IT WORKS */}
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          {[
-            {
-              title: "1. Upload PPE Excel",
-              icon: Upload,
-              desc: "Upload your raw PPE inventory and assets Excel files.",
-            },
-            {
-              title: "2. AI Analyzes Inventory",
-              icon: Sparkles,
-              desc: "DATTU processes stock levels, usage patterns & predicts reorder needs.",
-            },
-            {
-              title: "3. View Dashboard",
-              icon: BarChart2,
-              desc: "Get interactive charts on stock levels & inventory insights.",
-            },
-          ].map((step, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + i * 0.1 }}
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all"
-            >
+          {[{ title: "1. Upload PPE Excel", icon: Upload, desc: "Upload your raw PPE inventory and assets Excel files." }, { title: "2. AI Analyzes Inventory", icon: Sparkles, desc: "DATTU processes stock levels, usage patterns & predicts reorder needs." }, { title: "3. View Dashboard", icon: BarChart2, desc: "Get interactive charts on stock levels & inventory insights." }].map((step, i) => (
+            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }} whileHover={{ y: -5, scale: 1.02 }} className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all">
               <div className="flex items-center gap-3 mb-2">
-                <motion.div
-                  transition={{ type: "spring", stiffness: 300 }}
-                  className="group-hover:scale-110"
-                >
-                  <step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" />
-                </motion.div>
+                <motion.div transition={{ type: "spring", stiffness: 300 }} className="group-hover:scale-110"><step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" /></motion.div>
                 <p className="font-semibold text-gray-800">{step.title}</p>
               </div>
               <p className="text-sm text-gray-600">{step.desc}</p>
             </motion.div>
           ))}
         </div>
-
-        {/* UPLOAD CARD */}
-        <motion.div
-          className="w-full flex items-center justify-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
+        <motion.div className="w-full flex items-center justify-center" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
           <Card className="shadow-xl border-t-4 border-[#0B3D91] w-full max-w-2xl overflow-hidden">
             <CardHeader className="text-center pb-6">
-              <motion.div
-                className="flex justify-center mb-4"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{
-                  delay: 0.2,
-                  type: "spring",
-                  stiffness: 200,
-                }}
-              >
+              <motion.div className="flex justify-center mb-4" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}>
                 <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/15 to-[#00A79D]/15 border border-[#0B3D91]/30">
-                  <motion.div
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{
-                      duration: 1.5,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <HardHat className="w-12 h-12 text-[#0B3D91]" />
-                  </motion.div>
+                  <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}><HardHat className="w-12 h-12 text-[#0B3D91]" /></motion.div>
                 </div>
               </motion.div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
-                Upload PPE & Assets Data
-              </CardTitle>
-              <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) containing PPE inventory and asset data.
-              </p>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">Upload PPE & Assets Data</CardTitle>
+              <p className="text-gray-600 text-lg">Choose an Excel file (.xlsx / .xls) containing PPE inventory and asset data.</p>
             </CardHeader>
-
             <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
-              <motion.label
-                htmlFor="file-upload"
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
-                animate={{
-                  borderColor: isDragging ? "#0B3D91" : "#e5e7eb",
-                  backgroundColor: isDragging ? "#f0f9ff" : "#f9fafb",
-                }}
-                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300"
-              >
+              <motion.label htmlFor="file-upload" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }} animate={{ borderColor: isDragging ? "#0B3D91" : "#e5e7eb", backgroundColor: isDragging ? "#f0f9ff" : "#f9fafb" }} className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  {selectedFile ? (
-                    <>
-                      <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
-                      <p className="mb-2 text-base font-semibold text-gray-700">
-                        {selectedFile.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Click to change file
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
-                      <p className="mb-2 text-base font-semibold text-gray-700">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Excel (.xlsx, .xls) files only (Max 10MB)
-                      </p>
-                    </>
-                  )}
+                  {selectedFile ? (<><FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" /><p className="mb-2 text-base font-semibold text-gray-700">{selectedFile.name}</p><p className="text-xs text-gray-500">Click to change file</p></>) : (<><Upload className="w-12 h-12 text-gray-400 mb-3" /><p className="mb-2 text-base font-semibold text-gray-700">Click to upload or drag and drop</p><p className="text-xs text-gray-500">Excel (.xlsx, .xls) files only (Max 10MB)</p></>)}
                 </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                />
+                <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" id="file-upload" />
               </motion.label>
-
-              <motion.div
-                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
-                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
-              >
-                <Button
-                  onClick={handleUpload}
-                  disabled={!selectedFile || isUploading}
-                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-5 h-5 mr-2" />
-                      Upload File
-                    </>
-                  )}
+              <motion.div whileHover={{ scale: selectedFile ? 1.02 : 1 }} whileTap={{ scale: selectedFile ? 0.99 : 1 }}>
+                <Button onClick={handleUpload} disabled={!selectedFile || isUploading} className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40">
+                  {isUploading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Uploading...</>) : (<><Upload className="w-5 h-5 mr-2" />Upload File</>)}
                 </Button>
               </motion.div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
-
-
     );
   }
 
+  // 2. Uploading screen
+  if (isUploading) {
+    return (
+      <div className="w-full flex items-center justify-center py-20">
+        <motion.div className="text-center max-w-2xl" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
+          <motion.div className="flex justify-center mb-8" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg"><Upload className="w-16 h-16 text-[#0B3D91]" /></div>
+          </motion.div>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">Uploading Your File...</h2>
+          <p className="text-lg text-gray-600 mb-8">Please wait while we process your Excel file.</p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden"><motion.div className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full" initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} /></div>
+        </motion.div>
+      </div>
+    );
+  }
 
   // 3. After upload - show Generate buttons
   if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
@@ -1352,7 +911,7 @@ export const PPE: React.FC = () => {
               ease: "easeInOut",
             }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#00A79D]/20 to-[#0B3D91]/20 border-2 border-[#00A79D]/30 shadow-lg">
               <BarChart2 className="w-16 h-16 text-[#00A79D]" />
             </div>
           </motion.div>
@@ -1473,12 +1032,34 @@ export const PPE: React.FC = () => {
       >
         <Card className="shadow-lg">
           <div ref={chartsContentRef}>
-            <CardHeader>
-              <CardTitle>Interactive Charts</CardTitle>
-              <CardDescription>
-                Select a chart to view the interactive (Plotly) HTML report generated by the backend.
-              </CardDescription>
+            <CardHeader className="flex items-start justify-between">
+              <div>
+                <CardTitle>Interactive Charts</CardTitle>
+                <CardDescription>
+                  Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                </CardDescription>
+              </div>
+              <div className="ml-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download Charts
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={downloadChartsPDF}>
+                      Download Charts as PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={downloadChartsHTML}>
+                      Download Chart HTML
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </CardHeader>
+
             <CardContent className="space-y-4">
               <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
                 <SelectTrigger className="w-full md:w-1/2">
@@ -1487,7 +1068,11 @@ export const PPE: React.FC = () => {
                 <SelectContent>
                   {chartList.map((chart) => (
                     <SelectItem key={chart.name} value={chart.name}>
-                      {chart.name.replace(".html", "").replace(/_/g, " ").replace(/^\d+\s*/, "").replace(/^ppe_/i, "")}
+                      {chart.name
+                        .replace(".html", "")
+                        .replace(/_/g, " ")
+                        .replace(/^\d+\s*/, "")
+                        .replace(/^ppe_/i, "")}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1523,541 +1108,155 @@ export const PPE: React.FC = () => {
 
   // 6. Dashboard (results) - Show Report or Charts
   return (
-    <TooltipProvider>
-      <div className="w-full space-y-6">
-        <motion.div
-          className="flex flex-wrap justify-between items-center gap-4"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <HardHat className="w-8 h-8 text-[#0B3D91]" />
-              {showReport ? " PPE & Assets Report" : showCharts ? "PPE & Assets Charts" : "Dashboard"}
-            </h1>
-            <p className="text-lg text-gray-600 max-w-3xl">
-              Analysis of: {selectedFile?.name}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {showReport && (
-              <Button
-                onClick={downloadPDF}
-                className="bg-[#0B3D91] hover:bg-[#082f70]"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Download Report (PDF)
-              </Button>
-            )}
-            <Button
-              onClick={() => {
-                setFileUploaded(false);
-                setShowReport(false);
-                setShowCharts(false);
-                setSelectedFile(null);
-                setAiReport("");
-                setChartList([]);
-                if (fileInputRef.current) {
-                  fileInputRef.current.value = "";
-                }
-              }}
-              variant="outline"
-            >
-              Upload New File
-            </Button>
-            {fileUploaded && (
-              <>
-                {!showReport && (
-                  <Button
-                    onClick={generateReport}
-                    disabled={isGeneratingReport}
-                    className="bg-[#0B3D91] hover:bg-[#082f70]"
-                  >
-                    {isGeneratingReport ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Generate Report
-                      </>
-                    )}
-                  </Button>
-                )}
-                {!showCharts && (
-                  <Button
-                    onClick={generateCharts}
-                    disabled={isGeneratingCharts}
-                    className="bg-[#00A79D] hover:bg-[#008a7e]"
-                  >
-                    {isGeneratingCharts ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <BarChart2 className="w-4 h-4 mr-2" />
-                        Generate Charts
-                      </>
-                    )}
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-        </motion.div>
-
-        {/* ⚠️ WARNING: Download PDF Before Switching Modules */}
-        {(showReport || showCharts) && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 p-4 rounded-lg shadow-md"
+    <div className="w-full space-y-6">
+      <motion.div
+        className="flex flex-wrap justify-between items-center gap-4"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <HardHat className="w-8 h-8 text-[#0B3D91]" />
+            {showReport ? " PPE & Assets Report" : showCharts ? "PPE & Assets Charts" : "Dashboard"}
+          </h1>
+          <p className="text-lg text-gray-600 max-w-3xl">
+            Analysis of: {selectedFile?.name}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {showReport && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-[#0B3D91] hover:bg-[#082f70]">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Download Report
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={downloadPDF}>Download as PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadTXT}>Download as TXT</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            onClick={() => {
+              setFileUploaded(false);
+              setShowReport(false);
+              setShowCharts(false);
+              setSelectedFile(null);
+              setAiReport("");
+              setChartList([]);
+              if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+              }
+            }}
+            variant="outline"
           >
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
-                <p className="text-amber-800 leading-relaxed">
-                  <strong>Download the PDF before switching to another module or refreshing the page!</strong>
-                  {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* KPIs Row - Only show when no report/charts are displayed */}
-        {!showReport && !showCharts && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {kpis.map((kpi) => (
-              <KpiCard key={kpi.title} {...kpi} />
-            ))}
-          </div>
-        )}
-
-        {/* PDF capture region */}
-        <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">
-          {showReport && showCharts ? (
-            <Tabs defaultValue="report">
-              <TabsList className="w-full justify-start h-12 bg-gray-100">
-                <TabsTrigger
-                  value="report"
-                  className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+            Upload New File
+          </Button>
+          {fileUploaded && (
+            <>
+              {!showReport && (
+                <Button
+                  onClick={generateReport}
+                  disabled={isGeneratingReport}
+                  className="bg-[#0B3D91] hover:bg-[#082f70]"
                 >
-                  <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
-                </TabsTrigger>
-                <TabsTrigger
-                  value="charts"
-                  className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+                  {isGeneratingReport ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      Generate Report
+                    </>
+                  )}
+                </Button>
+              )}
+              {!showCharts && (
+                <Button
+                  onClick={generateCharts}
+                  disabled={isGeneratingCharts}
+                  className="bg-[#00A79D] hover:bg-[#008a7e]"
                 >
-                  <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Report tab */}
-              <TabsContent value="report" className="mt-6">
-                {renderReportContent()}
-              </TabsContent>
-
-              {/* Charts tab */}
-              <TabsContent value="charts" className="mt-6">
-                {renderChartsContent()}
-              </TabsContent>
-            </Tabs>
-          ) : showReport ? (
-            renderReportContent()
-          ) : showCharts ? (
-            renderChartsContent()
-          ) : (
-            /* Show PPE Management tabs when no report/charts */
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-              {/* Left/Main Panel */}
-              <div className="lg:col-span-2">
-                <Tabs defaultValue="ledger">
-                  <TabsList className="w-full justify-start h-12 bg-gray-100">
-                    <TabsTrigger value="ledger" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Stock Ledger
-                    </TabsTrigger>
-                    <TabsTrigger value="analytics" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Usage Analytics
-                    </TabsTrigger>
-                    <TabsTrigger value="alerts" className="flex items-center gap-2 text-base data-[state=active]:bg-white">
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Reorder Alerts
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Ledger Tab */}
-                  <TabsContent value="ledger" className="mt-4">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>PPE Inventory Ledger</CardTitle>
-                        <CardDescription>
-                          Live inventory of all PPE items.
-                        </CardDescription>
-                        {/* Filters */}
-                        <div className="flex flex-wrap items-center gap-2 pt-4">
-                          <Filter className="h-4 w-4 text-gray-500" />
-                          <Select onValueChange={handleFilterChange}>
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Select PPE Type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="helmet">Safety Helmet</SelectItem>
-                              <SelectItem value="gloves">Cut-Resist Gloves</SelectItem>
-                              <SelectItem value="goggles">Safety Goggles</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select onValueChange={handleFilterChange}>
-                            <SelectTrigger className="w-[180px]">
-                              <SelectValue placeholder="Select Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="in-stock">In Stock</SelectItem>
-                              <SelectItem value="low-stock">Low Stock</SelectItem>
-                              <SelectItem value="expired">Expired</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <PpeTable
-                          stock={stock}
-                          onRowClick={(item) => setSelectedPpe(item)}
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  {/* Analytics Tab */}
-                  <TabsContent value="analytics" className="mt-4">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                      className="grid grid-cols-1 gap-6 md:grid-cols-2"
-                    >
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Usage vs. Purchase (6 Months)</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-[300px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={mockUsageData}>
-                              <CartesianGrid strokeDasharray="3 3" />
-                              <XAxis dataKey="month" fontSize={12} />
-                              <YAxis fontSize={12} />
-                              <RechartsTooltip />
-                              <Legend />
-                              <Bar dataKey="Purchased" fill="#0B3D91" />
-                              <Bar dataKey="Issued" fill="#00A79D" />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Stock Summary by Type</CardTitle>
-                        </CardHeader>
-                        <CardContent className="h-[300px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={mockStockData}
-                                cx="50%"
-                                cy="50%"
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                                label={(entry) => `${entry.name} (${entry.value})`}
-                              >
-                                {mockStockData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                                ))}
-                              </Pie>
-                              <RechartsTooltip />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  </TabsContent>
-
-                  {/* Reorder Alerts Tab */}
-                  <TabsContent value="alerts" className="mt-4">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <Accordion type="multiple" defaultValue={["low-stock", "expired"]}>
-                        <AccordionItem value="low-stock">
-                          <AccordionTrigger className="text-lg font-semibold text-yellow-600">
-                            <div className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5" />
-                              Low Stock Items (1)
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {/* TODO: Populate with real data */}
-                            <p>PPE-002: Cut-Resist Gloves - 20 remaining</p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="out-of-stock">
-                          <AccordionTrigger className="text-lg font-semibold text-red-600">
-                            <div className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5" />
-                              Out of Stock Items (1)
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {/* TODO: Populate with real data */}
-                            <p>PPE-004: Respirator Cartridge - 0 remaining</p>
-                          </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="expired">
-                          <AccordionTrigger className="text-lg font-semibold text-red-600">
-                            <div className="flex items-center gap-2">
-                              <AlertTriangle className="h-5 w-5" />
-                              Expired Stock (1)
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            {/* TODO: Populate with real data */}
-                            <p>PPE-005: Fall Arrest Harness - 5 expired on 2025-09-30</p>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </motion.div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
-              {/* Right AI Panel */}
-              <div className="lg:col-span-1">
-                <Card className="sticky top-20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Brain className="h-5 w-5 text-[#0B3D91]" />
-                      AI Co-Pilot
-                    </CardTitle>
-                    <CardDescription>
-                      {selectedPpe
-                        ? `Insights for ${selectedPpe.name}`
-                        : "Select an item to see AI insights"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {selectedPpe ? (
-                      <>
-                        <div>
-                          <h4 className="font-semibold">Predicted Stock-Out</h4>
-                          <p className={cn(
-                            "text-sm font-bold",
-                            selectedPpe.status === "Low Stock" ? "text-red-600" : "text-gray-600"
-                          )}>
-                            {/* TODO: Populate from AI API */}
-                            {selectedPpe.status === "Low Stock" ? "In approx. 3 days" : "In 25 days"}
-                          </p>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">High-Usage Departments</h4>
-                          <ul className="list-disc pl-5 text-sm text-gray-600">
-                            {/* TODO: Populate from AI API */}
-                            <li>Assembly (60%)</li>
-                            <li>Welding (30%)</li>
-                            <li>Maintenance (10%)</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold">Suggested Reorder Qty</h4>
-                          <p className="text-lg font-bold text-gray-900">
-                            {/* TODO: Populate from AI API */}
-                            {selectedPpe.name === "Cut-Resist Gloves" ? 500 : 200} units
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
-                        <p>Select a PPE item from the table</p>
-                      </div>
-                    )}
-                    <Button
-                      className="w-full gap-2"
-                      onClick={handleGenerateReorderList}
-                    >
-                      <Zap className="h-4 w-4" />
-                      Auto-Generate Reorder List
-                    </Button>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+                  {isGeneratingCharts ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <BarChart2 className="w-4 h-4 mr-2" />
+                      Generate Charts
+                    </>
+                  )}
+                </Button>
+              )}
+            </>
           )}
         </div>
+      </motion.div>
 
-        {/* AI Reorder List Modal */}
-        <Dialog open={isReorderOpen} onOpenChange={setIsReorderOpen}>
-          <DialogContent className="sm:max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6" />
-                AI-Generated Reorder List
-              </DialogTitle>
-              <DialogDescription>
-                Based on current stock, usage trends, and predicted stock-outs.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[60vh] overflow-y-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead>Current Stock</TableHead>
-                    <TableHead>Predicted Stock-Out</TableHead>
-                    <TableHead>Suggested Qty</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {/* TODO: Populate with real AI data */}
-                  {mockReorderList.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell className="font-bold text-red-600">{item.currentStock}</TableCell>
-                      <TableCell className="font-medium text-yellow-600">{item.predictedStockOut}</TableCell>
-                      <TableCell className="font-bold text-green-600">{item.suggestedQuantity}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsReorderOpen(false)}>
-                Close
-              </Button>
-              <Button className="gap-2 bg-[#0B3D91] hover:bg-[#082f70]">
-                <Truck className="mr-2 h-4 w-4" />
-                Create Purchase Request
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </TooltipProvider >
-  );
-};
-
-// --- Sub-component: KPI Card ---
-const KpiCard: React.FC<PpeKpi> = ({
-  title,
-  value,
-  formula,
-  progress,
-  invertProgressColor = false,
-}) => {
-  let progressColor = "bg-blue-600"; // Default
-  if (progress !== undefined) {
-    if (invertProgressColor) {
-      // Lower is better (e.g., Recurrence %)
-      progressColor = progress > 15 ? "bg-red-500" : (progress > 5 ? "bg-yellow-500" : "bg-green-600");
-    } else {
-      // Higher is better (e.g., Compliance %)
-      progressColor = progress < 80 ? "bg-red-500" : (progress < 90 ? "bg-yellow-500" : "bg-green-600");
-    }
-  }
-  return (
-    <motion.div whileHover={{ scale: 1.03 }}>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <Tooltip>
-            <TooltipTrigger>
-              <Info className="h-4 w-4 text-gray-400" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{formula}</p>
-            </TooltipContent>
-          </Tooltip>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold">{value}</div>
-          {progress !== undefined && (
-            <Progress
-              value={progress}
-              className="mt-2 h-2"
-              indicatorClassName={cn("!bg-primary", progressColor)}
-            />
-          )}
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-// --- Sub-component: PPE Table ---
-interface PpeTableProps {
-  stock: PpeItem[];
-  onRowClick: (item: PpeItem) => void;
-}
-
-const PpeTable: React.FC<PpeTableProps> = ({ stock, onRowClick }) => (
-  <Table>
-    <TableHeader>
-      <TableRow>
-        <TableHead>Item Name</TableHead>
-        <TableHead>Status</TableHead>
-        <TableHead>Balance</TableHead>
-        <TableHead>Expiry Date</TableHead>
-        <TableHead>Supplier</TableHead>
-      </TableRow>
-    </TableHeader>
-    <TableBody>
-      {stock.map((item) => (
-        <motion.tr
-          key={item.id}
-          className="cursor-pointer"
-          onClick={() => onRowClick(item)}
-          whileHover={{ backgroundColor: "#F7F9FB" }}
+      {/* ⚠️ WARNING: Download PDF Before Switching Modules */}
+      {(showReport || showCharts) && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 p-4 rounded-lg shadow-md"
         >
-          <TableCell className="font-medium">{item.name}</TableCell>
-          <TableCell>
-            <Badge
-              className={cn(
-                item.status === "In Stock" && "border-green-600 text-green-600",
-                item.status === "Low Stock" && "border-yellow-600 text-yellow-600",
-                item.status === "Out of Stock" && "border-red-600 text-red-600",
-                item.status === "Expired" && "border-red-800 bg-red-100 text-red-800"
-              )}
-              variant="outline"
-            >
-              {item.status}
-            </Badge>
-          </TableCell>
-          <TableCell>
-            <div className="flex items-center gap-2">
-              <span className="font-bold">{item.balance}</span>
-              <Progress
-                value={(item.balance / item.totalPurchased) * 100}
-                className="h-2 w-20"
-                indicatorClassName={cn(
-                  "!bg-primary",
-                  item.balance / item.totalPurchased < 0.15 ? "bg-red-500" : "bg-green-500"
-                )}
-              />
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
+              <p className="text-amber-800 leading-relaxed">
+                <strong>Download the PDF before switching to another module or refreshing the page!</strong>
+                {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
+              </p>
             </div>
-          </TableCell>
-          <TableCell>{item.expiryDate.toLocaleDateString()}</TableCell>
-          <TableCell>{item.supplier}</TableCell>
-        </motion.tr>
-      ))}
-    </TableBody>
-  </Table>
-);
+          </div>
+        </motion.div>
+      )}
+
+      {/* PDF capture region */}
+      <div ref={reportRef} className="bg-white p-2 sm:p-4 rounded-md">
+        {showReport && showCharts ? (
+          <Tabs defaultValue="report">
+            <TabsList className="w-full justify-start h-12 bg-gray-100">
+              <TabsTrigger
+                value="report"
+                className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+              >
+                <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+              </TabsTrigger>
+              <TabsTrigger
+                value="charts"
+                className="flex items-center gap-2 text-base data-[state=active]:bg-white"
+              >
+                <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Report tab */}
+            <TabsContent value="report" className="mt-6">
+              {renderReportContent()}
+            </TabsContent>
+
+            {/* Charts tab */}
+            <TabsContent value="charts" className="mt-6">
+              {renderChartsContent()}
+            </TabsContent>
+          </Tabs>
+        ) : showReport ? (
+          renderReportContent()
+        ) : showCharts ? (
+          renderChartsContent()
+        ) : null}
+      </div>
+    </div>
+  );
+};  

@@ -1,0 +1,45 @@
+---SHEET NAMES START---
+SHEET: Employees
+SHEET: Observations
+SHEET: NearMisses
+SHEET: Incidents
+---SHEET NAMES END---
+---COLUMNS FOR Employees START---
+COL: EmployeeID
+COL: Department
+COL: JobTitle
+COL: Shift
+COL: PayrollStatus
+---COLUMNS FOR Employees END---
+---COLUMNS FOR Observations START---
+COL: ObservationID
+COL: ObservationDate
+COL: ObservedEmployeeID
+COL: Location
+COL: Category
+COL: Description
+COL: RiskLevel
+COL: IsNearMiss
+COL: IsIncident
+---COLUMNS FOR Observations END---
+---COLUMNS FOR NearMisses START---
+COL: NearMissID
+COL: ObservationID
+COL: Description
+COL: ImmediateAction
+COL: CorrectiveAction
+COL: ActionOwner
+COL: ClosedDate
+---COLUMNS FOR NearMisses END---
+---COLUMNS FOR Incidents START---
+COL: IncidentID
+COL: ObservationID
+COL: IncidentType
+COL: InjuryType
+COL: Description
+COL: ImmediateActions
+COL: CorrectiveActions
+COL: ActionOwner
+COL: ActionClosedDate
+COL: InsuranceClaim
+---COLUMNS FOR Incidents END---

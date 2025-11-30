@@ -62,6 +62,7 @@ interface QuickTileConfig {
   source?: 'tile' | 'kpi_table';
   tableKey?: string;
   module?: string;
+  metricName?: string; // For extracting specific metric from KPI table rows
 }
 
 interface ModuleConfig {
@@ -81,15 +82,16 @@ const QUICK_TILE_CONFIG: QuickTileConfig[] = [
   { key: "incidents_open", label: "Open Incidents", icon: AlertTriangle, color: "text-red-500", module: "Incidents & Near-Misses" },
   { key: "ptws_active", label: "Active PTWs", icon: FileText, color: "text-orange-500", module: "Permit-to-Work" },
   {
-    key: "training_due",
-    label: "Total Trainings",
+    key: "training_effectiveness",
+    label: "Training Effectiveness",
     icon: GraduationCap,
     color: "text-purple-500",
     source: 'kpi_table',
     tableKey: 'Training',
+    metricName: 'Effectiveness',
     module: "Training & Competency"
   },
-  { key: "inspections_avg_score", label: "Audit Score", icon: ClipboardCheck, color: "text-blue-500", module: "Inspections  & Audits" },
+  { key: "inspections_avg_score", label: "Compliance %", icon: ClipboardCheck, color: "text-blue-500", module: "Inspections  & Audits" },
   { key: "medical_cases_reported", label: "Medical Cases", icon: HeartPulse, color: "text-green-500", module: "Medical & First-Aid" },
   {
     key: "ppe_expiring",
@@ -359,7 +361,32 @@ interface ModuleCardProps {
 }
 
 const ModuleCard: React.FC<ModuleCardProps> = ({ config, payload, uiTiles, loading }) => {
-  const rows = extractRows(payload);
+  let rows = extractRows(payload);
+  
+  // Filter out specific metrics for Medical module
+  if (config.key === "Medical") {
+    rows = rows.filter(row => {
+      const metric = row.Metric ?? humanizeKey(Object.keys(row)[0] ?? "");
+      return metric !== "Avg Response Time (min)" && metric !== "Drill Compliance %";
+    });
+  }
+  
+  // Filter out specific metrics for Environmental module
+  if (config.key === "Environmental") {
+    rows = rows.filter(row => {
+      const metric = row.Metric ?? humanizeKey(Object.keys(row)[0] ?? "");
+      return metric !== "Energy Intensity" && metric !== "CO₂ Intensity";
+    });
+  }
+  
+  // Filter out specific metrics for Social & Governance module
+  if (config.key === "Social & Governance") {
+    rows = rows.filter(row => {
+      const metric = row.Metric ?? humanizeKey(Object.keys(row)[0] ?? "");
+      return metric !== "Policy Compliance (%)" && metric !== "Supplier Audit (%)";
+    });
+  }
+  
   const hasData = rows.length > 0;
   const tableName = getTableName(payload);
   const stats = Object.entries(uiTiles ?? {}).slice(0, 3);
@@ -369,7 +396,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ config, payload, uiTiles, loadi
     return rows.slice(0, 10).map(row => {
       const name = row.Metric ?? humanizeKey(Object.keys(row)[0] ?? "");
       const value = row.Value ?? Object.values(row).find(v => typeof v === 'number');
-          return { name, value: typeof value === 'string' ? Number(value.replace(/[%,\s]/g, '')) || 0 : Number(value) || 0 };
+      return { name, value: typeof value === 'string' ? Number(value.replace(/[%,\s]/g, '')) || 0 : Number(value) || 0 };
     });
   }, [rows]);
 
@@ -546,7 +573,23 @@ export const Dashboard: React.FC = () => {
         if (tile.source === 'kpi_table' && tile.tableKey && data?.kpi_tables?.[tile.tableKey]) {
           const kpiData = data.kpi_tables[tile.tableKey];
           if ('rows' in kpiData && Array.isArray(kpiData.rows)) {
-            value = formatValue(kpiData.rows.length);
+            // If metricName is specified, find the specific metric row
+            if (tile.metricName) {
+              const metricName = tile.metricName;
+              const metricRow = kpiData.rows.find(
+                (row: ModuleRow) => 
+                  (row.Metric === metricName) || 
+                  (row.Metric && String(row.Metric).toLowerCase().includes(metricName.toLowerCase()))
+              );
+              if (metricRow) {
+                value = formatValue(metricRow.Value);
+              } else {
+                value = "—"; // Not found
+              }
+            } else {
+              // Default: count rows
+              value = formatValue(kpiData.rows.length);
+            }
           } else if ('total_rows' in kpiData) {
             value = formatValue((kpiData as any).total_rows);
           }

@@ -10,8 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+// NOTE: Removed jsPDF and html2canvas
 import {
   Upload,
   FileSpreadsheet,
@@ -22,8 +21,11 @@ import {
   BarChart2,
   Bot,
   AlertTriangle,
+  ChevronDown,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
+import { read } from "xlsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -32,6 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
 // 👇 change this if your backend runs on a different URL/port
@@ -78,29 +86,19 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     return <p className="text-gray-500">No content to display</p>;
   }
 
-  // Simple markdown-to-HTML converter (same as Unsafety.tsx)
+  // Simple markdown-to-HTML converter
   const formatMarkdown = (text: string): string => {
-    // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
     const stripHtmlAttributes = (str: string): string => {
-      // Remove style attributes and other inline attributes from HTML tags
       str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-
-      // Remove any standalone HTML attribute text that might be displayed
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
       str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-
-      // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
       str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
       str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-
-      // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
       str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
       str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
-
       return str;
     };
 
-    // Clean the text first to remove HTML attributes
     text = stripHtmlAttributes(text);
 
     const escapeHtml = (str: string) => {
@@ -175,14 +173,11 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
         if (headers.length === 0) return match;
 
-        // Build table HTML
         let tableHtml =
           '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
 
-        // Table header
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
         headers.forEach((header) => {
-          // Escape header text (but restore BR placeholders)
           let escapedHeader = escapeHtml(header);
           escapedHeader = escapedHeader.replace(
             new RegExp(BR_PLACEHOLDER, "g"),
@@ -192,26 +187,21 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         });
         tableHtml += "</tr></thead>";
 
-        // Table body
         tableHtml += "<tbody>";
         dataLines.forEach((line, idx) => {
           const cells = line
             .split("|")
             .map((c) => c.trim())
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
-          // Only process if we have the right number of cells
           if (cells.length === headers.length) {
             tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
               } hover:bg-gray-100">`;
             cells.forEach((cell) => {
-              // Escape cell content first (but preserve BR placeholders)
               let cellContent = escapeHtml(cell);
-              // Restore BR placeholders as actual <br /> tags
               cellContent = cellContent.replace(
                 new RegExp(BR_PLACEHOLDER, "g"),
                 "<br />"
               );
-              // Then process inline markdown in cells (bold, italic, etc.)
               cellContent = cellContent.replace(
                 /\*\*(.*?)\*\*/g,
                 '<strong class="font-bold">$1</strong>'
@@ -220,7 +210,6 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
                 /\*(.*?)\*/g,
                 '<em class="italic">$1</em>'
               );
-              // Handle line breaks in cells (convert newlines to <br />)
               cellContent = cellContent.replace(/\n/g, "<br />");
               tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
             });
@@ -247,10 +236,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         .join("");
     };
 
-    // Escape non-HTML parts
     html = escapeNonHtml(html);
 
-    // Headers (process from largest to smallest)
     html = html.replace(
       /^#### (.*$)/gim,
       '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
@@ -389,8 +376,56 @@ export const Training: React.FC = () => {
     }
   }, [isGeneratingReport, isGeneratingCharts]);
 
+  // Validate Excel file content
+  const validateExcelFile = async (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = read(data, { type: "array" });
+          const sheetNames = workbook.SheetNames;
+
+          // Check for required sheets (Training module specific)
+          const requiredSheets = ["Training_Records_150plus"];
+          const hasRequiredSheets = requiredSheets.some(sheet =>
+            sheetNames.some(name => name.includes(sheet))
+          );
+
+          // Also allow if there's a sheet explicitly named "Training"
+          const hasGenericSheet = sheetNames.some(name =>
+            name.toLowerCase().includes("training")
+          );
+
+          if (hasRequiredSheets || hasGenericSheet) {
+            resolve(true);
+          } else {
+            toast.error("Invalid File Content", {
+              description: "The uploaded file does not appear to be a Training Records file. Expected sheets like 'Training_Records_150plus', etc.",
+              duration: 5000,
+            });
+            resolve(false);
+          }
+        } catch (error) {
+          console.error("Error reading Excel file:", error);
+          toast.error("File Read Error", {
+            description: "Could not read the Excel file structure.",
+          });
+          resolve(false);
+        }
+      };
+      reader.onerror = () => {
+        toast.error("File Read Error", {
+          description: "Failed to read the file.",
+        });
+        resolve(false);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   // handle file pick
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     if (file) {
       const validExtensions = [".xlsx", ".xls"];
@@ -405,6 +440,15 @@ export const Training: React.FC = () => {
           toast.error("File Too Large", {
             description: "Please upload a file smaller than 10MB.",
           });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
+        // Validate Excel content
+        const isValid = await validateExcelFile(file);
+        if (!isValid) {
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
           }
@@ -439,7 +483,7 @@ export const Training: React.FC = () => {
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -457,6 +501,15 @@ export const Training: React.FC = () => {
           toast.error("File Too Large", {
             description: "Please upload a file smaller than 10MB.",
           });
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+
+        // Validate Excel content
+        const isValid = await validateExcelFile(file);
+        if (!isValid) {
           if (fileInputRef.current) {
             fileInputRef.current.value = "";
           }
@@ -669,7 +722,61 @@ export const Training: React.FC = () => {
     }
   };
 
-  // Download PDF of both report and charts
+  // --- DOWNLOAD FUNCTIONS (Using Print Window Logic) ---
+
+  // Download TXT of report
+  const downloadTXT = () => {
+    if (!aiReport) {
+      toast.error("Error", {
+        description: "Cannot find report content to download.",
+      });
+      return;
+    }
+
+    try {
+      // 1. Clean the text using the same logic as render (Remove "Of course...")
+      const cleanContent = aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n');
+
+      // 2. Convert HTML/markdown to plain text
+      const plainText = cleanContent
+        .replace(/<[^>]*>/g, "") // Remove HTML tags
+        .replace(/\n\n+/g, "\n") // Normalize multiple newlines
+        .replace(/&nbsp;/g, " ") // Replace HTML entities
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
+
+      // Create blob and download
+      const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split("T")[0];
+      const filename = `Dattu_Training_Report_${timestamp}.txt`;
+
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Report downloaded as TXT!", {
+        description: `File: ${filename}`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading TXT:", error);
+      toast.error("Failed to download TXT", {
+        description:
+          error?.message || "An error occurred while downloading the file.",
+      });
+    }
+  };
+
+  // Download PDF - using print approach to capture exact styling
   const downloadPDF = async () => {
     if (!reportContentRef.current) {
       toast.error("Error", {
@@ -678,235 +785,224 @@ export const Training: React.FC = () => {
       return;
     }
 
-    toast.info("Generating PDF", {
-      description: "Capturing report and charts... This may take a moment."
-    });
-
-    const originalBG = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#FFFFFF";
-
-    const originalReportStyles: { display?: string; visibility?: string; opacity?: string } = {};
-    const originalChartsStyles: { display?: string; visibility?: string; opacity?: string } = {};
-
     try {
-      if (reportContentRef.current) {
-        const reportEl = reportContentRef.current as HTMLElement;
-        originalReportStyles.display = reportEl.style.display;
-        originalReportStyles.visibility = reportEl.style.visibility;
-        originalReportStyles.opacity = reportEl.style.opacity;
-        reportEl.style.display = 'block';
-        reportEl.style.visibility = 'visible';
-        reportEl.style.opacity = '1';
-      }
-
-      if (chartsContentRef.current) {
-        const chartsEl = chartsContentRef.current as HTMLElement;
-        originalChartsStyles.display = chartsEl.style.display;
-        originalChartsStyles.visibility = chartsEl.style.visibility;
-        originalChartsStyles.opacity = chartsEl.style.opacity;
-        chartsEl.style.display = 'block';
-        chartsEl.style.visibility = 'visible';
-        chartsEl.style.opacity = '1';
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
+      toast.info("Generating PDF", {
+        description: "Opening print dialog... Select 'Save as PDF'",
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const pageMargin = 10;
-      const safePdfHeight = pdfHeight - pageMargin * 2;
-      const safePdfWidth = pdfWidth - pageMargin * 2;
-
-      const addCanvasToPdf = (canvas: HTMLCanvasElement, pdf: jsPDF, startNewPage: boolean = false) => {
-        const imgData = canvas.toDataURL("image/png", 1.0);
-        const imgWidth = canvas.width;
-        const imgHeight = canvas.height;
-
-        if (imgWidth === 0 || imgHeight === 0) {
-          return;
-        }
-
-        if (startNewPage) {
-          pdf.addPage();
-        }
-
-        const pageImgHeight = (safePdfWidth * imgHeight) / imgWidth;
-        let heightLeft = pageImgHeight;
-        let position = pageMargin;
-
-        pdf.addImage(
-          imgData,
-          "PNG",
-          pageMargin,
-          position,
-          safePdfWidth,
-          pageImgHeight
-        );
-        heightLeft -= safePdfHeight;
-
-        while (heightLeft > 0) {
-          position = -heightLeft + pageMargin;
-          pdf.addPage();
-          pdf.addImage(
-            imgData,
-            "PNG",
-            pageMargin,
-            position,
-            safePdfWidth,
-            pageImgHeight
-          );
-          heightLeft -= safePdfHeight;
-        }
-      };
-
-      toast.info("Capturing report...", { id: "pdf-progress" });
-
-      if (reportContentRef.current) {
-        reportContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
-        await new Promise(resolve => setTimeout(resolve, 100));
+      // Create a new window for printing
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        throw new Error("Could not open print window");
       }
 
-      const reportCanvas = await html2canvas(reportContentRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#FFFFFF",
-        logging: false,
-        allowTaint: false,
-        removeContainer: false,
-        imageTimeout: 15000,
-        scrollX: 0,
-        scrollY: 0,
-        onclone: (clonedDoc) => {
-          const clonedElement = clonedDoc.querySelector('[data-ref="report-content"]') ||
-            clonedDoc.body.querySelector('.shadow-lg');
-          if (clonedElement) {
-            (clonedElement as HTMLElement).style.backgroundColor = '#FFFFFF';
-          }
-        },
+      // Get the report content (already cleaned by the render function logic)
+      let reportHTML = reportContentRef.current.innerHTML;
+
+      // If charts exist and a chart is selected, append charts content on a new page
+      if (
+        chartsContentRef.current &&
+        Array.isArray(chartList) &&
+        chartList.length > 0 &&
+        selectedChartHtml
+      ) {
+        reportHTML +=
+          '<div style="page-break-before:always"></div>' +
+          chartsContentRef.current.innerHTML;
+      }
+
+      // Create a complete print-ready HTML document
+      const printDocument = `
+         <!DOCTYPE html>
+         <html>
+         <head>
+           <meta charset="UTF-8">
+           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+           <title>DATTU Training Report</title>
+           <script src="https://cdn.tailwindcss.com"></script>
+           <style>
+             @media print {
+               * {
+                 -webkit-print-color-adjust: exact !important;
+                 print-color-adjust: exact !important;
+                 color-adjust: exact !important;
+               }
+               body {
+                 margin: 0;
+                 padding: 20px;
+                 background: white;
+               }
+               @page {
+                 margin: 10mm;
+                 size: A4;
+               }
+               h1, h2, h3, h4, h5, h6 {
+                 page-break-after: avoid;
+               }
+               p {
+                 page-break-inside: avoid;
+               }
+               table {
+                 page-break-inside: avoid;
+               }
+               tr {
+                 page-break-inside: avoid;
+               }
+             }
+             body {
+               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+             }
+             .prose {
+               max-width: none;
+             }
+           </style>
+         </head>
+         <body>
+           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2">
+             ${reportHTML}
+           </div>
+           <script>
+             window.addEventListener('load', function() {
+               setTimeout(function() {
+                 window.print();
+               }, 500);
+             });
+           </script>
+         </body>
+         </html>
+       `;
+
+      // Write to the new window
+      printWindow.document.open();
+      printWindow.document.write(printDocument);
+      printWindow.document.close();
+
+      toast.success("Print dialog opened!", {
+        description:
+          "Select 'Save as PDF' from the printer dropdown to save your report.",
       });
-
-      addCanvasToPdf(reportCanvas, pdf);
-
-      if (chartsContentRef.current && chartList.length > 0 && selectedChartHtml) {
-        toast.info("Capturing charts...", { id: "pdf-progress" });
-
-        if (chartsContentRef.current) {
-          chartsContentRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const chartsCanvas = await html2canvas(chartsContentRef.current, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: "#FFFFFF",
-          logging: false,
-          allowTaint: false,
-          removeContainer: false,
-          imageTimeout: 15000,
-          scrollX: 0,
-          scrollY: 0,
-          onclone: (clonedDoc) => {
-            const iframes = clonedDoc.querySelectorAll('iframe');
-            iframes.forEach((iframe) => {
-              iframe.style.display = 'block';
-              iframe.style.visibility = 'visible';
-              iframe.style.opacity = '1';
-            });
-          },
-        });
-
-        pdf.addPage();
-        pdf.setFontSize(18);
-        pdf.setTextColor(11, 61, 145);
-        pdf.text("Interactive Charts", pageMargin, pageMargin + 10);
-
-        const chartsImgData = chartsCanvas.toDataURL("image/png", 1.0);
-        const chartsImgWidth = chartsCanvas.width;
-        const chartsImgHeight = chartsCanvas.height;
-
-        if (chartsImgWidth > 0 && chartsImgHeight > 0) {
-          const chartsPageImgHeight = (safePdfWidth * chartsImgHeight) / chartsImgWidth;
-          let chartsHeightLeft = chartsPageImgHeight;
-          let chartsPosition = pageMargin + 15;
-
-          pdf.addImage(
-            chartsImgData,
-            "PNG",
-            pageMargin,
-            chartsPosition,
-            safePdfWidth,
-            chartsPageImgHeight
-          );
-          chartsHeightLeft -= (safePdfHeight - 15);
-
-          while (chartsHeightLeft > 0) {
-            chartsPosition = -chartsHeightLeft + pageMargin;
-            pdf.addPage();
-            pdf.addImage(
-              chartsImgData,
-              "PNG",
-              pageMargin,
-              chartsPosition,
-              safePdfWidth,
-              chartsPageImgHeight
-            );
-            chartsHeightLeft -= safePdfHeight;
-          }
-        }
-      }
-
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `Dattu_Training_Report_${timestamp}.pdf`;
-
-      pdf.save(filename);
-
-      toast.success("PDF Generated Successfully!", { id: "pdf-progress" });
     } catch (error: any) {
       console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF", {
-        description: error?.message || "An error occurred while generating the PDF.",
-        id: "pdf-progress",
+        description:
+          error?.message || "An error occurred while generating the PDF.",
       });
-    } finally {
-      if (reportContentRef.current) {
-        const reportEl = reportContentRef.current as HTMLElement;
-        if (originalReportStyles.display !== undefined) {
-          reportEl.style.display = originalReportStyles.display;
-        }
-        if (originalReportStyles.visibility !== undefined) {
-          reportEl.style.visibility = originalReportStyles.visibility;
-        }
-        if (originalReportStyles.opacity !== undefined) {
-          reportEl.style.opacity = originalReportStyles.opacity;
-        }
-      }
-
-      if (chartsContentRef.current) {
-        const chartsEl = chartsContentRef.current as HTMLElement;
-        if (originalChartsStyles.display !== undefined) {
-          chartsEl.style.display = originalChartsStyles.display;
-        }
-        if (originalChartsStyles.visibility !== undefined) {
-          chartsEl.style.visibility = originalChartsStyles.visibility;
-        }
-        if (originalChartsStyles.opacity !== undefined) {
-          chartsEl.style.opacity = originalChartsStyles.opacity;
-        }
-      }
-
-      document.body.style.backgroundColor = originalBG;
     }
   };
 
-  // --- RENDER LOGIC ---
+  // Download Charts-only PDF (print approach)
+  const downloadChartsPDF = async () => {
+    try {
+      toast.info("Generating Charts PDF", {
+        description: "Opening print dialog... Select 'Save as PDF'",
+      });
+
+      const chartHtml =
+        (selectedChartHtml && selectedChartHtml.length > 0
+          ? selectedChartHtml
+          : chartsContentRef.current?.innerHTML) || "";
+
+      if (!chartHtml) {
+        toast.error("No chart available to download", {
+          description: "Please select a chart or generate charts first.",
+        });
+        return;
+      }
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) throw new Error("Could not open print window");
+
+      const printDocument = `
+         <!DOCTYPE html>
+         <html>
+         <head>
+           <meta charset="UTF-8">
+           <meta name="viewport" content="width=device-width, initial-scale=1.0">
+           <title>DATTU Chart</title>
+           <script src="https://cdn.tailwindcss.com"></script>
+           <style>
+             @media print {
+               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+               body { margin: 0; padding: 12px; background: white; }
+               @page { margin: 10mm; size: A4; }
+             }
+             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+           </style>
+         </head>
+         <body>
+           <div class="prose max-w-none">
+             ${chartHtml}
+           </div>
+           <script>
+             window.addEventListener('load', function() {
+               setTimeout(function() { window.print(); }, 500);
+             });
+           </script>
+         </body>
+         </html>
+       `;
+
+      printWindow.document.open();
+      printWindow.document.write(printDocument);
+      printWindow.document.close();
+
+      toast.success("Print dialog opened!", {
+        description:
+          "Select 'Save as PDF' from the printer dropdown to save the chart.",
+      });
+    } catch (error: any) {
+      console.error("Error generating Charts PDF:", error);
+      toast.error("Failed to generate Charts PDF", {
+        description:
+          error?.message || "An error occurred while generating the PDF.",
+      });
+    }
+  };
+
+  // Download Charts as HTML file
+  const downloadChartsHTML = () => {
+    try {
+      const chartHtml =
+        (selectedChartHtml && selectedChartHtml.length > 0
+          ? selectedChartHtml
+          : chartsContentRef.current?.innerHTML) || "";
+
+      if (!chartHtml) {
+        toast.error("No chart available to download", {
+          description: "Please select a chart or generate charts first.",
+        });
+        return;
+      }
+
+      const blob = new Blob([chartHtml], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().split("T")[0];
+      const filename = `Dattu_Chart_${timestamp}.html`;
+
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Chart downloaded!", {
+        description: `File: ${filename}`,
+      });
+    } catch (error: any) {
+      console.error("Error downloading chart HTML:", error);
+      toast.error("Failed to download chart", {
+        description:
+          error?.message || "An error occurred while downloading the chart.",
+      });
+    }
+  };
+
+  //
+  // ---------- RENDERING ----------
+  //
 
   // 1. Upload screen
   if (!fileUploaded && !isUploading) {
@@ -1262,9 +1358,10 @@ export const Training: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
+          {/* --- ENHANCED: "Breathing" AI Icon --- */}
           <motion.div
             className="flex justify-center mb-8"
-            animate={{ scale: [1, 1.05, 1] }}
+            animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
             transition={{
               duration: 2,
               repeat: Infinity,
@@ -1272,14 +1369,17 @@ export const Training: React.FC = () => {
             }}
           >
             <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              {/* --- NEW: AI-themed Icon --- */}
               <Bot className="w-16 h-16 text-[#0B3D91]" />
             </div>
           </motion.div>
 
+          {/* Main Title */}
           <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
             Generating AI Report...
           </h2>
 
+          {/* Rotating AI Quotes (Using new quotes) */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuoteIndex}
@@ -1299,6 +1399,7 @@ export const Training: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
+          {/* --- NEW: Indeterminate Progress Bar --- */}
           <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
             <motion.div
               className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
@@ -1326,24 +1427,27 @@ export const Training: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
         >
+          {/* --- ENHANCED: "Breathing" Chart Icon --- */}
           <motion.div
             className="flex justify-center mb-8"
-            animate={{ scale: [1, 1.05, 1] }}
+            animate={{ scale: [1, 1.05, 1] }} // "Breathing" effect
             transition={{
               duration: 2,
               repeat: Infinity,
               ease: "easeInOut",
             }}
           >
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#00A79D]/20 to-[#0B3D91]/20 border-2 border-[#00A79D]/30 shadow-lg">
               <BarChart2 className="w-16 h-16 text-[#00A79D]" />
             </div>
           </motion.div>
 
+          {/* Main Title */}
           <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#00A79D] to-[#0B3D91] bg-clip-text text-transparent">
             Generating Interactive Charts...
           </h2>
 
+          {/* Rotating AI Quotes */}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentQuoteIndex}
@@ -1363,6 +1467,7 @@ export const Training: React.FC = () => {
             </motion.div>
           </AnimatePresence>
 
+          {/* --- Indeterminate Progress Bar --- */}
           <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
             <motion.div
               className="bg-gradient-to-r from-[#00A79D] to-[#0B3D91] h-2.5 rounded-full"
@@ -1399,7 +1504,8 @@ export const Training: React.FC = () => {
               </CardTitle>
 
               <CardDescription className="text-lg text-gray-600">
-                This is the full report generated by the AI based on your uploaded training data.
+                This is the full training analysis report generated by the DATTU based on your
+                uploaded data.
               </CardDescription>
             </CardHeader>
 
@@ -1457,12 +1563,33 @@ export const Training: React.FC = () => {
       >
         <Card className="shadow-lg">
           <div ref={chartsContentRef}>
-            <CardHeader>
-              <CardTitle>Interactive Charts</CardTitle>
-              <CardDescription>
-                Select a chart to view the interactive (Plotly) HTML report
-                generated by the backend.
-              </CardDescription>
+            <CardHeader className="flex items-start justify-between">
+              <div>
+                <CardTitle>Interactive Charts</CardTitle>
+                <CardDescription>
+                  Select a chart to view the interactive (Plotly) HTML report
+                  generated by the backend.
+                </CardDescription>
+              </div>
+              <div className="ml-4">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Download Charts
+                      <ChevronDown className="w-4 h-4 ml-2" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={downloadChartsPDF}>
+                      Download Charts as PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={downloadChartsHTML}>
+                      Download Chart HTML
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
@@ -1527,7 +1654,7 @@ export const Training: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <GraduationCap className="w-8 h-8 text-[#0B3D91]" />
-            {showReport ? " Training Analysis Report" : showCharts ? " Training Charts" : "Dashboard"}
+            {showReport ? " Training Report" : showCharts ? " Training Charts" : "Dashboard"}
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1535,13 +1662,23 @@ export const Training: React.FC = () => {
         </div>
         <div className="flex gap-2">
           {showReport && (
-            <Button
-              onClick={downloadPDF}
-              className="bg-[#0B3D91] hover:bg-[#082f70]"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Download Report (PDF)
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="bg-[#0B3D91] hover:bg-[#082f70]">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Download Report
+                  <ChevronDown className="w-4 h-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={downloadPDF}>
+                  Download as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadTXT}>
+                  Download as TXT
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <Button
             onClick={() => {
@@ -1634,7 +1771,7 @@ export const Training: React.FC = () => {
                 value="report"
                 className="flex items-center gap-2 text-base data-[state=active]:bg-white"
               >
-                <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                <AlertCircle className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
               </TabsTrigger>
               <TabsTrigger
                 value="charts"
