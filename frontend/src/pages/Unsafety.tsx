@@ -879,10 +879,28 @@ export const Unsafety: React.FC = () => {
                  print-color-adjust: exact !important;
                  color-adjust: exact !important;
                }
-              body {
+               html, body {
+                 width: 210mm;
+                 height: 297mm;
+                 box-sizing: border-box;
                  margin: 0;
                  padding: 0;
                  background: white;
+               }
+               .print-wrapper {
+                 padding: 10mm !important;
+                 box-sizing: border-box;
+                 max-width: 210mm;
+                 width: 210mm;
+               }
+               .prose {
+                 max-width: 210mm !important;
+                 width: 100% !important;
+                 box-sizing: border-box;
+               }
+               img, svg, canvas {
+                 max-width: 100% !important;
+                 height: auto !important;
                }
                @page {
                  margin: 0mm;
@@ -907,10 +925,14 @@ export const Unsafety: React.FC = () => {
              .prose {
                max-width: none;
              }
+             /* Screen preview wrapper padding — keeps layout consistent across PC sizes */
+             .print-wrapper {
+               padding: 20px;
+             }
            </style>
          </head>
          <body>
-           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2" style="padding:20px">
+           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2 print-wrapper">
              ${reportHTML}
            </div>
            <script>
