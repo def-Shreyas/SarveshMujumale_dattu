@@ -21,8 +21,9 @@ from typing import Callable, Any
 load_dotenv()
 
 # Assign GOOGLE_API_KEY from environment
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
+#GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GROQ_API_KEY=os.getenv("GROQ_API_KEY")
+print(GROQ_API_KEY)
 # Import our modules
 from services.extraction import extract_tables
 import services.phidata_agent as phidata_agent

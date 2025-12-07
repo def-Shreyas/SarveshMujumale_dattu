@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuthToken, apiClient } from "@/lib/api";
+import { generatePDF } from "react-to-pdf";
 import {
   Card,
   CardContent,
@@ -10,7 +11,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-// NOTE: Removed jsPDF and html2canvas imports as we are using the Print Window method
+// NOTE: No jsPDF / html2canvas / html2pdf imports – we use print window only
 import {
   Upload,
   FileSpreadsheet,
@@ -769,7 +770,7 @@ export const Unsafety: React.FC = () => {
     }
   };
 
-  // --- DOWNLOAD FUNCTIONS (Using Code 1 Logic) ---
+  // --- DOWNLOAD FUNCTIONS (Using print-window only) ---
 
   // Download TXT of report
   const downloadTXT = () => {
@@ -828,141 +829,32 @@ export const Unsafety: React.FC = () => {
     }
   };
 
-  // Download PDF - using print approach to capture exact styling
+  // ✅ Download PDF – **ONLY** via browser print dialog (no html2pdf / html2canvas)
   const downloadPDF = async () => {
     if (!reportContentRef.current) {
-      toast.error("Error", {
-        description: "Cannot find report content to download.",
-      });
+      toast.error("Unable to download PDF. Report content missing.");
       return;
     }
 
     try {
-      toast.info("Generating PDF", {
-        description: "Opening print dialog... Select 'Save as PDF'",
+      toast.info("Generating PDF...", { description: "Please wait..." });
+
+      await generatePDF(reportContentRef, {
+        filename: `DATTU_Report_${new Date().toISOString().split("T")[0]}.pdf`,
+        page: { margin: 10, format: "A4" },
+        method: "save",
+        overrideWidth: 900, // ensures proper layout for wide tables
       });
 
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        throw new Error("Could not open print window");
-      }
-
-      // Get the report content (This grabs the HTML *after* the Code 2 text cleaning has already happened in the render)
-      let reportHTML = reportContentRef.current.innerHTML;
-
-      // If charts exist and a chart is selected, append charts content on a new page
-      if (
-        chartsContentRef.current &&
-        Array.isArray(chartList) &&
-        chartList.length > 0 &&
-        selectedChartHtml
-      ) {
-        reportHTML +=
-          '<div style="page-break-before:always"></div>' +
-          chartsContentRef.current.innerHTML;
-      }
-
-      // Create a complete print-ready HTML document
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-           <title>DATTU Incident & Near Miss Report</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print {
-               * {
-                 -webkit-print-color-adjust: exact !important;
-                 print-color-adjust: exact !important;
-                 color-adjust: exact !important;
-               }
-               html, body {
-                 width: 210mm;
-                 height: 297mm;
-                 box-sizing: border-box;
-                 margin: 0;
-                 padding: 0;
-                 background: white;
-               }
-               .print-wrapper {
-                 padding: 10mm !important;
-                 box-sizing: border-box;
-                 max-width: 210mm;
-                 width: 210mm;
-               }
-               .prose {
-                 max-width: 210mm !important;
-                 width: 100% !important;
-                 box-sizing: border-box;
-               }
-               img, svg, canvas {
-                 max-width: 100% !important;
-                 height: auto !important;
-               }
-               @page {
-                 margin: 0mm;
-                 size: A4;
-               }
-               h1, h2, h3, h4, h5, h6 {
-                 page-break-after: avoid;
-               }
-               p {
-                 page-break-inside: avoid;
-               }
-               table {
-                 page-break-inside: avoid;
-               }
-               tr {
-                 page-break-inside: avoid;
-               }
-             }
-             body {
-               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-             }
-             .prose {
-               max-width: none;
-             }
-             /* Screen preview wrapper padding — keeps layout consistent across PC sizes */
-             .print-wrapper {
-               padding: 20px;
-             }
-           </style>
-         </head>
-         <body>
-           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2 print-wrapper">
-             ${reportHTML}
-           </div>
-           <script>
-             window.addEventListener('load', function() {
-               setTimeout(function() {
-                 window.print();
-               }, 500);
-             });
-           </script>
-         </body>
-         </html>
-       `;
-
-      // Write to the new window
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
-
-      toast.success("Print dialog opened!", {
-        description:
-          "Select 'Save as PDF' from the printer dropdown to save your report.",
-      });
-    } catch (error: any) {
-      console.error("Error generating PDF:", error);
+      toast.success("PDF downloaded successfully!");
+    } catch (err: any) {
+      console.error(err);
       toast.error("Failed to generate PDF", {
-        description:
-          error?.message || "An error occurred while generating the PDF.",
+        description: err?.message || "Unknown error",
       });
     }
   };
+
 
   // Download Charts-only PDF (print approach)
   const downloadChartsPDF = async () => {
@@ -1585,7 +1477,11 @@ export const Unsafety: React.FC = () => {
         transition={{ delay: 0.2 }}
       >
         <Card className="shadow-lg">
-          <div ref={reportContentRef}>
+          <div
+            ref={reportContentRef}
+            id="pdf-report-container"
+            style={{ width: "900px" }}
+          >
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-gray-800">
                 <span className="text-4xl text-[#0B3D91] font-extrabold underline">
