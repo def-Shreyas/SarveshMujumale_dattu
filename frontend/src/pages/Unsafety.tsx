@@ -2,7 +2,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getAuthToken, apiClient } from "@/lib/api";
-import { generatePDF } from "react-to-pdf";
 import {
   Card,
   CardContent,
@@ -193,7 +192,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             new RegExp(BR_PLACEHOLDER, "g"),
             "<br />"
           );
-          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold !text-white">${escapedHeader}</th>`;
+          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
         });
         tableHtml += "</tr></thead>";
 
@@ -832,29 +831,84 @@ export const Unsafety: React.FC = () => {
   // ✅ Download PDF – **ONLY** via browser print dialog (no html2pdf / html2canvas)
   const downloadPDF = async () => {
     if (!reportContentRef.current) {
-      toast.error("Unable to download PDF. Report content missing.");
+      toast.error("Error", {
+        description: "Cannot find report content to download.",
+      });
       return;
     }
 
     try {
-      toast.info("Generating PDF...", { description: "Please wait..." });
-
-      await generatePDF(reportContentRef, {
-        filename: `DATTU_Report_${new Date().toISOString().split("T")[0]}.pdf`,
-        page: { margin: 10, format: "A4" },
-        method: "save",
-        overrideWidth: 900, // ensures proper layout for wide tables
+      toast.info("Generating PDF", {
+        description: "Opening print dialog... Select 'Save as PDF'",
       });
 
-      toast.success("PDF downloaded successfully!");
-    } catch (err: any) {
-      console.error(err);
+      // Prepare content (include selected chart if present)
+      const contentEl = reportContentRef.current;
+      let containerHtml = contentEl.innerHTML;
+
+      if (
+        chartsContentRef.current &&
+        Array.isArray(chartList) &&
+        chartList.length > 0 &&
+        selectedChartHtml
+      ) {
+        containerHtml +=
+          '<div style="page-break-before:always"></div>' +
+          chartsContentRef.current.innerHTML;
+      }
+
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) throw new Error("Could not open print window");
+
+      const printDocument = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>DATTU Incident & Near Miss Report</title>
+          <!-- Tailwind for basic typography; no html2canvas so oklch is safe -->
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            @media print {
+              html, body { margin: 0; padding: 12px; background: white; }
+              @page { margin: 10mm; size: A4; }
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+                           'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="prose max-w-none">
+            ${containerHtml}
+          </div>
+          <script>
+            window.addEventListener('load', function() {
+              setTimeout(function() { window.print(); }, 500);
+            });
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.open();
+      printWindow.document.write(printDocument);
+      printWindow.document.close();
+
+      toast.success("Print dialog opened!", {
+        description:
+          "Select 'Save as PDF' from the printer dropdown to save your report.",
+      });
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
       toast.error("Failed to generate PDF", {
-        description: err?.message || "Unknown error",
+        description:
+          error?.message || "An error occurred while generating the PDF.",
       });
     }
   };
-
 
   // Download Charts-only PDF (print approach)
   const downloadChartsPDF = async () => {
@@ -1477,11 +1531,7 @@ export const Unsafety: React.FC = () => {
         transition={{ delay: 0.2 }}
       >
         <Card className="shadow-lg">
-          <div
-            ref={reportContentRef}
-            id="pdf-report-container"
-            style={{ width: "900px" }}
-          >
+          <div ref={reportContentRef}>
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-gray-800">
                 <span className="text-4xl text-[#0B3D91] font-extrabold underline">
