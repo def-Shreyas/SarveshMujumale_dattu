@@ -669,117 +669,85 @@ export const PTW: React.FC = () => {
 
   // Download PDF - using print approach to capture exact styling
   const downloadPDF = async () => {
-    if (!reportContentRef.current) {
-      toast.error("Error", {
-        description: "Cannot find report content to download.",
-      });
-      return;
-    }
-
-    try {
-      toast.info("Generating PDF", {
-        description: "Opening print dialog... Select 'Save as PDF'",
-      });
-
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) {
-        throw new Error("Could not open print window");
+      if (!reportContentRef.current) {
+        toast.error("Error", {
+          description: "Cannot find report content to download.",
+        });
+        return;
       }
-
-      // Get the report content (already cleaned by the render function logic)
-      let reportHTML = reportContentRef.current.innerHTML;
-
-      // If charts exist and a chart is selected, append charts content on a new page
-      if (
-        chartsContentRef.current &&
-        Array.isArray(chartList) &&
-        chartList.length > 0 &&
-        selectedChartHtml
-      ) {
-        reportHTML +=
-          '<div style="page-break-before:always"></div>' +
-          chartsContentRef.current.innerHTML;
+  
+      try {
+        toast.info("Generating PDF", {
+          description: "Opening print dialog... Select 'Save as PDF'",
+        });
+  
+        // Prepare content (include selected chart if present)
+        const contentEl = reportContentRef.current;
+        let containerHtml = contentEl.innerHTML;
+  
+        if (
+          chartsContentRef.current &&
+          Array.isArray(chartList) &&
+          chartList.length > 0 &&
+          selectedChartHtml
+        ) {
+          containerHtml +=
+            '<div style="page-break-before:always"></div>' +
+            chartsContentRef.current.innerHTML;
+        }
+  
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) throw new Error("Could not open print window");
+  
+        const printDocument = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>DATTU Incident & Near Miss Report</title>
+            <!-- Tailwind for basic typography; no html2canvas so oklch is safe -->
+            <script src="https://cdn.tailwindcss.com"></script>
+            <style>
+              @media print {
+                html, body { margin: 0; padding: 12px; background: white; }
+                @page { margin: 10mm; size: A4; }
+              }
+              body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+                             'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="prose max-w-none">
+              ${containerHtml}
+            </div>
+            <script>
+              window.addEventListener('load', function() {
+                setTimeout(function() { window.print(); }, 500);
+              });
+            </script>
+          </body>
+          </html>
+        `;
+  
+        printWindow.document.open();
+        printWindow.document.write(printDocument);
+        printWindow.document.close();
+  
+        toast.success("Print dialog opened!", {
+          description:
+            "Select 'Save as PDF' from the printer dropdown to save your report.",
+        });
+      } catch (error: any) {
+        console.error("Error generating PDF:", error);
+        toast.error("Failed to generate PDF", {
+          description:
+            error?.message || "An error occurred while generating the PDF.",
+        });
       }
-
-      // Create a complete print-ready HTML document
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-           <title>DATTU PTW Report</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print {
-               * {
-                 -webkit-print-color-adjust: exact !important;
-                 print-color-adjust: exact !important;
-                 color-adjust: exact !important;
-               }
-               body {
-                 margin: 0;
-                 padding: 20px;
-                 background: white;
-               }
-               @page {
-                 margin: 10mm;
-                 size: A4;
-               }
-               h1, h2, h3, h4, h5, h6 {
-                 page-break-after: avoid;
-               }
-               p {
-                 page-break-inside: avoid;
-               }
-               table {
-                 page-break-inside: avoid;
-               }
-               tr {
-                 page-break-inside: avoid;
-               }
-             }
-             body {
-               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-             }
-             .prose {
-               max-width: none;
-             }
-           </style>
-         </head>
-         <body>
-           <div class="prose prose-slate max-w-none prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600 prose-table:border prose-th:p-2 prose-td:p-2">
-             ${reportHTML}
-           </div>
-           <script>
-             window.addEventListener('load', function() {
-               setTimeout(function() {
-                 window.print();
-               }, 500);
-             });
-           </script>
-         </body>
-         </html>
-       `;
-
-      // Write to the new window
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
-
-      toast.success("Print dialog opened!", {
-        description:
-          "Select 'Save as PDF' from the printer dropdown to save your report.",
-      });
-    } catch (error: any) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF", {
-        description:
-          error?.message || "An error occurred while generating the PDF.",
-      });
-    }
-  };
+    };
 
   // Download Charts-only PDF (print approach)
   const downloadChartsPDF = async () => {
@@ -1390,71 +1358,73 @@ export const PTW: React.FC = () => {
 
   // Helper function to render report content
   const renderReportContent = () => {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card className="shadow-lg">
-          <div ref={reportContentRef}>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-gray-800">
-                <span className="text-4xl text-[#0B3D91] font-extrabold underline">
-                  DATTU
-                </span>{" "}
-                PTW & KPI Analysis
-              </CardTitle>
-
-              <CardDescription className="text-lg text-gray-600">
-                This is the full PTW and KPI analysis report generated by the AI based on your
-                uploaded data.
-              </CardDescription>
-            </CardHeader>
-
-            <CardContent
-              className={cn(
-                "prose prose-slate max-w-none",
-                "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
-                "prose-table:border prose-th:p-2 prose-td:p-2"
-              )}
-            >
-              {(() => {
-                const safeContent: string =
-                  typeof aiReport === "string"
-                    ? aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n')
-                    : String(aiReport || "");
-
-                if (typeof aiReport !== "string") {
-                  console.error(
-                    "❌ RENDER CHECK - aiReport is NOT a string! Type:",
-                    typeof aiReport,
-                    "Value:",
-                    aiReport
-                  );
-                }
-
-                if (
-                  typeof safeContent === "string" &&
-                  safeContent.length > 0
-                ) {
-                  return <SafeMarkdown content={safeContent} />;
-                } else {
-                  return (
-                    <p className="text-red-500">
-                      {aiReport
-                        ? "Invalid report format received from backend."
-                        : "No report loaded yet."}
-                    </p>
-                  );
-                }
-              })()}
-            </CardContent>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  };
+      return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="shadow-lg">
+            <div ref={reportContentRef}>
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold text-gray-800">
+                  <span className="text-4xl text-[#0B3D91] font-extrabold underline">
+                    DATTU
+                  </span>{" "}
+                  Incident & Near Miss Analysis
+                </CardTitle>
+  
+                <CardDescription className="text-lg text-gray-600">
+                  This is the full incident and near miss analysis report
+                  generated by the DATTU based on your uploaded data.
+                </CardDescription>
+              </CardHeader>
+  
+              <CardContent
+                className={cn(
+                  "prose prose-slate max-w-none",
+                  "prose-headings:text-[#0B3D91] prose-strong:text-gray-700 prose-a:text-blue-600",
+                  "prose-table:border prose-th:p-2 prose-td:p-2"
+                )}
+              >
+                {(() => {
+                  const safeContent: string =
+                    typeof aiReport === "string"
+                      ? aiReport
+                          .replace(/Of course.*?\.\s*/, "")
+                          .split("\n")
+                          .map((line) => (line.trim() === "*" ? "" : line))
+                          .join("\n")
+                          .replace(/\n{3,}/g, "\n\n")
+                      : String(aiReport || "");
+  
+                  if (typeof aiReport !== "string") {
+                    console.error(
+                      "❌ RENDER CHECK - aiReport is NOT a string! Type:",
+                      typeof aiReport,
+                      "Value:",
+                      aiReport
+                    );
+                  }
+  
+                  if (typeof safeContent === "string" && safeContent.length > 0) {
+                    return <SafeMarkdown content={safeContent} />;
+                  } else {
+                    return (
+                      <p className="text-red-500">
+                        {aiReport
+                          ? "Invalid report format received from backend."
+                          : "No report loaded yet."}
+                      </p>
+                    );
+                  }
+                })()}
+              </CardContent>
+            </div>
+          </Card>
+        </motion.div>
+      );
+    };
 
   // Helper function to render charts content
   const renderChartsContent = () => {
