@@ -193,7 +193,7 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             new RegExp(BR_PLACEHOLDER, "g"),
             "<br />"
           );
-          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold">${escapedHeader}</th>`;
+          tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold !text-white">${escapedHeader}</th>`;
         });
         tableHtml += "</tr></thead>";
 

@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 import pandas as pd
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from phi.agent import Agent
 from phi.model.google import Gemini
@@ -120,6 +121,7 @@ def summarize_numeric_data(extracted_dir: Path) -> list:
 
 def create_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Gemini analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Safety Data Analysis Assistant.
 Analyze the provided data tables and summaries.
@@ -132,6 +134,7 @@ Goals:
 5. Act as a Data analyser and try to extract key points from the given data 
 
 Please provide a comprehensive, detailed report similar to an executive safety analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Data Overview with detailed statistics
 - Key Trends and Risks with specific examples and percentages
@@ -148,6 +151,7 @@ Please provide a comprehensive, detailed report similar to an executive safety a
 
 def create_ptw_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for PTW/KPI analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Permit to Work (PTW) and KPI Analysis Assistant.
 Analyze the provided PTW records and KPI data tables.
@@ -166,6 +170,7 @@ Goals:
 8. Provide actionable recommendations for improving PTW management.
 
 Please provide a comprehensive, detailed report similar to an executive PTW analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - PTW Status Summary (Open/Closed/Overdue breakdown)
 - PTW Type Distribution Analysis
@@ -208,6 +213,7 @@ def save_ptw_report(report_content: str, report_path: Path) -> None:
 
 def create_inspections_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Inspections/Audit analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are an Inspections and Audit Analysis Assistant.
 Analyze the provided inspection records and recurring failures data.
@@ -228,6 +234,7 @@ Goals:
 7. Provide actionable recommendations for improving audit compliance.
 
 Please provide a comprehensive, detailed report similar to an executive audit analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - NCR Summary (Pass/Fail/NA breakdown with statistics)
 - Audit Compliance Percentage Analysis
@@ -277,6 +284,7 @@ def save_inspections_report(report_content: str, report_path: Path) -> None:
 
 def create_medical_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Medical Records analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Medical Records and Health & Safety Analysis Assistant.
 Analyze the provided medical records and KPI data.
@@ -296,6 +304,7 @@ Goals:
 6. Provide actionable recommendations for improving workplace health and safety.
 
 Please provide a comprehensive, detailed report similar to an executive medical records analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - First-aid vs LTI Summary (breakdown with statistics and trends)
 - Drill Compliance Report (analysis of emergency preparedness drills)
@@ -342,6 +351,7 @@ def save_medical_report(report_content: str, report_path: Path) -> None:
 
 def create_training_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Training Database analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Training and Development Analysis Assistant.
 Analyze the provided training records data.
@@ -361,6 +371,7 @@ Goals:
 6. Provide actionable recommendations for improving training effectiveness.
 
 Please provide a comprehensive, detailed report similar to an executive training analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Training Completion Summary (statistics on completed trainings, coverage, etc.)
 - Skill Gap Analysis (identify departments/courses with skill gaps, low scores)
@@ -408,6 +419,7 @@ def save_training_report(report_content: str, report_path: Path) -> None:
 
 def create_ppe_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for PPE (Assets & PPE) analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a PPE (Personal Protective Equipment) and Assets Management Analysis Assistant.
 Analyze the provided PPE inventory and usage data.
@@ -427,6 +439,7 @@ Goals:
 6. Provide actionable recommendations for optimizing PPE inventory management.
 
 Please provide a comprehensive, detailed report similar to an executive PPE management analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Stock Summary by PPE Type (purchased, issued, balance statistics)
 - Usage vs Purchase Analysis (comparison charts, trends, patterns)
@@ -474,6 +487,7 @@ def save_ppe_report(report_content: str, report_path: Path) -> None:
 
 def create_rca_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Corrective Actions & RCA analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Corrective Actions and Root Cause Analysis (RCA) Management Assistant.
 Analyze the provided corrective actions and RCA data.
@@ -492,6 +506,7 @@ Goals:
 5. Provide actionable recommendations for improving corrective action management.
 
 Please provide a comprehensive, detailed report similar to an executive corrective actions analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Open vs Closed Actions Summary (status breakdown, statistics)
 - SLA-Based Closure Tracking (performance against service level agreements)
@@ -538,6 +553,7 @@ def save_rca_report(report_content: str, report_path: Path) -> None:
 
 def create_environmental_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Environmental & Resource Use analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are an Environmental and Resource Use Analysis Assistant.
 Analyze the provided environmental and resource consumption data.
@@ -556,6 +572,7 @@ Goals:
 5. Provide actionable recommendations for improving environmental performance.
 
 Please provide a comprehensive, detailed report similar to an executive environmental analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Energy and Emission Trends (monthly patterns, plant-wise comparison)
 - Waste Recycling Summary (recycling rates, waste distribution, improvement areas)
@@ -603,6 +620,7 @@ def save_environmental_report(report_content: str, report_path: Path) -> None:
 
 def create_social_governance_analysis_prompt(numeric_summary: list) -> str:
     """Create the prompt for Social & Governance analysis."""
+    current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Social & Governance Analysis Assistant.
 Analyze the provided workforce, social, and governance data.
@@ -623,6 +641,7 @@ Goals:
 6. Provide actionable recommendations for improving social and governance performance.
 
 Please provide a comprehensive, detailed report similar to an executive social & governance analysis report. Include:
+- Start the report with: **Date:** {current_date}
 - Executive Summary
 - Workforce Diversity Summary (gender distribution, age group breakdown, department diversity)
 - Policy Compliance Report (policy review dates, compliance status, version tracking)
