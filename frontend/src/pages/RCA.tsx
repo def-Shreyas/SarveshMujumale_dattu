@@ -919,6 +919,10 @@ export const RCA: React.FC = () => {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
                            'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             }
+                           * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
           </style>
         </head>
         <body>

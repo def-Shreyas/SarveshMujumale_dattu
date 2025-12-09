@@ -872,12 +872,16 @@ export const Unsafety: React.FC = () => {
           <style>
             @media print {
               html, body { margin: 0; padding: 12px; background: white; }
-              @page { margin: 10mm; size: A4; }
+              @page { margin: 10mm; size: A3; }
             }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
                            'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
           </style>
         </head>
         <body>
