@@ -24,12 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { read } from "xlsx";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -70,7 +65,11 @@ interface SafeMarkdownProps {
 
 const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   if (typeof content !== "string") {
-    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
+    console.error(
+      "❌ SafeMarkdown received non-string content:",
+      typeof content,
+      content
+    );
     return (
       <div className="text-red-500 p-4">
         <p>Invalid content type: {typeof content}</p>
@@ -84,13 +83,22 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
   const formatMarkdown = (text: string): string => {
     const stripHtmlAttributes = (str: string): string => {
-      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
-      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
-      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, "<$1>");
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi,
+        ""
+      );
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi,
+        ""
+      );
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, " ");
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, " ");
+      str = str.replace(
+        /\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi,
+        ""
+      );
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, "");
       return str;
     };
 
@@ -99,11 +107,14 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const escapeHtml = (str: string) => {
       const entityPlaceholders: { [key: string]: string } = {};
       let placeholderIndex = 0;
-      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
-        const placeholder = `__ENTITY_${placeholderIndex++}__`;
-        entityPlaceholders[placeholder] = match;
-        return placeholder;
-      });
+      let protectedStr = str.replace(
+        /&(?:#\d+|#x[\da-fA-F]+|\w+);/g,
+        (match) => {
+          const placeholder = `__ENTITY_${placeholderIndex++}__`;
+          entityPlaceholders[placeholder] = match;
+          return placeholder;
+        }
+      );
 
       protectedStr = protectedStr.replace(/&/g, "&amp;");
       protectedStr = protectedStr.replace(/</g, "&lt;");
@@ -120,15 +131,17 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     };
 
     const decodeHtmlEntities = (str: string): string => {
-      return (
-        str
-          .replace(/&quot;/g, '"')
-          .replace(/&#039;/g, "'")
-          .replace(/&apos;/g, "'")
-          .replace(/&nbsp;/g, " ")
-          .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-          .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-      );
+      return str
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;/g, "'")
+        .replace(/&apos;/g, "'")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&#(\d+);/g, (_, dec) =>
+          String.fromCharCode(parseInt(dec, 10))
+        )
+        .replace(/&#x([\da-fA-F]+);/g, (_, hex) =>
+          String.fromCharCode(parseInt(hex, 16))
+        );
     };
 
     const BR_PLACEHOLDER = "___BR_TAG_PLACEHOLDER___";
@@ -145,36 +158,60 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
       const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
 
       return str.replace(tableRegex, (match) => {
-        const lines = match.trim().split(/\r?\n/).filter((line) => line.trim() && line.includes("|"));
+        const lines = match
+          .trim()
+          .split(/\r?\n/)
+          .filter((line) => line.trim() && line.includes("|"));
         if (lines.length < 2) return match;
 
         const headerLine = lines[0];
         const dataLines = lines.slice(2);
 
-        const headers = headerLine.split("|").map((h) => h.trim()).filter((h) => h && !h.match(/^[-:|\s]+$/));
+        const headers = headerLine
+          .split("|")
+          .map((h) => h.trim())
+          .filter((h) => h && !h.match(/^[-:|\s]+$/));
 
         if (headers.length === 0) return match;
 
-        let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+        let tableHtml =
+          '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
 
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
         headers.forEach((header) => {
           let escapedHeader = escapeHtml(header);
-          escapedHeader = escapedHeader.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
+          escapedHeader = escapedHeader.replace(
+            new RegExp(BR_PLACEHOLDER, "g"),
+            "<br />"
+          );
           tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold !text-white">${escapedHeader}</th>`;
         });
         tableHtml += "</tr></thead>";
 
         tableHtml += "<tbody>";
         dataLines.forEach((line, idx) => {
-          const cells = line.split("|").map((c) => c.trim()).filter((c) => c && !c.match(/^[-:|\s]+$/));
+          const cells = line
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100">`;
+            tableHtml += `<tr class="${
+              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               let cellContent = escapeHtml(cell);
-              cellContent = cellContent.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
-              cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
-              cellContent = cellContent.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+              cellContent = cellContent.replace(
+                new RegExp(BR_PLACEHOLDER, "g"),
+                "<br />"
+              );
+              cellContent = cellContent.replace(
+                /\*\*(.*?)\*\*/g,
+                '<strong class="font-bold">$1</strong>'
+              );
+              cellContent = cellContent.replace(
+                /\*(.*?)\*/g,
+                '<em class="italic">$1</em>'
+              );
               cellContent = cellContent.replace(/\n/g, "<br />");
               tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
             });
@@ -191,20 +228,34 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
     const escapeNonHtml = (str: string): string => {
       const parts = str.split(/(<[^>]+>)/);
-      return parts.map((part) => {
-        if (part.startsWith("<") && part.endsWith(">")) {
-          return part;
-        }
-        return escapeHtml(part);
-      }).join("");
+      return parts
+        .map((part) => {
+          if (part.startsWith("<") && part.endsWith(">")) {
+            return part;
+          }
+          return escapeHtml(part);
+        })
+        .join("");
     };
 
     html = escapeNonHtml(html);
 
-    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
-    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
+    html = html.replace(
+      /^#### (.*$)/gim,
+      '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
+    );
+    html = html.replace(
+      /^### (.*$)/gim,
+      '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>'
+    );
+    html = html.replace(
+      /^## (.*$)/gim,
+      '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>'
+    );
+    html = html.replace(
+      /^# (.*$)/gim,
+      '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>'
+    );
 
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
@@ -234,26 +285,47 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     });
 
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
-      if (match.includes("<td") || match.includes("</td>") || match.includes("<strong>")) {
+      if (
+        match.includes("<td") ||
+        match.includes("</td>") ||
+        match.includes("<strong>")
+      ) {
         return match;
       }
       return `<em class="italic">${text}</em>`;
     });
 
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
+    html = html.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
+    );
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
+    html = html.replace(
+      /(<li.*<\/li>)/g,
+      '<ul class="list-disc ml-6 my-4">$1</ul>'
+    );
 
-    html = html.split(/\n\n+/).map((para) => {
-      if (para.trim()) {
-        if (para.trim().startsWith("<h") || para.trim().startsWith("<ul") || para.trim().startsWith("<pre") || (para.trim().startsWith("<div") && para.includes("<table"))) {
-          return para;
+    html = html
+      .split(/\n\n+/)
+      .map((para) => {
+        if (para.trim()) {
+          if (
+            para.trim().startsWith("<h") ||
+            para.trim().startsWith("<ul") ||
+            para.trim().startsWith("<pre") ||
+            (para.trim().startsWith("<div") && para.includes("<table"))
+          ) {
+            return para;
+          }
+          return `<p class="mb-4 leading-relaxed">${para.replace(
+            /\n/g,
+            "<br />"
+          )}</p>`;
         }
-        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, "<br />")}</p>`;
-      }
-      return "";
-    }).join("");
+        return "";
+      })
+      .join("");
 
     html = html.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
 
@@ -317,21 +389,23 @@ export const PPE: React.FC = () => {
 
           // Check for required sheets (PPE module specific)
           const requiredSheets = ["Sheet1", "PPE", "Assets_PPE"];
-          const hasRequiredSheets = requiredSheets.some(sheet =>
-            sheetNames.some(name => name.includes(sheet))
+          const hasRequiredSheets = requiredSheets.some((sheet) =>
+            sheetNames.some((name) => name.includes(sheet))
           );
 
           // Also allow if there's a sheet explicitly named "PPE" or "Assets"
-          const hasGenericSheet = sheetNames.some(name =>
-            name.toLowerCase().includes("ppe") ||
-            name.toLowerCase().includes("asset")
+          const hasGenericSheet = sheetNames.some(
+            (name) =>
+              name.toLowerCase().includes("ppe") ||
+              name.toLowerCase().includes("asset")
           );
 
           if (hasRequiredSheets || hasGenericSheet) {
             resolve(true);
           } else {
             toast.error("Invalid File Content", {
-              description: "The uploaded file does not appear to be a PPE/Assets file. Expected sheets like 'PPE', 'Assets_PPE', etc.",
+              description:
+                "The uploaded file does not appear to be a PPE/Assets file. Expected sheets like 'PPE', 'Assets_PPE', etc.",
               duration: 5000,
             });
             resolve(false);
@@ -358,12 +432,16 @@ export const PPE: React.FC = () => {
     const file = e.target.files?.[0] ?? null;
     if (file) {
       const validExtensions = [".xlsx", ".xls"];
-      const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      const fileExtension = file.name
+        .substring(file.name.lastIndexOf("."))
+        .toLowerCase();
 
       if (validExtensions.includes(fileExtension)) {
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          toast.error("File Too Large", { description: "Please upload a file smaller than 10MB." });
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
@@ -380,25 +458,37 @@ export const PPE: React.FC = () => {
         setAiReport("");
         setChartList([]);
       } else {
-        toast.error("Invalid File Type", { description: "Please upload a valid Excel (.xlsx, .xls) file." });
+        toast.error("Invalid File Type", {
+          description: "Please upload a valid Excel (.xlsx, .xls) file.",
+        });
         if (fileInputRef.current) fileInputRef.current.value = "";
       }
     }
   };
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
     if (file) {
       const validExtensions = [".xlsx", ".xls"];
-      const fileExtension = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+      const fileExtension = file.name
+        .substring(file.name.lastIndexOf("."))
+        .toLowerCase();
       if (validExtensions.includes(fileExtension)) {
         const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-          toast.error("File Too Large", { description: "Please upload a file smaller than 10MB." });
+          toast.error("File Too Large", {
+            description: "Please upload a file smaller than 10MB.",
+          });
           if (fileInputRef.current) fileInputRef.current.value = "";
           return;
         }
@@ -415,7 +505,9 @@ export const PPE: React.FC = () => {
         setAiReport("");
         setChartList([]);
       } else {
-        toast.error("Invalid File Type", { description: "Please upload a valid Excel (.xlsx, .xls) file." });
+        toast.error("Invalid File Type", {
+          description: "Please upload a valid Excel (.xlsx, .xls) file.",
+        });
       }
     }
   };
@@ -442,7 +534,10 @@ export const PPE: React.FC = () => {
     try {
       const response = await apiClient.post("/generate-ppe-report");
       if (response && response.report_content) {
-        const reportContent = typeof response.report_content === "string" ? response.report_content : String(response.report_content || "");
+        const reportContent =
+          typeof response.report_content === "string"
+            ? response.report_content
+            : String(response.report_content || "");
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!");
@@ -466,7 +561,11 @@ export const PPE: React.FC = () => {
     setSelectedChartHtml("");
     try {
       const response = await apiClient.post("/generate-ppe-charts");
-      if (response && response.chart_files && Array.isArray(response.chart_files)) {
+      if (
+        response &&
+        response.chart_files &&
+        Array.isArray(response.chart_files)
+      ) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
         setShowCharts(true);
@@ -494,7 +593,10 @@ export const PPE: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) { toast.error("No File Selected"); return; }
+    if (!selectedFile) {
+      toast.error("No File Selected");
+      return;
+    }
     setIsUploading(true);
     setFileUploaded(false);
     setShowReport(false);
@@ -508,7 +610,10 @@ export const PPE: React.FC = () => {
       setFileUploaded(true);
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      toast.error("Upload Failed", { description: error?.message, duration: 5000 });
+      toast.error("Upload Failed", {
+        description: error?.message,
+        duration: 5000,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -520,7 +625,8 @@ export const PPE: React.FC = () => {
       const html = await fetchChartHtml(chartName);
       setSelectedChartHtml(html);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       toast.error("Failed to load chart", { description: errorMessage });
       setSelectedChartHtml("<p>Error loading chart.</p>");
     }
@@ -529,10 +635,24 @@ export const PPE: React.FC = () => {
   // --- DOWNLOAD FUNCTIONS (Using Print Window Logic) ---
 
   const downloadTXT = () => {
-    if (!aiReport) { toast.error("Error", { description: "Cannot find report content." }); return; }
+    if (!aiReport) {
+      toast.error("Error", { description: "Cannot find report content." });
+      return;
+    }
     try {
-      const cleanContent = aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n');
-      const plainText = cleanContent.replace(/<[^>]*>/g, "").replace(/\n\n+/g, "\n").replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+      const cleanContent = aiReport
+        .replace(/Of course.*?\.\s*/, "")
+        .split("\n")
+        .map((line) => (line.trim() === "*" ? "" : line))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n");
+      const plainText = cleanContent
+        .replace(/<[^>]*>/g, "")
+        .replace(/\n\n+/g, "\n")
+        .replace(/&nbsp;/g, " ")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&amp;/g, "&");
       const blob = new Blob([plainText], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -630,40 +750,46 @@ export const PPE: React.FC = () => {
     }
   };
 
-  const downloadChartsPDF = async () => {
-    try {
-      toast.info("Generating Charts PDF", { description: "Opening print dialog... Select 'Save as PDF'" });
-      const chartHtml = (selectedChartHtml && selectedChartHtml.length > 0 ? selectedChartHtml : chartsContentRef.current?.innerHTML) || "";
-      if (!chartHtml) { toast.error("No chart available"); return; }
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("Could not open print window");
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <title>DATTU Chart</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } body { margin: 0; padding: 12px; background: white; } @page { margin: 10mm; size: A4; } }
-             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-           </style>
-         </head>
-         <body><div class="prose max-w-none">${chartHtml}</div><script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 500); });</script></body>
-         </html>`;
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
-      toast.success("Print dialog opened!");
-    } catch (error: any) {
-      toast.error("Failed to generate Charts PDF");
-    }
-  };
+  // const downloadChartsPDF = async () => {
+  //   try {
+  //     toast.info("Generating Charts PDF", { description: "Opening print dialog... Select 'Save as PDF'" });
+  //     const chartHtml = (selectedChartHtml && selectedChartHtml.length > 0 ? selectedChartHtml : chartsContentRef.current?.innerHTML) || "";
+  //     if (!chartHtml) { toast.error("No chart available"); return; }
+  //     const printWindow = window.open("", "_blank");
+  //     if (!printWindow) throw new Error("Could not open print window");
+  //     const printDocument = `
+  //        <!DOCTYPE html>
+  //        <html>
+  //        <head>
+  //          <meta charset="UTF-8">
+  //          <title>DATTU Chart</title>
+  //          <script src="https://cdn.tailwindcss.com"></script>
+  //          <style>
+  //            @media print { * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; } body { margin: 0; padding: 12px; background: white; } @page { margin: 10mm; size: A4; } }
+  //            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  //          </style>
+  //        </head>
+  //        <body><div class="prose max-w-none">${chartHtml}</div><script>window.addEventListener('load', function() { setTimeout(function() { window.print(); }, 500); });</script></body>
+  //        </html>`;
+  //     printWindow.document.open();
+  //     printWindow.document.write(printDocument);
+  //     printWindow.document.close();
+  //     toast.success("Print dialog opened!");
+  //   } catch (error: any) {
+  //     toast.error("Failed to generate Charts PDF");
+  //   }
+  // };
 
   const downloadChartsHTML = () => {
     try {
-      const chartHtml = (selectedChartHtml && selectedChartHtml.length > 0 ? selectedChartHtml : chartsContentRef.current?.innerHTML) || "";
-      if (!chartHtml) { toast.error("No chart available"); return; }
+      const chartHtml =
+        (selectedChartHtml && selectedChartHtml.length > 0
+          ? selectedChartHtml
+          : chartsContentRef.current?.innerHTML) || "";
+      if (!chartHtml) {
+        toast.error("No chart available");
+        return;
+      }
       const blob = new Blob([chartHtml], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -687,45 +813,166 @@ export const PPE: React.FC = () => {
     return (
       <div className="w-full py-12">
         <div className="text-center mb-10">
-          <motion.h1 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-4xl font-extrabold text-[#0B3D91]">
-            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">PPE & Assets Analyzer</span>
+          <motion.h1
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-extrabold text-[#0B3D91]"
+          >
+            <span className="px-3 py-1 rounded-lg bg-blue-50 border border-blue-200 shadow-sm">
+              PPE & Assets Analyzer
+            </span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-lg text-gray-600 max-w-2xl mx-auto mt-3">
-            Upload your Excel PPE and assets data and let DATTU generate a smart, interactive dashboard of inventory metrics, usage patterns, and AI insights.
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
+          >
+            Upload your Excel PPE and assets data and let DATTU generate a
+            smart, interactive dashboard of inventory metrics, usage patterns,
+            and AI insights.
           </motion.p>
         </div>
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-          {[{ title: "1. Upload PPE Excel", icon: Upload, desc: "Upload your raw PPE inventory and assets Excel files." }, { title: "2. AI Analyzes Inventory", icon: Sparkles, desc: "DATTU processes stock levels, usage patterns & predicts reorder needs." }, { title: "3. View Dashboard", icon: BarChart2, desc: "Get interactive charts on stock levels & inventory insights." }].map((step, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 + i * 0.1 }} whileHover={{ y: -5, scale: 1.02 }} className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all">
+          {[
+            {
+              title: "1. Upload PPE Excel",
+              icon: Upload,
+              desc: "Upload your raw PPE inventory and assets Excel files.",
+            },
+            {
+              title: "2. AI Analyzes Inventory",
+              icon: Sparkles,
+              desc: "DATTU processes stock levels, usage patterns & predicts reorder needs.",
+            },
+            {
+              title: "3. View Dashboard",
+              icon: BarChart2,
+              desc: "Get interactive charts on stock levels & inventory insights.",
+            },
+          ].map((step, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              whileHover={{ y: -5, scale: 1.02 }}
+              className="group bg-white shadow-md rounded-xl p-5 border border-gray-200 hover:shadow-xl hover:border-[#00A79D] transition-all"
+            >
               <div className="flex items-center gap-3 mb-2">
-                <motion.div transition={{ type: "spring", stiffness: 300 }} className="group-hover:scale-110"><step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" /></motion.div>
+                <motion.div
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className="group-hover:scale-110"
+                >
+                  <step.icon className="w-8 h-8 text-[#0B3D91] transition-colors group-hover:text-[#00A79D]" />
+                </motion.div>
                 <p className="font-semibold text-gray-800">{step.title}</p>
               </div>
               <p className="text-sm text-gray-600">{step.desc}</p>
             </motion.div>
           ))}
         </div>
-        <motion.div className="w-full flex items-center justify-center" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+        <motion.div
+          className="w-full flex items-center justify-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
           <Card className="shadow-xl border-t-4 border-[#0B3D91] w-full max-w-2xl overflow-hidden">
             <CardHeader className="text-center pb-6">
-              <motion.div className="flex justify-center mb-4" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: "spring", stiffness: 200 }}>
+              <motion.div
+                className="flex justify-center mb-4"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+              >
                 <div className="p-4 rounded-full bg-gradient-to-br from-[#0B3D91]/15 to-[#00A79D]/15 border border-[#0B3D91]/30">
-                  <motion.div animate={{ y: [0, -4, 0] }} transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}><HardHat className="w-12 h-12 text-[#0B3D91]" /></motion.div>
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <HardHat className="w-12 h-12 text-[#0B3D91]" />
+                  </motion.div>
                 </div>
               </motion.div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">Upload PPE & Assets Data</CardTitle>
-              <p className="text-gray-600 text-lg">Choose an Excel file (.xlsx / .xls) containing PPE inventory and asset data.</p>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+                Upload PPE & Assets Data
+              </CardTitle>
+              <p className="text-gray-600 text-lg">
+                Choose an Excel file (.xlsx / .xls) containing PPE inventory and
+                asset data.
+              </p>
             </CardHeader>
             <CardContent className="space-y-6 px-6 sm:px-8 pb-8">
-              <motion.label htmlFor="file-upload" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }} animate={{ borderColor: isDragging ? "#0B3D91" : "#e5e7eb", backgroundColor: isDragging ? "#f0f9ff" : "#f9fafb" }} className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300">
+              <motion.label
+                htmlFor="file-upload"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                whileHover={{ scale: 1.02, backgroundColor: "#fafcff" }}
+                animate={{
+                  borderColor: isDragging ? "#0B3D91" : "#e5e7eb",
+                  backgroundColor: isDragging ? "#f0f9ff" : "#f9fafb",
+                }}
+                className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer transition-colors duration-300"
+              >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  {selectedFile ? (<><FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" /><p className="mb-2 text-base font-semibold text-gray-700">{selectedFile.name}</p><p className="text-xs text-gray-500">Click to change file</p></>) : (<><Upload className="w-12 h-12 text-gray-400 mb-3" /><p className="mb-2 text-base font-semibold text-gray-700">Click to upload or drag and drop</p><p className="text-xs text-gray-500">Excel (.xlsx, .xls) files only (Max 10MB)</p></>)}
+                  {selectedFile ? (
+                    <>
+                      <FileSpreadsheet className="w-12 h-12 text-[#0B3D91] mb-3" />
+                      <p className="mb-2 text-base font-semibold text-gray-700">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Click to change file
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-12 h-12 text-gray-400 mb-3" />
+                      <p className="mb-2 text-base font-semibold text-gray-700">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Excel (.xlsx, .xls) files only (Max 10MB)
+                      </p>
+                    </>
+                  )}
                 </div>
-                <input ref={fileInputRef} type="file" accept=".xlsx,.xls" onChange={handleFileChange} className="hidden" id="file-upload" />
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="file-upload"
+                />
               </motion.label>
-              <motion.div whileHover={{ scale: selectedFile ? 1.02 : 1 }} whileTap={{ scale: selectedFile ? 0.99 : 1 }}>
-                <Button onClick={handleUpload} disabled={!selectedFile || isUploading} className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40">
-                  {isUploading ? (<><Loader2 className="w-5 h-5 mr-2 animate-spin" />Uploading...</>) : (<><Upload className="w-5 h-5 mr-2" />Upload File</>)}
+              <motion.div
+                whileHover={{ scale: selectedFile ? 1.02 : 1 }}
+                whileTap={{ scale: selectedFile ? 0.99 : 1 }}
+              >
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isUploading}
+                  className="w-full bg-gradient-to-r from-[#0B3D91] to-[#00A79D] text-white font-semibold py-6 text-lg transition-all duration-300 disabled:opacity-50 shadow-lg hover:shadow-xl hover:shadow-[#0B3D91]/40"
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 mr-2" />
+                      Upload File
+                    </>
+                  )}
                 </Button>
               </motion.div>
             </CardContent>
@@ -739,20 +986,48 @@ export const PPE: React.FC = () => {
   if (isUploading) {
     return (
       <div className="w-full flex items-center justify-center py-20">
-        <motion.div className="text-center max-w-2xl" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-          <motion.div className="flex justify-center mb-8" animate={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>
-            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg"><Upload className="w-16 h-16 text-[#0B3D91]" /></div>
+        <motion.div
+          className="text-center max-w-2xl"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <motion.div
+            className="flex justify-center mb-8"
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <div className="p-6 rounded-full bg-gradient-to-br from-[#0B3D91]/20 to-[#00A79D]/20 border-2 border-[#0B3D91]/30 shadow-lg">
+              <Upload className="w-16 h-16 text-[#0B3D91]" />
+            </div>
           </motion.div>
-          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">Uploading Your File...</h2>
-          <p className="text-lg text-gray-600 mb-8">Please wait while we process your Excel file.</p>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden"><motion.div className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full" initial={{ x: "-100%" }} animate={{ x: "100%" }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} /></div>
+          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#0B3D91] to-[#00A79D] bg-clip-text text-transparent">
+            Uploading Your File...
+          </h2>
+          <p className="text-lg text-gray-600 mb-8">
+            Please wait while we process your Excel file.
+          </p>
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mt-8 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-[#0B3D91] to-[#00A79D] h-2.5 rounded-full"
+              initial={{ x: "-100%" }}
+              animate={{ x: "100%" }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            />
+          </div>
         </motion.div>
       </div>
     );
   }
 
   // 3. After upload - show Generate buttons
-  if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
+  if (
+    fileUploaded &&
+    !showReport &&
+    !showCharts &&
+    !isGeneratingReport &&
+    !isGeneratingCharts
+  ) {
     return (
       <div className="w-full py-12">
         <motion.div
@@ -781,7 +1056,8 @@ export const PPE: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your Personal Protective Equipment (PPE) compliance data.
+                  Generate a comprehensive AI-powered analysis report of your
+                  Personal Protective Equipment (PPE) compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -818,7 +1094,8 @@ export const PPE: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your Personal Protective Equipment (PPE) compliance data.
+                  Generate interactive charts and visualizations from your
+                  Personal Protective Equipment (PPE) compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1011,8 +1288,8 @@ export const PPE: React.FC = () => {
               </CardTitle>
 
               <CardDescription className="text-lg text-gray-600">
-                This is the full PPE and assets analysis report
-                generated by the DATTU based on your uploaded data.
+                This is the full PPE and assets analysis report generated by the
+                DATTU based on your uploaded data.
               </CardDescription>
             </CardHeader>
 
@@ -1076,32 +1353,25 @@ export const PPE: React.FC = () => {
               <div>
                 <CardTitle>Interactive Charts</CardTitle>
                 <CardDescription>
-                  Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                  Select a chart to view the interactive (Plotly) HTML report
+                  generated by the backend.
                 </CardDescription>
               </div>
               <div className="ml-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download Charts
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={downloadChartsPDF}>
-                      Download Charts as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={downloadChartsHTML}>
-                      Download Chart HTML
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  onClick={downloadChartsHTML}
+                  className="bg-[#0B3D91] hover:bg-[#082f70]"
+                >
+                  Download Chart
+                </Button>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              <Select onValueChange={handleChartSelect} value={selectedChartName || undefined}>
+              <Select
+                onValueChange={handleChartSelect}
+                value={selectedChartName || undefined}
+              >
                 <SelectTrigger className="w-full md:w-1/2">
                   <SelectValue placeholder="Select a chart to display" />
                 </SelectTrigger>
@@ -1158,7 +1428,11 @@ export const PPE: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <HardHat className="w-8 h-8 text-[#0B3D91]" />
-            {showReport ? " PPE & Assets Report" : showCharts ? "PPE & Assets Charts" : "Dashboard"}
+            {showReport
+              ? " PPE & Assets Report"
+              : showCharts
+              ? "PPE & Assets Charts"
+              : "Dashboard"}
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1175,8 +1449,12 @@ export const PPE: React.FC = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={downloadPDF}>Download as PDF</DropdownMenuItem>
-                <DropdownMenuItem onClick={downloadTXT}>Download as TXT</DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadPDF}>
+                  Download as PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadTXT}>
+                  Download as TXT
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -1252,10 +1530,16 @@ export const PPE: React.FC = () => {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
+              <h3 className="text-lg font-bold text-amber-900 mb-1">
+                ⚠️ Important Reminder
+              </h3>
               <p className="text-amber-800 leading-relaxed">
-                <strong>Download the PDF before switching to another module or refreshing the page!</strong>
-                {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
+                <strong>
+                  Download the PDF before switching to another module or
+                  refreshing the page!
+                </strong>{" "}
+                Your generated report and charts will be lost when you navigate
+                away, refresh, or close this page.
               </p>
             </div>
           </div>
@@ -1271,13 +1555,15 @@ export const PPE: React.FC = () => {
                 value="report"
                 className="flex items-center gap-2 text-base data-[state=active]:bg-white"
               >
-                <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                <Sparkles className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
+                Report
               </TabsTrigger>
               <TabsTrigger
                 value="charts"
                 className="flex items-center gap-2 text-base data-[state=active]:bg-white"
               >
-                <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+                <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive
+                Charts
               </TabsTrigger>
             </TabsList>
 
@@ -1299,4 +1585,4 @@ export const PPE: React.FC = () => {
       </div>
     </div>
   );
-};  
+};

@@ -813,73 +813,73 @@ export const Audits: React.FC = () => {
   };
 
   // Download Charts-only PDF (print approach)
-  const downloadChartsPDF = async () => {
-    try {
-      toast.info("Generating Charts PDF", {
-        description: "Opening print dialog... Select 'Save as PDF'",
-      });
+  // const downloadChartsPDF = async () => {
+  //   try {
+  //     toast.info("Generating Charts PDF", {
+  //       description: "Opening print dialog... Select 'Save as PDF'",
+  //     });
 
-      const chartHtml =
-        (selectedChartHtml && selectedChartHtml.length > 0
-          ? selectedChartHtml
-          : chartsContentRef.current?.innerHTML) || "";
+  //     const chartHtml =
+  //       (selectedChartHtml && selectedChartHtml.length > 0
+  //         ? selectedChartHtml
+  //         : chartsContentRef.current?.innerHTML) || "";
 
-      if (!chartHtml) {
-        toast.error("No chart available to download", {
-          description: "Please select a chart or generate charts first.",
-        });
-        return;
-      }
+  //     if (!chartHtml) {
+  //       toast.error("No chart available to download", {
+  //         description: "Please select a chart or generate charts first.",
+  //       });
+  //       return;
+  //     }
 
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("Could not open print window");
+  //     const printWindow = window.open("", "_blank");
+  //     if (!printWindow) throw new Error("Could not open print window");
 
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-           <title>DATTU Chart</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print {
-               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-               body { margin: 0; padding: 12px; background: white; }
-               @page { margin: 10mm; size: A4; }
-             }
-             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-           </style>
-         </head>
-         <body>
-           <div class="prose max-w-none">
-             ${chartHtml}
-           </div>
-           <script>
-             window.addEventListener('load', function() {
-               setTimeout(function() { window.print(); }, 500);
-             });
-           </script>
-         </body>
-         </html>
-       `;
+  //     const printDocument = `
+  //        <!DOCTYPE html>
+  //        <html>
+  //        <head>
+  //          <meta charset="UTF-8">
+  //          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //          <title>DATTU Chart</title>
+  //          <script src="https://cdn.tailwindcss.com"></script>
+  //          <style>
+  //            @media print {
+  //              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  //              body { margin: 0; padding: 12px; background: white; }
+  //              @page { margin: 10mm; size: A4; }
+  //            }
+  //            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  //          </style>
+  //        </head>
+  //        <body>
+  //          <div class="prose max-w-none">
+  //            ${chartHtml}
+  //          </div>
+  //          <script>
+  //            window.addEventListener('load', function() {
+  //              setTimeout(function() { window.print(); }, 500);
+  //            });
+  //          </script>
+  //        </body>
+  //        </html>
+  //      `;
 
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
+  //     printWindow.document.open();
+  //     printWindow.document.write(printDocument);
+  //     printWindow.document.close();
 
-      toast.success("Print dialog opened!", {
-        description:
-          "Select 'Save as PDF' from the printer dropdown to save the chart.",
-      });
-    } catch (error: any) {
-      console.error("Error generating Charts PDF:", error);
-      toast.error("Failed to generate Charts PDF", {
-        description:
-          error?.message || "An error occurred while generating the PDF.",
-      });
-    }
-  };
+  //     toast.success("Print dialog opened!", {
+  //       description:
+  //         "Select 'Save as PDF' from the printer dropdown to save the chart.",
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error generating Charts PDF:", error);
+  //     toast.error("Failed to generate Charts PDF", {
+  //       description:
+  //         error?.message || "An error occurred while generating the PDF.",
+  //     });
+  //   }
+  // };
 
   // Download Charts as HTML file
   const downloadChartsHTML = () => {
@@ -1495,23 +1495,12 @@ export const Audits: React.FC = () => {
                 </CardDescription>
               </div>
               <div className="ml-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download Charts
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={downloadChartsPDF}>
-                      Download Charts as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={downloadChartsHTML}>
-                      Download Chart HTML
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  onClick={downloadChartsHTML}
+                  className="bg-[#0B3D91] hover:bg-[#082f70]"
+                >
+                  Download Chart
+                </Button>
               </div>
             </CardHeader>
 

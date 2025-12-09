@@ -700,7 +700,7 @@ export const Dashboard: React.FC = () => {
       {/* Footer / Info Section */}
       <section className="mt-12 text-center">
         <p className="text-sm text-gray-400">
-          DATTU AI Safety Management System • v2.0 • Secure & Encrypted
+          DATTU AI Safety Management System • v1.0 • Secure & Encrypted
         </p>
       </section>
     </div>

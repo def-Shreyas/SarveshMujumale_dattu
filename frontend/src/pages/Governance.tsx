@@ -87,13 +87,22 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
 
   const formatMarkdown = (text: string): string => {
     const stripHtmlAttributes = (str: string): string => {
-      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
-      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
-      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
-      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
-      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, "<$1>");
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi,
+        ""
+      );
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi,
+        ""
+      );
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, " ");
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, " ");
+      str = str.replace(
+        /\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi,
+        ""
+      );
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, "");
       return str;
     };
 
@@ -184,8 +193,9 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             .map((c) => c.trim())
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-              } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${
+              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               let cellContent = escapeHtml(cell);
               cellContent = cellContent.replace(
@@ -366,22 +376,29 @@ export const Governance: React.FC = () => {
 
           // Check for required sheets (Governance module specific)
           // Governance uses 'Workforce_Social', 'Workforce_KPIs_By_Dept', 'Supplier_Audits', or 'Governance_Metrics'
-          const requiredSheets = ["Workforce_Social", "Workforce_KPIs_By_Dept", "Supplier_Audits", "Governance_Metrics"];
-          const hasRequiredSheets = requiredSheets.some(sheet =>
-            sheetNames.some(name => name.includes(sheet))
+          const requiredSheets = [
+            "Workforce_Social",
+            "Workforce_KPIs_By_Dept",
+            "Supplier_Audits",
+            "Governance_Metrics",
+          ];
+          const hasRequiredSheets = requiredSheets.some((sheet) =>
+            sheetNames.some((name) => name.includes(sheet))
           );
 
           // Also allow if there's a sheet explicitly named "Social" or "Governance"
-          const hasGenericSheet = sheetNames.some(name =>
-            name.toLowerCase().includes("social") ||
-            name.toLowerCase().includes("governance")
+          const hasGenericSheet = sheetNames.some(
+            (name) =>
+              name.toLowerCase().includes("social") ||
+              name.toLowerCase().includes("governance")
           );
 
           if (hasRequiredSheets || hasGenericSheet) {
             resolve(true);
           } else {
             toast.error("Invalid File Content", {
-              description: "The uploaded file does not appear to be a Social & Governance file. Expected sheets like 'Workforce_Social', 'Governance_Metrics', etc.",
+              description:
+                "The uploaded file does not appear to be a Social & Governance file. Expected sheets like 'Workforce_Social', 'Governance_Metrics', etc.",
               duration: 5000,
             });
             resolve(false);
@@ -547,34 +564,51 @@ export const Governance: React.FC = () => {
     setCurrentQuoteIndex(0);
 
     try {
-      const response = await apiClient.post("/generate-social-governance-report");
+      const response = await apiClient.post(
+        "/generate-social-governance-report"
+      );
 
       if (response && response.report_content) {
-        const reportContent = typeof response.report_content === "string"
-          ? response.report_content
-          : String(response.report_content || "");
+        const reportContent =
+          typeof response.report_content === "string"
+            ? response.report_content
+            : String(response.report_content || "");
 
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
-          description: `Report generated successfully (${response.report_length || 0} characters)`,
+          description: `Report generated successfully (${
+            response.report_length || 0
+          } characters)`,
         });
       } else {
         throw new Error("Invalid response from server: missing report_content");
       }
     } catch (error: any) {
       console.error("Error generating report:", error);
-      const errorMessage = error?.message || "Failed to generate report. Please try again.";
+      const errorMessage =
+        error?.message || "Failed to generate report. Please try again.";
 
-      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+      if (
+        errorMessage.includes("API key") ||
+        errorMessage.includes("GOOGLE_API_KEY")
+      ) {
         toast.error("API Configuration Error", {
-          description: "API key not configured. Please contact the administrator.",
+          description:
+            "API key not configured. Please contact the administrator.",
         });
-      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+      } else if (
+        errorMessage.includes("No extracted tables") ||
+        errorMessage.includes("upload")
+      ) {
         toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating the report.",
+          description:
+            "Please upload the Excel file first before generating the report.",
         });
-      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+      } else if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("connection")
+      ) {
         toast.error("Network Error", {
           description: "Please check your internet connection and try again.",
         });
@@ -599,9 +633,15 @@ export const Governance: React.FC = () => {
     setSelectedChartHtml("");
 
     try {
-      const response = await apiClient.post("/generate-social-governance-charts");
+      const response = await apiClient.post(
+        "/generate-social-governance-charts"
+      );
 
-      if (response && response.chart_files && Array.isArray(response.chart_files)) {
+      if (
+        response &&
+        response.chart_files &&
+        Array.isArray(response.chart_files)
+      ) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
         setShowCharts(true);
@@ -613,11 +653,16 @@ export const Governance: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error generating charts:", error);
-      const errorMessage = error?.message || "Failed to generate charts. Please try again.";
+      const errorMessage =
+        error?.message || "Failed to generate charts. Please try again.";
 
-      if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+      if (
+        errorMessage.includes("No extracted tables") ||
+        errorMessage.includes("upload")
+      ) {
         toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating charts.",
+          description:
+            "Please upload the Excel file first before generating charts.",
         });
       } else {
         toast.error("Chart Generation Failed", {
@@ -670,7 +715,8 @@ export const Governance: React.FC = () => {
       setFileUploaded(true);
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      const errorMessage = error?.message || "Could not upload the file. Please try again.";
+      const errorMessage =
+        error?.message || "Could not upload the file. Please try again.";
       toast.error("Upload Failed", {
         description: errorMessage,
         duration: 5000,
@@ -707,7 +753,12 @@ export const Governance: React.FC = () => {
 
     try {
       // 1. Clean the text using the same logic as render (Remove "Of course...")
-      const cleanContent = aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n');
+      const cleanContent = aiReport
+        .replace(/Of course.*?\.\s*/, "")
+        .split("\n")
+        .map((line) => (line.trim() === "*" ? "" : line))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n");
 
       // 2. Convert HTML/markdown to plain text
       const plainText = cleanContent
@@ -831,73 +882,73 @@ export const Governance: React.FC = () => {
   };
 
   // Download Charts-only PDF (print approach)
-  const downloadChartsPDF = async () => {
-    try {
-      toast.info("Generating Charts PDF", {
-        description: "Opening print dialog... Select 'Save as PDF'",
-      });
+  // const downloadChartsPDF = async () => {
+  //   try {
+  //     toast.info("Generating Charts PDF", {
+  //       description: "Opening print dialog... Select 'Save as PDF'",
+  //     });
 
-      const chartHtml =
-        (selectedChartHtml && selectedChartHtml.length > 0
-          ? selectedChartHtml
-          : chartsContentRef.current?.innerHTML) || "";
+  //     const chartHtml =
+  //       (selectedChartHtml && selectedChartHtml.length > 0
+  //         ? selectedChartHtml
+  //         : chartsContentRef.current?.innerHTML) || "";
 
-      if (!chartHtml) {
-        toast.error("No chart available to download", {
-          description: "Please select a chart or generate charts first.",
-        });
-        return;
-      }
+  //     if (!chartHtml) {
+  //       toast.error("No chart available to download", {
+  //         description: "Please select a chart or generate charts first.",
+  //       });
+  //       return;
+  //     }
 
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("Could not open print window");
+  //     const printWindow = window.open("", "_blank");
+  //     if (!printWindow) throw new Error("Could not open print window");
 
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-           <title>DATTU Governance Chart</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print {
-               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-               body { margin: 0; padding: 12px; background: white; }
-               @page { margin: 10mm; size: A4; }
-             }
-             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-           </style>
-         </head>
-         <body>
-           <div class="prose max-w-none">
-             ${chartHtml}
-           </div>
-           <script>
-             window.addEventListener('load', function() {
-               setTimeout(function() { window.print(); }, 500);
-             });
-           </script>
-         </body>
-         </html>
-       `;
+  //     const printDocument = `
+  //        <!DOCTYPE html>
+  //        <html>
+  //        <head>
+  //          <meta charset="UTF-8">
+  //          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //          <title>DATTU Governance Chart</title>
+  //          <script src="https://cdn.tailwindcss.com"></script>
+  //          <style>
+  //            @media print {
+  //              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  //              body { margin: 0; padding: 12px; background: white; }
+  //              @page { margin: 10mm; size: A4; }
+  //            }
+  //            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  //          </style>
+  //        </head>
+  //        <body>
+  //          <div class="prose max-w-none">
+  //            ${chartHtml}
+  //          </div>
+  //          <script>
+  //            window.addEventListener('load', function() {
+  //              setTimeout(function() { window.print(); }, 500);
+  //            });
+  //          </script>
+  //        </body>
+  //        </html>
+  //      `;
 
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
+  //     printWindow.document.open();
+  //     printWindow.document.write(printDocument);
+  //     printWindow.document.close();
 
-      toast.success("Print dialog opened!", {
-        description:
-          "Select 'Save as PDF' from the printer dropdown to save the chart.",
-      });
-    } catch (error: any) {
-      console.error("Error generating Charts PDF:", error);
-      toast.error("Failed to generate Charts PDF", {
-        description:
-          error?.message || "An error occurred while generating the PDF.",
-      });
-    }
-  };
+  //     toast.success("Print dialog opened!", {
+  //       description:
+  //         "Select 'Save as PDF' from the printer dropdown to save the chart.",
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error generating Charts PDF:", error);
+  //     toast.error("Failed to generate Charts PDF", {
+  //       description:
+  //         error?.message || "An error occurred while generating the PDF.",
+  //     });
+  //   }
+  // };
 
   // Download Charts as HTML file
   const downloadChartsHTML = () => {
@@ -962,9 +1013,9 @@ export const Governance: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
           >
-            Upload your Excel social and governance dataset and let DATTU generate a smart,
-            interactive, AI-powered analysis — including charts, trends and a
-            full executive report.
+            Upload your Excel social and governance dataset and let DATTU
+            generate a smart, interactive, AI-powered analysis — including
+            charts, trends and a full executive report.
           </motion.p>
         </div>
 
@@ -1044,7 +1095,8 @@ export const Governance: React.FC = () => {
                 Upload Social & Governance Report
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) containing safety governance and compliance data to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing safety governance
+                and compliance data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -1172,7 +1224,13 @@ export const Governance: React.FC = () => {
   }
 
   // 3. After upload - show Generate buttons
-  if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
+  if (
+    fileUploaded &&
+    !showReport &&
+    !showCharts &&
+    !isGeneratingReport &&
+    !isGeneratingCharts
+  ) {
     return (
       <div className="w-full py-12">
         <motion.div
@@ -1201,7 +1259,8 @@ export const Governance: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your safety governance and compliance data.
+                  Generate a comprehensive AI-powered analysis report of your
+                  safety governance and compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1238,7 +1297,8 @@ export const Governance: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your safety governance and compliance data.
+                  Generate interactive charts and visualizations from your
+                  safety governance and compliance data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1431,8 +1491,8 @@ export const Governance: React.FC = () => {
               </CardTitle>
 
               <CardDescription className="text-lg text-gray-600">
-                This is the full social and governance analysis report
-                generated by the DATTU based on your uploaded data.
+                This is the full social and governance analysis report generated
+                by the DATTU based on your uploaded data.
               </CardDescription>
             </CardHeader>
 
@@ -1496,27 +1556,17 @@ export const Governance: React.FC = () => {
               <div>
                 <CardTitle>Interactive Charts</CardTitle>
                 <CardDescription>
-                  Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                  Select a chart to view the interactive (Plotly) HTML report
+                  generated by the backend.
                 </CardDescription>
               </div>
               <div className="ml-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download Charts
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={downloadChartsPDF}>
-                      Download Charts as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={downloadChartsHTML}>
-                      Download Chart HTML
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  onClick={downloadChartsHTML}
+                  className="bg-[#0B3D91] hover:bg-[#082f70]"
+                >
+                  Download Chart
+                </Button>
               </div>
             </CardHeader>
 
@@ -1581,7 +1631,11 @@ export const Governance: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
             <Scale className="w-8 h-8 text-[#0B3D91]" />
-            {showReport ? " Social & Governance Report" : showCharts ? "Social & Governance Charts" : "Dashboard"}
+            {showReport
+              ? " Social & Governance Report"
+              : showCharts
+              ? "Social & Governance Charts"
+              : "Dashboard"}
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1679,10 +1733,16 @@ export const Governance: React.FC = () => {
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
+              <h3 className="text-lg font-bold text-amber-900 mb-1">
+                ⚠️ Important Reminder
+              </h3>
               <p className="text-amber-800 leading-relaxed">
-                <strong>Download the PDF before switching to another module or refreshing the page!</strong>
-                {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
+                <strong>
+                  Download the PDF before switching to another module or
+                  refreshing the page!
+                </strong>{" "}
+                Your generated report and charts will be lost when you navigate
+                away, refresh, or close this page.
               </p>
             </div>
           </div>
@@ -1698,13 +1758,15 @@ export const Governance: React.FC = () => {
                 value="report"
                 className="flex items-center gap-2 text-base data-[state=active]:bg-white"
               >
-                <AlertCircle className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                <AlertCircle className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
+                Report
               </TabsTrigger>
               <TabsTrigger
                 value="charts"
                 className="flex items-center gap-2 text-base data-[state=active]:bg-white"
               >
-                <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+                <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive
+                Charts
               </TabsTrigger>
             </TabsList>
 

@@ -25,12 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { read } from "xlsx";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -44,9 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  TooltipProvider,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -58,9 +51,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 //import { Progress } from "@/components/ui/progress";
-import {
-  Filter,
-} from "lucide-react";
+import { Filter } from "lucide-react";
 import type { RcaAction, RcaKpi } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +81,11 @@ interface SafeMarkdownProps {
 
 const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
   if (typeof content !== "string") {
-    console.error("❌ SafeMarkdown received non-string content:", typeof content, content);
+    console.error(
+      "❌ SafeMarkdown received non-string content:",
+      typeof content,
+      content
+    );
     return (
       <div className="text-red-500 p-4">
         <p>Invalid content type: {typeof content}</p>
@@ -106,19 +101,28 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     // First, strip HTML attributes from existing HTML tags to prevent them from being displayed as text
     const stripHtmlAttributes = (str: string): string => {
       // Remove style attributes and other inline attributes from HTML tags
-      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, '<$1>');
+      str = str.replace(/<([a-zA-Z][a-zA-Z0-9]*)\s+[^>]*>/g, "<$1>");
 
       // Remove any standalone HTML attribute text that might be displayed
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi, '');
-      str = str.replace(/\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi, '');
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*["'][^"']*["']/gi,
+        ""
+      );
+      str = str.replace(
+        /\b(style|class|id|width|height|align|valign|colspan|rowspan|bgcolor|color|font-size|font-family|text-align|margin|padding|border)\s*=\s*[^\s>]+/gi,
+        ""
+      );
 
       // Remove CSS unit patterns that appear standalone (like "12px", "10em", etc.) when they appear as text
-      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, ' ');
-      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, ' ');
+      str = str.replace(/(?:^|\s)(\d+)\s*(px|em|rem|pt)(?:\s|$|;|,)/gi, " ");
+      str = str.replace(/(?:^|\s)(\d+)\s*%(?:\s|$|;|,)/gi, " ");
 
       // Remove font-size related text patterns (like "txt small", "font-size: 12px", etc.)
-      str = str.replace(/\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi, '');
-      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, '');
+      str = str.replace(
+        /\b(txt|text|font)\s*(small|medium|large|tiny|huge|xx-small|x-small|smaller|larger|xx-large)\b/gi,
+        ""
+      );
+      str = str.replace(/\bfont-size\s*:\s*\d+\s*(px|em|rem|pt|%)/gi, "");
 
       return str;
     };
@@ -129,16 +133,22 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const escapeHtml = (str: string) => {
       const entityPlaceholders: { [key: string]: string } = {};
       let placeholderIndex = 0;
-      let protectedStr = str.replace(/&(?:#\d+|#x[\da-fA-F]+|\w+);/g, (match) => {
-        const placeholder = `__ENTITY_${placeholderIndex++}__`;
-        entityPlaceholders[placeholder] = match;
-        return placeholder;
-      });
-      protectedStr = protectedStr.replace(/&/g, '&amp;');
-      protectedStr = protectedStr.replace(/</g, '&lt;');
-      protectedStr = protectedStr.replace(/>/g, '&gt;');
-      Object.keys(entityPlaceholders).forEach(placeholder => {
-        protectedStr = protectedStr.replace(new RegExp(placeholder, 'g'), entityPlaceholders[placeholder]);
+      let protectedStr = str.replace(
+        /&(?:#\d+|#x[\da-fA-F]+|\w+);/g,
+        (match) => {
+          const placeholder = `__ENTITY_${placeholderIndex++}__`;
+          entityPlaceholders[placeholder] = match;
+          return placeholder;
+        }
+      );
+      protectedStr = protectedStr.replace(/&/g, "&amp;");
+      protectedStr = protectedStr.replace(/</g, "&lt;");
+      protectedStr = protectedStr.replace(/>/g, "&gt;");
+      Object.keys(entityPlaceholders).forEach((placeholder) => {
+        protectedStr = protectedStr.replace(
+          new RegExp(placeholder, "g"),
+          entityPlaceholders[placeholder]
+        );
       });
       return protectedStr;
     };
@@ -148,14 +158,18 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
         .replace(/&quot;/g, '"')
         .replace(/&#039;/g, "'")
         .replace(/&apos;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)))
-        .replace(/&#x([\da-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+        .replace(/&nbsp;/g, " ")
+        .replace(/&#(\d+);/g, (_, dec) =>
+          String.fromCharCode(parseInt(dec, 10))
+        )
+        .replace(/&#x([\da-fA-F]+);/g, (_, hex) =>
+          String.fromCharCode(parseInt(hex, 16))
+        );
     };
 
-    const BR_PLACEHOLDER = '___BR_TAG_PLACEHOLDER___';
+    const BR_PLACEHOLDER = "___BR_TAG_PLACEHOLDER___";
     const safeHtmlTags = [
-      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER }
+      { pattern: /<br\s*\/?>/gi, replacement: BR_PLACEHOLDER },
     ];
 
     let processedText = decodeHtmlEntities(text);
@@ -166,36 +180,60 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     const processTables = (str: string): string => {
       const tableRegex = /(\|.+\|\r?\n\|[-\s|:]+\|\r?\n(?:\|.+\|\r?\n?)+)/g;
       return str.replace(tableRegex, (match) => {
-        const lines = match.trim().split(/\r?\n/).filter(line => line.trim() && line.includes('|'));
+        const lines = match
+          .trim()
+          .split(/\r?\n/)
+          .filter((line) => line.trim() && line.includes("|"));
         if (lines.length < 2) return match;
         const headerLine = lines[0];
         const dataLines = lines.slice(2);
-        const headers = headerLine.split('|').map(h => h.trim()).filter(h => h && !h.match(/^[-:|\s]+$/));
+        const headers = headerLine
+          .split("|")
+          .map((h) => h.trim())
+          .filter((h) => h && !h.match(/^[-:|\s]+$/));
         if (headers.length === 0) return match;
-        let tableHtml = '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
+        let tableHtml =
+          '<div class="overflow-x-auto my-6"><table class="min-w-full border-collapse border border-gray-300 shadow-sm">';
         tableHtml += '<thead><tr class="bg-[#0B3D91] text-white">';
-        headers.forEach(header => {
+        headers.forEach((header) => {
           let escapedHeader = escapeHtml(header);
-          escapedHeader = escapedHeader.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+          escapedHeader = escapedHeader.replace(
+            new RegExp(BR_PLACEHOLDER, "g"),
+            "<br />"
+          );
           tableHtml += `<th class="border border-gray-300 px-4 py-3 text-left font-semibold !text-white">${escapedHeader}</th>`;
         });
-        tableHtml += '</tr></thead><tbody>';
+        tableHtml += "</tr></thead><tbody>";
         dataLines.forEach((line, idx) => {
-          const cells = line.split('|').map(c => c.trim()).filter(c => c && !c.match(/^[-:|\s]+$/));
+          const cells = line
+            .split("|")
+            .map((c) => c.trim())
+            .filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100">`;
-            cells.forEach(cell => {
+            tableHtml += `<tr class="${
+              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } hover:bg-gray-100">`;
+            cells.forEach((cell) => {
               let cellContent = escapeHtml(cell);
-              cellContent = cellContent.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
-              cellContent = cellContent.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold">$1</strong>');
-              cellContent = cellContent.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-              cellContent = cellContent.replace(/\n/g, '<br />');
+              cellContent = cellContent.replace(
+                new RegExp(BR_PLACEHOLDER, "g"),
+                "<br />"
+              );
+              cellContent = cellContent.replace(
+                /\*\*(.*?)\*\*/g,
+                '<strong class="font-bold">$1</strong>'
+              );
+              cellContent = cellContent.replace(
+                /\*(.*?)\*/g,
+                '<em class="italic">$1</em>'
+              );
+              cellContent = cellContent.replace(/\n/g, "<br />");
               tableHtml += `<td class="border border-gray-300 px-4 py-3 align-top">${cellContent}</td>`;
             });
-            tableHtml += '</tr>';
+            tableHtml += "</tr>";
           }
         });
-        tableHtml += '</tbody></table></div>';
+        tableHtml += "</tbody></table></div>";
         return tableHtml;
       });
     };
@@ -203,22 +241,36 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     let html = processTables(processedText);
     const escapeNonHtml = (str: string): string => {
       const parts = str.split(/(<[^>]+>)/);
-      return parts.map((part) => {
-        if (part.startsWith('<') && part.endsWith('>')) {
-          return part;
-        }
-        return escapeHtml(part);
-      }).join('');
+      return parts
+        .map((part) => {
+          if (part.startsWith("<") && part.endsWith(">")) {
+            return part;
+          }
+          return escapeHtml(part);
+        })
+        .join("");
     };
     html = escapeNonHtml(html);
-    html = html.replace(/^#### (.*$)/gim, '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>');
-    html = html.replace(/^### (.*$)/gim, '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>');
-    html = html.replace(/^## (.*$)/gim, '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>');
-    html = html.replace(/^# (.*$)/gim, '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>');
+    html = html.replace(
+      /^#### (.*$)/gim,
+      '<h4 class="text-xl font-bold mt-5 mb-2 text-[#0B3D91]">$1</h4>'
+    );
+    html = html.replace(
+      /^### (.*$)/gim,
+      '<h3 class="text-2xl font-bold mt-6 mb-3 text-[#0B3D91]">$1</h3>'
+    );
+    html = html.replace(
+      /^## (.*$)/gim,
+      '<h2 class="text-3xl font-bold mt-8 mb-4 text-[#0B3D91]">$1</h2>'
+    );
+    html = html.replace(
+      /^# (.*$)/gim,
+      '<h1 class="text-4xl font-bold mt-10 mb-5 text-[#0B3D91]">$1</h1>'
+    );
     html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
         return match;
       }
@@ -226,42 +278,60 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
     });
     html = html.replace(/`([^`]+)`/g, (match, code) => {
       const beforeMatch = html.substring(0, html.indexOf(match));
-      const lastTable = beforeMatch.lastIndexOf('<table');
-      const lastTableClose = beforeMatch.lastIndexOf('</table>');
+      const lastTable = beforeMatch.lastIndexOf("<table");
+      const lastTableClose = beforeMatch.lastIndexOf("</table>");
       if (lastTable > lastTableClose) {
         return match;
       }
       return `<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">${code}</code>`;
     });
     html = html.replace(/\*\*(.*?)\*\*/g, (match, text) => {
-      if (match.includes('<td') || match.includes('</td>')) {
+      if (match.includes("<td") || match.includes("</td>")) {
         return match;
       }
       return `<strong class="font-bold text-gray-800">${text}</strong>`;
     });
     html = html.replace(/\*(.*?)\*/g, (match, text) => {
-      if (match.includes('<td') || match.includes('</td>') || match.includes('<strong>')) {
+      if (
+        match.includes("<td") ||
+        match.includes("</td>") ||
+        match.includes("<strong>")
+      ) {
         return match;
       }
       return `<em class="italic">${text}</em>`;
     });
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>');
+    html = html.replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">$1</a>'
+    );
     html = html.replace(/^\* (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
     html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-1">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/g, '<ul class="list-disc ml-6 my-4">$1</ul>');
-    html = html.split(/\n\n+/).map(para => {
-      if (para.trim()) {
-        if (para.trim().startsWith('<h') ||
-          para.trim().startsWith('<ul') ||
-          para.trim().startsWith('<pre') ||
-          para.trim().startsWith('<div') && para.includes('<table')) {
-          return para;
+    html = html.replace(
+      /(<li.*<\/li>)/g,
+      '<ul class="list-disc ml-6 my-4">$1</ul>'
+    );
+    html = html
+      .split(/\n\n+/)
+      .map((para) => {
+        if (para.trim()) {
+          if (
+            para.trim().startsWith("<h") ||
+            para.trim().startsWith("<ul") ||
+            para.trim().startsWith("<pre") ||
+            (para.trim().startsWith("<div") && para.includes("<table"))
+          ) {
+            return para;
+          }
+          return `<p class="mb-4 leading-relaxed">${para.replace(
+            /\n/g,
+            "<br />"
+          )}</p>`;
         }
-        return `<p class="mb-4 leading-relaxed">${para.replace(/\n/g, '<br />')}</p>`;
-      }
-      return '';
-    }).join('');
-    html = html.replace(new RegExp(BR_PLACEHOLDER, 'g'), '<br />');
+        return "";
+      })
+      .join("");
+    html = html.replace(new RegExp(BR_PLACEHOLDER, "g"), "<br />");
     return html;
   };
 
@@ -335,7 +405,6 @@ const mockRcaActions: RcaAction[] = [
   },
 ];
 
-
 // --- Main RCA Page Component ---
 export const RCA: React.FC = () => {
   const reportRef = useRef<HTMLDivElement | null>(null);
@@ -390,13 +459,18 @@ export const RCA: React.FC = () => {
 
           // Check for required sheets (RCA module specific)
           // RCA uses 'Corrective_Actions_RCA', 'Corrective_Actions', 'RCA', or 'Actions'
-          const requiredSheets = ["Corrective_Actions_RCA", "Corrective_Actions", "RCA", "Actions"];
-          const hasRequiredSheets = requiredSheets.some(sheet =>
-            sheetNames.some(name => name.includes(sheet))
+          const requiredSheets = [
+            "Corrective_Actions_RCA",
+            "Corrective_Actions",
+            "RCA",
+            "Actions",
+          ];
+          const hasRequiredSheets = requiredSheets.some((sheet) =>
+            sheetNames.some((name) => name.includes(sheet))
           );
 
           // Also allow if there's a sheet explicitly named "Corrective"
-          const hasGenericSheet = sheetNames.some(name =>
+          const hasGenericSheet = sheetNames.some((name) =>
             name.toLowerCase().includes("corrective")
           );
 
@@ -404,7 +478,8 @@ export const RCA: React.FC = () => {
             resolve(true);
           } else {
             toast.error("Invalid File Content", {
-              description: "The uploaded file does not appear to be an RCA/Corrective Actions file. Expected sheets like 'Corrective_Actions', 'RCA', etc.",
+              description:
+                "The uploaded file does not appear to be an RCA/Corrective Actions file. Expected sheets like 'Corrective_Actions', 'RCA', etc.",
               duration: 5000,
             });
             resolve(false);
@@ -564,31 +639,46 @@ export const RCA: React.FC = () => {
       const response = await apiClient.post("/generate-rca-report");
 
       if (response && response.report_content) {
-        const reportContent = typeof response.report_content === "string"
-          ? response.report_content
-          : String(response.report_content || "");
+        const reportContent =
+          typeof response.report_content === "string"
+            ? response.report_content
+            : String(response.report_content || "");
 
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
-          description: `Report generated successfully (${response.report_length || 0} characters)`,
+          description: `Report generated successfully (${
+            response.report_length || 0
+          } characters)`,
         });
       } else {
         throw new Error("Invalid response from server: missing report_content");
       }
     } catch (error: any) {
       console.error("Error generating report:", error);
-      const errorMessage = error?.message || "Failed to generate report. Please try again.";
+      const errorMessage =
+        error?.message || "Failed to generate report. Please try again.";
 
-      if (errorMessage.includes("API key") || errorMessage.includes("GOOGLE_API_KEY")) {
+      if (
+        errorMessage.includes("API key") ||
+        errorMessage.includes("GOOGLE_API_KEY")
+      ) {
         toast.error("API Configuration Error", {
-          description: "API key not configured. Please contact the administrator.",
+          description:
+            "API key not configured. Please contact the administrator.",
         });
-      } else if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+      } else if (
+        errorMessage.includes("No extracted tables") ||
+        errorMessage.includes("upload")
+      ) {
         toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating the report.",
+          description:
+            "Please upload the Excel file first before generating the report.",
         });
-      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+      } else if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("connection")
+      ) {
         toast.error("Network Error", {
           description: "Please check your internet connection and try again.",
         });
@@ -615,7 +705,11 @@ export const RCA: React.FC = () => {
     try {
       const response = await apiClient.post("/generate-rca-charts");
 
-      if (response && response.chart_files && Array.isArray(response.chart_files)) {
+      if (
+        response &&
+        response.chart_files &&
+        Array.isArray(response.chart_files)
+      ) {
         const charts = response.chart_files.map((name: string) => ({ name }));
         setChartList(charts);
         setShowCharts(true);
@@ -627,11 +721,16 @@ export const RCA: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Error generating charts:", error);
-      const errorMessage = error?.message || "Failed to generate charts. Please try again.";
+      const errorMessage =
+        error?.message || "Failed to generate charts. Please try again.";
 
-      if (errorMessage.includes("No extracted tables") || errorMessage.includes("upload")) {
+      if (
+        errorMessage.includes("No extracted tables") ||
+        errorMessage.includes("upload")
+      ) {
         toast.error("Upload Required", {
-          description: "Please upload the Excel file first before generating charts.",
+          description:
+            "Please upload the Excel file first before generating charts.",
         });
       } else {
         toast.error("Chart Generation Failed", {
@@ -684,7 +783,8 @@ export const RCA: React.FC = () => {
       setFileUploaded(true);
     } catch (error: any) {
       console.error("Error uploading file:", error);
-      const errorMessage = error?.message || "Could not upload the file. Please try again.";
+      const errorMessage =
+        error?.message || "Could not upload the file. Please try again.";
       toast.error("Upload Failed", {
         description: errorMessage,
         duration: 5000,
@@ -702,7 +802,8 @@ export const RCA: React.FC = () => {
       const html = await fetchChartHtml(chartName);
       setSelectedChartHtml(html);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error("Failed to load chart:", error);
       toast.error("Failed to load chart", {
         description: errorMessage,
@@ -722,7 +823,12 @@ export const RCA: React.FC = () => {
 
     try {
       // 1. Clean the text using the same logic as render (Remove "Of course...")
-      const cleanContent = aiReport.replace(/Of course.*?\.\s*/, "").split('\n').map(line => line.trim() === '*' ? '' : line).join('\n').replace(/\n{3,}/g, '\n\n');
+      const cleanContent = aiReport
+        .replace(/Of course.*?\.\s*/, "")
+        .split("\n")
+        .map((line) => (line.trim() === "*" ? "" : line))
+        .join("\n")
+        .replace(/\n{3,}/g, "\n\n");
 
       // 2. Convert HTML/markdown to plain text
       const plainText = cleanContent
@@ -846,73 +952,73 @@ export const RCA: React.FC = () => {
   };
 
   // Download Charts-only PDF (print approach)
-  const downloadChartsPDF = async () => {
-    try {
-      toast.info("Generating Charts PDF", {
-        description: "Opening print dialog... Select 'Save as PDF'",
-      });
+  // const downloadChartsPDF = async () => {
+  //   try {
+  //     toast.info("Generating Charts PDF", {
+  //       description: "Opening print dialog... Select 'Save as PDF'",
+  //     });
 
-      const chartHtml =
-        (selectedChartHtml && selectedChartHtml.length > 0
-          ? selectedChartHtml
-          : chartsContentRef.current?.innerHTML) || "";
+  //     const chartHtml =
+  //       (selectedChartHtml && selectedChartHtml.length > 0
+  //         ? selectedChartHtml
+  //         : chartsContentRef.current?.innerHTML) || "";
 
-      if (!chartHtml) {
-        toast.error("No chart available to download", {
-          description: "Please select a chart or generate charts first.",
-        });
-        return;
-      }
+  //     if (!chartHtml) {
+  //       toast.error("No chart available to download", {
+  //         description: "Please select a chart or generate charts first.",
+  //       });
+  //       return;
+  //     }
 
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) throw new Error("Could not open print window");
+  //     const printWindow = window.open("", "_blank");
+  //     if (!printWindow) throw new Error("Could not open print window");
 
-      const printDocument = `
-         <!DOCTYPE html>
-         <html>
-         <head>
-           <meta charset="UTF-8">
-           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-           <title>DATTU RCA Chart</title>
-           <script src="https://cdn.tailwindcss.com"></script>
-           <style>
-             @media print {
-               * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
-               body { margin: 0; padding: 12px; background: white; }
-               @page { margin: 10mm; size: A4; }
-             }
-             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
-           </style>
-         </head>
-         <body>
-           <div class="prose max-w-none">
-             ${chartHtml}
-           </div>
-           <script>
-             window.addEventListener('load', function() {
-               setTimeout(function() { window.print(); }, 500);
-             });
-           </script>
-         </body>
-         </html>
-       `;
+  //     const printDocument = `
+  //        <!DOCTYPE html>
+  //        <html>
+  //        <head>
+  //          <meta charset="UTF-8">
+  //          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //          <title>DATTU RCA Chart</title>
+  //          <script src="https://cdn.tailwindcss.com"></script>
+  //          <style>
+  //            @media print {
+  //              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+  //              body { margin: 0; padding: 12px; background: white; }
+  //              @page { margin: 10mm; size: A4; }
+  //            }
+  //            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+  //          </style>
+  //        </head>
+  //        <body>
+  //          <div class="prose max-w-none">
+  //            ${chartHtml}
+  //          </div>
+  //          <script>
+  //            window.addEventListener('load', function() {
+  //              setTimeout(function() { window.print(); }, 500);
+  //            });
+  //          </script>
+  //        </body>
+  //        </html>
+  //      `;
 
-      printWindow.document.open();
-      printWindow.document.write(printDocument);
-      printWindow.document.close();
+  //     printWindow.document.open();
+  //     printWindow.document.write(printDocument);
+  //     printWindow.document.close();
 
-      toast.success("Print dialog opened!", {
-        description:
-          "Select 'Save as PDF' from the printer dropdown to save the chart.",
-      });
-    } catch (error: any) {
-      console.error("Error generating Charts PDF:", error);
-      toast.error("Failed to generate Charts PDF", {
-        description:
-          error?.message || "An error occurred while generating the PDF.",
-      });
-    }
-  };
+  //     toast.success("Print dialog opened!", {
+  //       description:
+  //         "Select 'Save as PDF' from the printer dropdown to save the chart.",
+  //     });
+  //   } catch (error: any) {
+  //     console.error("Error generating Charts PDF:", error);
+  //     toast.error("Failed to generate Charts PDF", {
+  //       description:
+  //         error?.message || "An error occurred while generating the PDF.",
+  //     });
+  //   }
+  // };
 
   // Download Charts as HTML file
   const downloadChartsHTML = () => {
@@ -960,7 +1066,6 @@ export const RCA: React.FC = () => {
     console.log("Filtering data...");
   };
 
-
   // 1. Upload screen
   if (!fileUploaded && !isUploading) {
     return (
@@ -984,8 +1089,9 @@ export const RCA: React.FC = () => {
             transition={{ delay: 0.3 }}
             className="text-lg text-gray-600 max-w-2xl mx-auto mt-3"
           >
-            Upload your Excel corrective action data and let DATTU generate
-            a smart, interactive dashboard of root causes, action status, and AI insights.
+            Upload your Excel corrective action data and let DATTU generate a
+            smart, interactive dashboard of root causes, action status, and AI
+            insights.
           </motion.p>
         </div>
 
@@ -1066,7 +1172,8 @@ export const RCA: React.FC = () => {
                 Upload Corrective Actions & RCA Data
               </CardTitle>
               <p className="text-gray-600 text-lg">
-                Choose an Excel file (.xlsx / .xls) containing Root Cause Analysis (RCA) data to begin the analysis.
+                Choose an Excel file (.xlsx / .xls) containing Root Cause
+                Analysis (RCA) data to begin the analysis.
               </p>
             </CardHeader>
 
@@ -1196,7 +1303,13 @@ export const RCA: React.FC = () => {
   }
 
   // 3. After upload - show Generate buttons
-  if (fileUploaded && !showReport && !showCharts && !isGeneratingReport && !isGeneratingCharts) {
+  if (
+    fileUploaded &&
+    !showReport &&
+    !showCharts &&
+    !isGeneratingReport &&
+    !isGeneratingCharts
+  ) {
     return (
       <div className="w-full py-12">
         <motion.div
@@ -1225,7 +1338,8 @@ export const RCA: React.FC = () => {
                   Generate AI Report
                 </CardTitle>
                 <CardDescription>
-                  Generate a comprehensive AI-powered analysis report of your Root Cause Analysis (RCA) data.
+                  Generate a comprehensive AI-powered analysis report of your
+                  Root Cause Analysis (RCA) data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1262,7 +1376,8 @@ export const RCA: React.FC = () => {
                   Generate Charts
                 </CardTitle>
                 <CardDescription>
-                  Generate interactive charts and visualizations from your Root Cause Analysis (RCA) data.
+                  Generate interactive charts and visualizations from your Root
+                  Cause Analysis (RCA) data.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -1455,8 +1570,8 @@ export const RCA: React.FC = () => {
               </CardTitle>
 
               <CardDescription className="text-lg text-gray-600">
-                This is the full root cause analysis report
-                generated by the DATTU based on your uploaded data.
+                This is the full root cause analysis report generated by the
+                DATTU based on your uploaded data.
               </CardDescription>
             </CardHeader>
 
@@ -1520,27 +1635,17 @@ export const RCA: React.FC = () => {
               <div>
                 <CardTitle>Interactive Charts</CardTitle>
                 <CardDescription>
-                  Select a chart to view the interactive (Plotly) HTML report generated by the backend.
+                  Select a chart to view the interactive (Plotly) HTML report
+                  generated by the backend.
                 </CardDescription>
               </div>
               <div className="ml-4">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="bg-[#00A79D] hover:bg-[#008a7e]">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Download Charts
-                      <ChevronDown className="w-4 h-4 ml-2" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem onClick={downloadChartsPDF}>
-                      Download Charts as PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={downloadChartsHTML}>
-                      Download Chart HTML
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  onClick={downloadChartsHTML}
+                  className="bg-[#0B3D91] hover:bg-[#082f70]"
+                >
+                  Download Chart
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1604,7 +1709,11 @@ export const RCA: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
               <GitMerge className="w-8 h-8 text-[#0B3D91]" />
-              {showReport ? " Corrective Actions & RCA Report" : showCharts ? "RCA Charts" : "Corrective Actions & RCA"}
+              {showReport
+                ? " Corrective Actions & RCA Report"
+                : showCharts
+                ? "RCA Charts"
+                : "Corrective Actions & RCA"}
             </h1>
             <p className="text-lg text-gray-600 max-w-3xl">
               Analysis of: {selectedFile?.name}
@@ -1702,10 +1811,16 @@ export const RCA: React.FC = () => {
             <div className="flex items-start gap-3">
               <AlertTriangle className="h-6 w-6 text-amber-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-lg font-bold text-amber-900 mb-1">⚠️ Important Reminder</h3>
+                <h3 className="text-lg font-bold text-amber-900 mb-1">
+                  ⚠️ Important Reminder
+                </h3>
                 <p className="text-amber-800 leading-relaxed">
-                  <strong>Download the PDF before switching to another module or refreshing the page!</strong>
-                  {" "}Your generated report and charts will be lost when you navigate away, refresh, or close this page.
+                  <strong>
+                    Download the PDF before switching to another module or
+                    refreshing the page!
+                  </strong>{" "}
+                  Your generated report and charts will be lost when you
+                  navigate away, refresh, or close this page.
                 </p>
               </div>
             </div>
@@ -1725,13 +1840,15 @@ export const RCA: React.FC = () => {
                       value="report"
                       className="flex items-center gap-2 text-base data-[state=active]:bg-white"
                     >
-                      <Target className="h-5 w-5 text-[#0B3D91]" /> AI-Generated Report
+                      <Target className="h-5 w-5 text-[#0B3D91]" /> AI-Generated
+                      Report
                     </TabsTrigger>
                     <TabsTrigger
                       value="charts"
                       className="flex items-center gap-2 text-base data-[state=active]:bg-white"
                     >
-                      <BarChart2 className="h-5 w-5 text-[#00A79D]" /> Interactive Charts
+                      <BarChart2 className="h-5 w-5 text-[#00A79D]" />{" "}
+                      Interactive Charts
                     </TabsTrigger>
                   </TabsList>
 
@@ -1792,7 +1909,9 @@ export const RCA: React.FC = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="open">Open</SelectItem>
-                              <SelectItem value="in-progress">In Progress</SelectItem>
+                              <SelectItem value="in-progress">
+                                In Progress
+                              </SelectItem>
                               <SelectItem value="closed">Closed</SelectItem>
                               <SelectItem value="overdue">Overdue</SelectItem>
                             </SelectContent>
@@ -1800,9 +1919,7 @@ export const RCA: React.FC = () => {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <RcaTable
-                          actions={actions}
-                        />
+                        <RcaTable actions={actions} />
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -1880,17 +1997,16 @@ const RcaTable: React.FC<RcaTableProps> = ({ actions }) => (
     </TableHeader>
     <TableBody>
       {actions.map((action) => (
-        <motion.tr
-          key={action.id}
-          whileHover={{ backgroundColor: "#F7F9FB" }}
-        >
+        <motion.tr key={action.id} whileHover={{ backgroundColor: "#F7F9FB" }}>
           <TableCell className="font-medium">{action.id}</TableCell>
           <TableCell>{action.relatedIncident}</TableCell>
           <TableCell>{action.assignedTo}</TableCell>
           <TableCell>
-            <div className={cn(
-              action.status === "Overdue" && "text-red-600 font-medium"
-            )}>
+            <div
+              className={cn(
+                action.status === "Overdue" && "text-red-600 font-medium"
+              )}
+            >
               {action.dueDate.toLocaleDateString()}
             </div>
           </TableCell>
@@ -1899,7 +2015,8 @@ const RcaTable: React.FC<RcaTableProps> = ({ actions }) => (
               className={cn(
                 action.status === "Closed" && "border-green-600 text-green-600",
                 action.status === "Overdue" && "border-red-600 text-red-600",
-                action.status === "In Progress" && "border-yellow-600 text-yellow-600",
+                action.status === "In Progress" &&
+                  "border-yellow-600 text-yellow-600",
                 action.status === "Open" && "border-gray-500 text-gray-500"
               )}
               variant="outline"
@@ -1912,4 +2029,3 @@ const RcaTable: React.FC<RcaTableProps> = ({ actions }) => (
     </TableBody>
   </Table>
 );
-
