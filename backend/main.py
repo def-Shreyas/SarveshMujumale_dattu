@@ -22,8 +22,8 @@ load_dotenv()
 
 # Assign GOOGLE_API_KEY from environment
 #GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GROQ_API_KEY=os.getenv("GROQ_API_KEY")
-print(GROQ_API_KEY)
+OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
+print(OPENAI_API_KEY)
 # Import our modules
 from services.extraction import extract_tables
 import services.phidata_agent as phidata_agent
@@ -3023,4 +3023,3 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     
     uvicorn.run(app, host=host, port=port)
-
