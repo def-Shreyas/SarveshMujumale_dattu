@@ -95,11 +95,12 @@ const QUICK_TILE_CONFIG: QuickTileConfig[] = [
   { key: "medical_cases_reported", label: "Medical Cases", icon: HeartPulse, color: "text-green-500", module: "Medical & First-Aid" },
   {
     key: "ppe_expiring",
-    label: "Total PPE",
+    label: "Utilization %",
     icon: HardHat,
     color: "text-yellow-500",
     source: 'kpi_table',
     tableKey: 'PPE',
+    metricName: 'Utilization %',
     module: "PPE & Assets"
   },
   { key: "corrective_open", label: "Open Actions", icon: GitMerge, color: "text-indigo-500", module: "Corrective Actions & RCA" },

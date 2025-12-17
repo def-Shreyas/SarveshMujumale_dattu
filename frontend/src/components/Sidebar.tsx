@@ -43,7 +43,7 @@ const navItems = [
   { name: "Inspections & Audits", href: "/audits", icon: CheckSquare },
   { name: "Medical & First-Aid", href: "/medical", icon: HeartPulse },
   { name: "Training & Competency", href: "/training", icon: GraduationCap },
-  { name: "Assets & PPE Management", href: "/ppe", icon: HardHat },
+  { name: "PPE & Assets Management", href: "/ppe", icon: HardHat },
   { name: "Corrective Actions & RCA", href: "/rca", icon: GitMerge },
   { name: "Environmental & Resource", href: "/environmental", icon: Leaf },
   { name: "Social & Governance", href: "/governance", icon: Scale },

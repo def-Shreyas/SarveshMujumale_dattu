@@ -195,8 +195,9 @@ def generate_ptw_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
-        api_key=OPENAI_API_KEY
+        model="gpt-4.1-mini",
+        api_key=OPENAI_API_KEY,
+        
     ),
     markdown=True
 )    
@@ -271,7 +272,7 @@ def generate_inspections_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -343,7 +344,7 @@ def generate_medical_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -414,9 +415,9 @@ Please provide a comprehensive, detailed report similar to an executive training
 def generate_training_report_with_gemini(prompt: str) -> str:
     """Generate Training Database analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(
+    agent = Agent(cd
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -489,7 +490,7 @@ def generate_ppe_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -560,7 +561,7 @@ def generate_rca_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -632,7 +633,7 @@ def generate_environmental_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -707,7 +708,7 @@ def generate_social_governance_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
     ),
     markdown=True
@@ -733,8 +734,9 @@ def generate_report_with_gemini(prompt: str) -> str:
      
     agent = Agent(
     model=OpenAIChat(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY
+
     ),
     markdown=True
 )    
