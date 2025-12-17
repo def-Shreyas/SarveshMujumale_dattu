@@ -1,7 +1,7 @@
 """
 phidata_agent.py — Full workflow to:
 1. Extract tables from sample.xlsx (if not already done)
-2. Ask Gemini (via Phidata) to analyze and generate an in-depth report
+2. Ask OpenAI GPT-4 mini (via Phidata) to analyze and generate an in-depth report
 3. Save the report as report.md
 """
 
@@ -14,16 +14,14 @@ import os
 from datetime import datetime
 from dotenv import load_dotenv
 from phi.agent import Agent
-from phi.model.google import Gemini
-from phi.model.groq import Groq
+from phi.model.openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Assign GOOGLE_API_KEY from environment
-#GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-GROQ_API_KEY=os.getenv("GROQ_API_KEY")
-print(GROQ_API_KEY)
+# Assign OPENAI_API_KEY from environment
+OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
+print(OPENAI_API_KEY)
 # -------------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------------
@@ -120,7 +118,7 @@ def summarize_numeric_data(extracted_dir: Path) -> list:
 
 
 def create_analysis_prompt(numeric_summary: list) -> str:
-    """Create the prompt for Gemini analysis."""
+    """Create the prompt for OpenAI GPT-4 mini analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
 You are a Safety Data Analysis Assistant.
@@ -191,11 +189,11 @@ Please provide a comprehensive, detailed report similar to an executive PTW anal
 
 
 def generate_ptw_report_with_gemini(prompt: str) -> str:
-    """Generate PTW/KPI analysis report using Gemini via Phidata."""
+    """Generate PTW/KPI analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating PTW/KPI report with Gemini...")
+    print("[INFO] Generating PTW/KPI report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -262,11 +260,11 @@ Please provide a comprehensive, detailed report similar to an executive audit an
 
 
 def generate_inspections_report_with_gemini(prompt: str) -> str:
-    """Generate Inspections/Audit analysis report using Gemini via Phidata."""
+    """Generate Inspections/Audit analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Inspections/Audit report with Gemini...")
+    print("[INFO] Generating Inspections/Audit report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -329,11 +327,11 @@ Please provide a comprehensive, detailed report similar to an executive medical 
 
 
 def generate_medical_report_with_gemini(prompt: str) -> str:
-    """Generate Medical Records analysis report using Gemini via Phidata."""
+    """Generate Medical Records analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Medical Records report with Gemini...")
+    print("[INFO] Generating Medical Records report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -397,11 +395,11 @@ Please provide a comprehensive, detailed report similar to an executive training
 
 
 def generate_training_report_with_gemini(prompt: str) -> str:
-    """Generate Training Database analysis report using Gemini via Phidata."""
+    """Generate Training Database analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Training Database report with Gemini...")
+    print("[INFO] Generating Training Database report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -465,11 +463,11 @@ Please provide a comprehensive, detailed report similar to an executive PPE mana
 
 
 def generate_ppe_report_with_gemini(prompt: str) -> str:
-    """Generate PPE analysis report using Gemini via Phidata."""
+    """Generate PPE analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating PPE report with Gemini...")
+    print("[INFO] Generating PPE report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -531,11 +529,11 @@ Please provide a comprehensive, detailed report similar to an executive correcti
 
 
 def generate_rca_report_with_gemini(prompt: str) -> str:
-    """Generate Corrective Actions & RCA analysis report using Gemini via Phidata."""
+    """Generate Corrective Actions & RCA analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Corrective Actions & RCA report with Gemini...")
+    print("[INFO] Generating Corrective Actions & RCA report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -598,11 +596,11 @@ Please provide a comprehensive, detailed report similar to an executive environm
 
 
 def generate_environmental_report_with_gemini(prompt: str) -> str:
-    """Generate Environmental & Resource Use analysis report using Gemini via Phidata."""
+    """Generate Environmental & Resource Use analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Environmental & Resource Use report with Gemini...")
+    print("[INFO] Generating Environmental & Resource Use report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -668,11 +666,11 @@ Please provide a comprehensive, detailed report similar to an executive social &
 
 
 def generate_social_governance_report_with_gemini(prompt: str) -> str:
-    """Generate Social & Governance analysis report using Gemini via Phidata."""
+    """Generate Social & Governance analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating Social & Governance report with Gemini...")
+    print("[INFO] Generating Social & Governance report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
@@ -689,11 +687,11 @@ def save_social_governance_report(report_content: str, report_path: Path) -> Non
 
 
 def generate_report_with_gemini(prompt: str) -> str:
-    """Generate safety analysis report using Gemini via Phidata."""
+    """Generate safety analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=Groq(id="llama-3.3-70b-versatile"), markdown=True)
+    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
     
-    print("[INFO] Generating report with Gemini...")
+    print("[INFO] Generating report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
