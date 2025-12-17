@@ -23,7 +23,7 @@ load_dotenv()
 # Assign GOOGLE_API_KEY from environment
 #GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
-print(OPENAI_API_KEY)
+# print(OPENAI_API_KEY)
 # Import our modules
 from services.extraction import extract_tables
 import services.phidata_agent as phidata_agent

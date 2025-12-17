@@ -13,15 +13,17 @@ import pandas as pd
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+# from phi.agent import Agent
+# from phi.model.openai import OpenAIChat
 from phi.agent import Agent
-from phi.model.openai import OpenAI
+from phi.model.openai import OpenAIChat
 
 # Load environment variables from .env file
 load_dotenv()
 
 # Assign OPENAI_API_KEY from environment
 OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
-print(OPENAI_API_KEY)
+#print(OPENAI_API_KEY)
 # -------------------------------------------------------------
 # CONFIG
 # -------------------------------------------------------------
@@ -191,8 +193,13 @@ Please provide a comprehensive, detailed report similar to an executive PTW anal
 def generate_ptw_report_with_gemini(prompt: str) -> str:
     """Generate PTW/KPI analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating PTW/KPI report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -262,8 +269,13 @@ Please provide a comprehensive, detailed report similar to an executive audit an
 def generate_inspections_report_with_gemini(prompt: str) -> str:
     """Generate Inspections/Audit analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Inspections/Audit report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -329,8 +341,13 @@ Please provide a comprehensive, detailed report similar to an executive medical 
 def generate_medical_report_with_gemini(prompt: str) -> str:
     """Generate Medical Records analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Medical Records report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -397,8 +414,13 @@ Please provide a comprehensive, detailed report similar to an executive training
 def generate_training_report_with_gemini(prompt: str) -> str:
     """Generate Training Database analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Training Database report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -465,8 +487,13 @@ Please provide a comprehensive, detailed report similar to an executive PPE mana
 def generate_ppe_report_with_gemini(prompt: str) -> str:
     """Generate PPE analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating PPE report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -531,8 +558,13 @@ Please provide a comprehensive, detailed report similar to an executive correcti
 def generate_rca_report_with_gemini(prompt: str) -> str:
     """Generate Corrective Actions & RCA analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Corrective Actions & RCA report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -598,8 +630,13 @@ Please provide a comprehensive, detailed report similar to an executive environm
 def generate_environmental_report_with_gemini(prompt: str) -> str:
     """Generate Environmental & Resource Use analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Environmental & Resource Use report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -668,8 +705,13 @@ Please provide a comprehensive, detailed report similar to an executive social &
 def generate_social_governance_report_with_gemini(prompt: str) -> str:
     """Generate Social & Governance analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating Social & Governance report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
@@ -689,8 +731,13 @@ def save_social_governance_report(report_content: str, report_path: Path) -> Non
 def generate_report_with_gemini(prompt: str) -> str:
     """Generate safety analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(model=OpenAI(id="gpt-4o-mini"), markdown=True)
-    
+    agent = Agent(
+    model=OpenAIChat(
+        model="gpt-4o-mini",
+        api_key=OPENAI_API_KEY
+    ),
+    markdown=True
+)    
     print("[INFO] Generating report with OpenAI GPT-4 mini...")
     response = agent.run(prompt)
     
