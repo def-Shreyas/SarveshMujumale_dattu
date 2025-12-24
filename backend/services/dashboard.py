@@ -21,6 +21,8 @@ from typing import Dict, Any, List, Optional
 from auth.dependencies import get_current_active_user, track_api_usage
 from auth.database import get_database
 from .dashboard_database import insert_raw_records, save_kpi_summary, get_latest_kpis_by_user, get_raw_collection_count
+from auth.dependencies import get_current_admin_user
+from auth.database import get_database
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -430,3 +432,25 @@ async def get_dashboard(current_user: dict = Depends(get_current_active_user)):
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    
+@router.post("/clear", summary="Clear dashboard KPI data (Admin only)")
+async def clear_dashboard(
+    current_admin: dict = Depends(get_current_admin_user)
+):
+    """
+    Clears all saved KPI summaries for the current admin user.
+    Raw records, uploaded files, and charts are NOT deleted.
+    """
+    db = get_database()
+    user_id = str(current_admin["_id"])
+
+    # Assuming KPI summaries are stored in a collection like `kpi_summaries`
+    result = await db.kpi_summaries.delete_many(
+        {"user_id": user_id}
+    )
+
+    return {
+        "success": True,
+        "message": "Dashboard KPIs cleared successfully",
+        "deleted_kpi_docs": result.deleted_count
+    }

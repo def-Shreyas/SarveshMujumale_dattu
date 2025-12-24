@@ -415,7 +415,7 @@ Please provide a comprehensive, detailed report similar to an executive training
 def generate_training_report_with_gemini(prompt: str) -> str:
     """Generate Training Database analysis report using OpenAI GPT-4 mini via Phidata."""
      
-    agent = Agent(cd
+    agent = Agent(
     model=OpenAIChat(
         model="gpt-4.1-mini",
         api_key=OPENAI_API_KEY

@@ -535,6 +535,47 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 🔽 ADDED
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // 🔽 ADDED: Fetch user role explicitly
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const profile = await apiClient.get("/auth/profile");
+        setUserRole(profile.role ?? null);
+      } catch {
+        setUserRole(null);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  // 🔽 ADDED
+  const handleClearDashboard = async () => {
+    const confirmed = window.confirm(
+      "This will clear all KPI values from the dashboard.\n\n" +
+        "• Raw data will NOT be deleted\n" +
+        "• Charts can be regenerated later\n\n" +
+        "Do you want to continue?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await apiClient.post("/dashboard/clear");
+
+      // Immediately clear UI
+      setData({
+        kpi_tables: {},
+        ui_tiles: {},
+        tiles: {},
+      });
+    } catch (err) {
+      alert("Failed to clear dashboard. Please try again.");
+    }
+  };
+
   useEffect(() => {
     let ignore = false;
     const fetchDashboard = async () => {
@@ -571,16 +612,23 @@ export const Dashboard: React.FC = () => {
         let secondaryValue = undefined;
 
         // Determine Primary Value
-        if (tile.source === 'kpi_table' && tile.tableKey && data?.kpi_tables?.[tile.tableKey]) {
+        if (
+          tile.source === "kpi_table" &&
+          tile.tableKey &&
+          data?.kpi_tables?.[tile.tableKey]
+        ) {
           const kpiData = data.kpi_tables[tile.tableKey];
-          if ('rows' in kpiData && Array.isArray(kpiData.rows)) {
+          if ("rows" in kpiData && Array.isArray(kpiData.rows)) {
             // If metricName is specified, find the specific metric row
             if (tile.metricName) {
               const metricName = tile.metricName;
               const metricRow = kpiData.rows.find(
-                (row: ModuleRow) => 
-                  (row.Metric === metricName) || 
-                  (row.Metric && String(row.Metric).toLowerCase().includes(metricName.toLowerCase()))
+                (row: ModuleRow) =>
+                  row.Metric === metricName ||
+                  (row.Metric &&
+                    String(row.Metric)
+                      .toLowerCase()
+                      .includes(metricName.toLowerCase()))
               );
               if (metricRow) {
                 value = formatValue(metricRow.Value);
@@ -591,7 +639,7 @@ export const Dashboard: React.FC = () => {
               // Default: count rows
               value = formatValue(kpiData.rows.length);
             }
-          } else if ('total_rows' in kpiData) {
+          } else if ("total_rows" in kpiData) {
             value = formatValue((kpiData as any).total_rows);
           }
         } else {
@@ -607,9 +655,9 @@ export const Dashboard: React.FC = () => {
           // Fallback to checking kpi_tables if not found in tiles (legacy behavior)
           else if (data?.kpi_tables?.[tile.secondaryKey]) {
             const kpiData = data.kpi_tables[tile.secondaryKey];
-            if ('rows' in kpiData && Array.isArray(kpiData.rows)) {
+            if ("rows" in kpiData && Array.isArray(kpiData.rows)) {
               secondaryValue = formatValue(kpiData.rows.length);
-            } else if ('total_rows' in kpiData) {
+            } else if ("total_rows" in kpiData) {
               secondaryValue = formatValue((kpiData as any).total_rows);
             }
           }
@@ -619,7 +667,7 @@ export const Dashboard: React.FC = () => {
           ...tile,
           value,
           secondaryValue,
-          secondaryLabel: tile.secondaryLabel
+          secondaryLabel: tile.secondaryLabel,
         };
       }),
     [data]
@@ -652,11 +700,34 @@ export const Dashboard: React.FC = () => {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <LayoutDashboard className="h-5 w-5 text-[#0B3D91]" />
-            <h2 className="text-2xl font-bold text-gray-900">Key Performance Indicators</h2>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Key Performance Indicators
+            </h2>
           </div>
-          <Badge variant="outline" className="bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm">
-            {loading ? "Updating..." : `Last Updated: ${new Date().toLocaleTimeString()}`}
-          </Badge>
+
+          <div className="flex items-center gap-3">
+            <Badge
+              variant="outline"
+              className="bg-white px-3 py-1 text-xs font-medium text-gray-500 shadow-sm"
+            >
+              {loading
+                ? "Updating..."
+                : `Last Updated: ${new Date().toLocaleTimeString()}`}
+            </Badge>
+
+            {/* 🔽 ADDED: Admin-only clear button */}
+            {userRole === "admin" && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleClearDashboard}
+                className="flex items-center gap-2"
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Clear Dashboard
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
