@@ -24,6 +24,7 @@ from .dashboard_database import insert_raw_records, save_kpi_summary, get_latest
 from auth.dependencies import get_current_admin_user
 from auth.database import get_database
 
+
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 BASE_DIR = Path(__file__).parent.parent

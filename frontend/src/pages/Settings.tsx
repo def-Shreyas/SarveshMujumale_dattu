@@ -652,22 +652,26 @@ const AdminUserManagement: React.FC = () => {
 
 const SubscriptionManager: React.FC = () => {
   const [users, setUsers] = useState<AuthUser[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const [updateData, setUpdateData] = useState({
-    subscription_tier: "basic" as "basic" | "premium" | "enterprise" | "free",
-    api_calls_limit: 1000,
-  });
+  const [durationByUser, setDurationByUser] = useState<Record<string, number>>(
+    {}
+  );
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
       const data = await apiClient.get("/auth/admin/users");
       setUsers(data);
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
+
+      // initialize duration defaults (1 month)
+      const durations: Record<string, number> = {};
+      data.forEach((u: AuthUser) => {
+        durations[u.id] = 1;
+      });
+      setDurationByUser(durations);
+    } catch (err) {
+      toast.error("Failed to load users");
     } finally {
       setIsLoading(false);
     }
@@ -677,43 +681,43 @@ const SubscriptionManager: React.FC = () => {
     fetchUsers();
   }, []);
 
-  // When user is selected, update form with their current data
-  useEffect(() => {
-    const selectedUser = users.find(u => u.id === selectedUserId);
-    if (selectedUser) {
-      setUpdateData({
-        subscription_tier: selectedUser.subscription_tier as any,
-        // Your Python 'UserResponse' model includes 'api_calls_limit'
-        api_calls_limit: (selectedUser as any).api_calls_limit || 1000,
-      });
-    }
-  }, [selectedUserId, users]);
+  const handleStatusChange = async (
+    userId: string,
+    status: "active" | "frozen"
+  ) => {
+    setIsUpdating(userId);
 
-  const handleUpdateSubscription = async () => {
-    if (!selectedUserId) {
-      toast.error("Error", { description: "Please select a user to update." });
-      return;
-    }
-
-    setIsUpdating(true);
     try {
-      // Calls PUT /auth/admin/users/{user_id}/upgrade
-      await apiClient.put(`/auth/admin/users/${selectedUserId}/upgrade`, updateData);
+      if (status === "frozen") {
+        await apiClient.put(`/auth/admin/users/${userId}/freeze`);
+      } else {
+        await apiClient.put(`/auth/admin/users/${userId}/unfreeze`);
+      }
 
-      toast.success("Subscription Updated");
-      await fetchUsers(); // Refresh list to show new data
+      toast.success(
+        status === "frozen"
+          ? "Account frozen successfully"
+          : "Account activated successfully"
+      );
 
-    } catch (error: any) {
-      console.error("Failed to update subscription:", error);
+      await fetchUsers();
+    } catch (err) {
+      toast.error("Action failed");
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(null);
     }
   };
 
+
+
+
   if (isLoading) {
     return (
-      <SectionCard title="Manage Subscriptions & API Limits" description="Grant or upgrade subscription tiers and API call limits for a specific user.">
-        <div className="h-48 flex justify-center items-center">
+      <SectionCard
+        title="Subscription Management"
+        description="Manage user access and subscription duration"
+      >
+        <div className="h-48 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#0B3D91]" />
         </div>
       </SectionCard>
@@ -722,67 +726,98 @@ const SubscriptionManager: React.FC = () => {
 
   return (
     <SectionCard
-      title="Manage Subscriptions & API Limits"
-      description="Grant or upgrade subscription tiers and API call limits for a specific user."
+      title="Subscription Management"
+      description="Activate or freeze users and control subscription duration"
     >
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <Label>Select User</Label>
-          <Select onValueChange={setSelectedUserId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a user to manage..." />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map(user => (
-                <SelectItem key={user.id} value={user.id}>
-                  {user.username} ({user.email})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="border rounded-lg overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Plan</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Duration (Months)</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
 
-        {/* This form appears once a user is selected */}
-        {selectedUserId && (
-          <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="space-y-1">
-              <Label>Subscription Tier</Label>
-              <Select value={updateData.subscription_tier} onValueChange={(val: any) => setUpdateData({ ...updateData, subscription_tier: val })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="free">Free</SelectItem>
-                  <SelectItem value="basic">Basic</SelectItem>
-                  <SelectItem value="premium">Premium</SelectItem>
-                  <SelectItem value="enterprise">Enterprise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="limit">API Call Limit (Monthly)</Label>
-              <Input id="limit" type="number" value={updateData.api_calls_limit} onChange={(e) => setUpdateData({ ...updateData, api_calls_limit: parseInt(e.target.value) || 0 })} />
-            </div>
-          </motion.div>
-        )}
-      </div>
-      <div className="flex justify-end pt-4">
-        <AnimatedButton
-          onClick={handleUpdateSubscription}
-          disabled={isUpdating || !selectedUserId}
-          className="bg-[#00A79D] text-white px-6 py-2 shadow-md hover:bg-[#008a7e] transition-colors"
-        >
-          {isUpdating ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-          {isUpdating ? "Updating..." : "Update Subscription"}
-        </AnimatedButton>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.id}>
+                {/* USER */}
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{user.username}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                </TableCell>
+
+                {/* PLAN */}
+                <TableCell className="capitalize">
+                  {user.subscription_tier}
+                </TableCell>
+
+                {/* STATUS */}
+                <TableCell>
+                  <Badge
+                    className={
+                      user.status === "active"
+                        ? "bg-green-600 text-white"
+                        : "bg-red-600 text-white"
+                    }
+                  >
+                    {user.status}
+                  </Badge>
+                </TableCell>
+
+                {/* DURATION */}
+                <TableCell>
+                  <Select
+                    value={String(durationByUser[user.id] || 1)}
+                    onValueChange={(val) =>
+                      setDurationByUser({
+                        ...durationByUser,
+                        [user.id]: Number(val),
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 3, 6, 12].map((m) => (
+                        <SelectItem key={m} value={String(m)}>
+                          {m} month{m > 1 ? "s" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+
+                {/* ACTIONS */}
+                <TableCell className="text-right space-x-2">
+                  <Button
+                    onClick={() => handleStatusChange(user.id, "active")}
+                  >
+                    Activate
+                  </Button>
+
+                  <Button
+                    variant="destructive"
+                    onClick={() => handleStatusChange(user.id, "frozen")}
+                  >
+                    Freeze
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </SectionCard>
   );
 };
+
 
 // ===================================================================
 // --- NEW ADMIN COMPONENTS ---

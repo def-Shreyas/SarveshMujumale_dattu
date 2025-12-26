@@ -7,7 +7,7 @@ from typing import Optional
 from auth.auth_utils import decode_access_token
 from auth.database import get_database
 from bson import ObjectId
-from datetime import datetime, time
+from datetime import datetime, time, timezone
 
 security = HTTPBearer()
 
@@ -15,17 +15,16 @@ security = HTTPBearer()
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
-    """Get current authenticated user from JWT token"""
     token = credentials.credentials
     payload = decode_access_token(token)
-    
+
     if payload is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     user_id: str = payload.get("sub")
     if user_id is None:
         raise HTTPException(
@@ -33,26 +32,49 @@ async def get_current_user(
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Get user from database
+
     db = get_database()
     user = await db.users.find_one({"_id": ObjectId(user_id)})
-    
+
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Check if user is active
+
+    # 🔥 1️⃣ SUBSCRIPTION EXPIRY CHECK (FIRST)
+    subscription_end = user.get("subscription_end")
+    now = datetime.now(timezone.utc)
+    if (
+        subscription_end
+        and subscription_end < now
+        and user.get("status") == "active"
+    ):
+        await db.users.update_one(
+            {"_id": ObjectId(user_id)},
+            {
+                "$set": {
+                    "status": "suspended",
+                    "is_active": False,
+                    "suspended_reason": "subscription_expired",
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Subscription expired. Please renew to continue."
+        )
+
+    # 🔐 2️⃣ MANUAL FREEZE / ADMIN SUSPENSION CHECK
     if not user.get("is_active", False) or user.get("status") != "active":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is inactive or suspended"
         )
-    
-    # Convert ObjectId to string
+
+    # ✅ 3️⃣ ALLOW USER
     user["id"] = str(user["_id"])
     return user
 

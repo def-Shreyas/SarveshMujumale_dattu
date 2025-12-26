@@ -21,8 +21,9 @@ from auth.models import (
     TokenResponse,
     UsageStatsResponse,
     RateLimitResponse,
-    UpgradeSubscriptionRequest,
-    SubscriptionTier
+    #UpgradeSubscriptionRequest,
+    AdminSubscriptionUpdateRequest
+    #SubscriptionTier
 )
 from auth.auth_utils import (
     verify_password,
@@ -353,38 +354,122 @@ async def get_analytics(
     }
 
 
-@router.put("/admin/users/{user_id}/suspend")
-async def suspend_user(
+# @router.put("/admin/users/{user_id}/suspend")
+# async def suspend_user(
+#     user_id: str,
+#     current_admin: dict = Depends(get_current_admin_user)
+# ):
+#     """Suspend a user account (Admin only)"""
+#     db = get_database()
+    
+#     try:
+#         result = await db.users.update_one(
+#             {"_id": ObjectId(user_id)},
+#             {"$set": {"status": "suspended", "is_active": False}}
+#         )
+        
+#         if result.matched_count == 0:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail="User not found"
+#             )
+        
+#         return {"success": True, "message": "User suspended successfully"}
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail=f"Error suspending user: {str(e)}"
+#         )
+
+@router.put("/admin/users/{user_id}/freeze")
+async def freeze_user(
     user_id: str,
     current_admin: dict = Depends(get_current_admin_user)
 ):
-    """Suspend a user account (Admin only)"""
     db = get_database()
-    
-    try:
-        result = await db.users.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"status": "suspended", "is_active": False}}
-        )
-        
-        if result.matched_count == 0:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
-        
-        return {"success": True, "message": "User suspended successfully"}
-    except Exception as e:
+
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {
+            "$set": {
+                "status": "frozen",
+                "is_active": False,
+                "suspended_reason": "manual_admin",
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"success": True}
+
+@router.put("/admin/users/{user_id}/unfreeze")
+async def unfreeze_user(
+    user_id: str,
+    current_admin: dict = Depends(get_current_admin_user)
+):
+    db = get_database()
+
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid user ID")
+
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {
+            "$set": {
+                "status": "active",
+                "is_active": True,
+                "suspended_reason": None,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {
+        "success": True,
+        "message": "User unfrozen successfully",
+        "user_id": user_id
+    }
+
+@router.put("/admin/users/{user_id}/activate")
+async def activate_user(
+    user_id: str,
+    current_admin: dict = Depends(get_current_admin_user)
+):
+    db = get_database()
+
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {
+            "$set": {
+                "status": "active",
+                "is_active": True,
+                "suspended_reason": None,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    if result.matched_count == 0:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error suspending user: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
         )
 
+    return {"success": True, "message": "User activated successfully"}
 
 @router.put("/admin/users/{user_id}/upgrade")
 async def upgrade_user_subscription(
     user_id: str,
-    upgrade_data: UpgradeSubscriptionRequest,
+    upgrade_data: AdminSubscriptionUpdateRequest,
     current_admin: dict = Depends(get_current_admin_user)
 ):
     """Upgrade user subscription (Admin only)"""

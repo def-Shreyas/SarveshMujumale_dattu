@@ -46,10 +46,16 @@ class CreateUserRequest(BaseModel):
     contact_person: Optional[str] = None
 
 
-class UpgradeSubscriptionRequest(BaseModel):
-    """Upgrade subscription request model"""
+# class UpgradeSubscriptionRequest(BaseModel):
+#     """Upgrade subscription request model"""
+#     subscription_tier: SubscriptionTier
+#     api_calls_limit: int = Field(ge=-1)
+
+class AdminSubscriptionUpdateRequest(BaseModel):
     subscription_tier: SubscriptionTier
+    duration_months: int = Field(..., ge=1, le=36)
     api_calls_limit: int = Field(ge=-1)
+    status: UserStatus
 
 
 # Response Models
@@ -68,6 +74,14 @@ class UserResponse(BaseModel):
     created_at: datetime
     last_login: Optional[datetime] = None
     is_active: bool
+    #added below two fields.
+    # Why?
+    # Admin sets “3 months”
+    # Backend calculates end date
+    # Login checks expiry
+    subscription_start: Optional[datetime] = None
+    subscription_end: Optional[datetime] = None
+
 
     class Config:
         from_attributes = True
