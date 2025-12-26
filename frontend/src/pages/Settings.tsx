@@ -797,6 +797,7 @@ const SubscriptionManager: React.FC = () => {
                 {/* ACTIONS */}
                 <TableCell className="text-right space-x-2">
                   <Button
+                  className="bg-green-600 hover:bg-green-500"
                     onClick={() => handleStatusChange(user.id, "active")}
                   >
                     Activate
