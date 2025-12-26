@@ -24,7 +24,7 @@ class UserRole(str, Enum):
 class UserStatus(str, Enum):
     """User status enumeration"""
     ACTIVE = "active"
-    SUSPENDED = "suspended"
+    FROZEN = "frozen"
     INACTIVE = "inactive"
 
 
