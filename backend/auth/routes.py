@@ -1,12 +1,17 @@
 """
 Authentication routes for Safety Data Analysis API
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from typing import List, Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
 import secrets
 import string
+from uuid import uuid4
+from auth.email_service import send_reset_email
+from auth.auth_utils import get_password_hash
+from dotenv import load_dotenv
+from pydantic import BaseModel, EmailStr
 
 from auth.dependencies import (
     get_current_user,
@@ -33,9 +38,13 @@ from auth.auth_utils import (
 )
 from auth.rate_limiter import check_rate_limit
 from auth.database import get_database
+import os
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+# Load environment variables from .env file
+load_dotenv()
+Frontend = os.getenv("CORS_ORIGINS")
 
 def generate_password(length: int = 12) -> str:
     """Generate a random password"""
@@ -381,6 +390,86 @@ async def get_analytics(
 #             detail=f"Error suspending user: {str(e)}"
 #         )
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+@router.post("/forgot-password")
+async def forgot_password(
+    payload: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks
+):
+    db = get_database()
+    email = payload.email.lower()
+
+    user = await db.users.find_one({"email": email})
+
+    # Always return success (prevents email enumeration)
+    if not user:
+        return {
+            "success": True,
+            "message": "If the account exists, a reset email has been sent."
+        }
+
+    token = str(uuid4())
+    expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {
+                "reset_password_token": token,
+                "reset_password_expires": expires_at
+            }
+        }
+    )
+
+    reset_link = f"{Frontend}/reset-password?token={token}"
+
+    background_tasks.add_task(
+        send_reset_email,
+        user["email"],
+        reset_link
+    )
+
+    return {
+        "success": True,
+        "message": "If the account exists, a reset email has been sent."
+    }
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+@router.post("/reset-password")
+async def reset_password(payload: ResetPasswordRequest):
+    db = get_database()
+
+    user = await db.users.find_one({
+        "reset_password_token": payload.token,
+        "reset_password_expires": {"$gt": datetime.utcnow()}
+    })
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token"
+        )
+
+    hashed_password = get_password_hash(payload.new_password)
+
+    await db.users.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"hashed_password": hashed_password},
+            "$unset": {
+                "reset_password_token": "",
+                "reset_password_expires": ""
+            }
+        }
+    )
+
+    return {"success": True, "message": "Password reset successful"}
+
 @router.put("/admin/users/{user_id}/freeze")
 async def freeze_user(
     user_id: str,
@@ -388,10 +477,19 @@ async def freeze_user(
 ):
     db = get_database()
 
-    if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
 
-    result = await db.users.update_one(
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 🚫 BLOCK ADMIN FREEZE
+    if user.get("role") == "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Admin accounts cannot be frozen"
+        )
+
+    await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {
             "$set": {
@@ -403,10 +501,7 @@ async def freeze_user(
         }
     )
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return {"success": True}
+    return {"success": True, "message": "User frozen successfully"}
 
 @router.put("/admin/users/{user_id}/unfreeze")
 async def unfreeze_user(
@@ -415,10 +510,19 @@ async def unfreeze_user(
 ):
     db = get_database()
 
-    if not ObjectId.is_valid(user_id):
-        raise HTTPException(status_code=400, detail="Invalid user ID")
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
 
-    result = await db.users.update_one(
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 🚫 BLOCK ADMIN ACTIVATE (admins are always active)
+    if user.get("role") == "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Admin accounts cannot be activated or deactivated"
+        )
+
+    await db.users.update_one(
         {"_id": ObjectId(user_id)},
         {
             "$set": {
@@ -430,14 +534,7 @@ async def unfreeze_user(
         }
     )
 
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    return {
-        "success": True,
-        "message": "User unfrozen successfully",
-        "user_id": user_id
-    }
+    return {"success": True, "message": "User activated successfully"}
 
 @router.put("/admin/users/{user_id}/activate")
 async def activate_user(

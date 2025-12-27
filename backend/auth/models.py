@@ -46,6 +46,7 @@ class CreateUserRequest(BaseModel):
     contact_person: Optional[str] = None
 
 
+
 # class UpgradeSubscriptionRequest(BaseModel):
 #     """Upgrade subscription request model"""
 #     subscription_tier: SubscriptionTier

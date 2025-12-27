@@ -1,12 +1,21 @@
-//import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext'; // 1. Import our custom hook
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
-export const ProtectedRoute = () => {
-  // 2. Get the live auth state from the context
+const PUBLIC_ROUTES = ["/login", "/reset-password"];
+
+export function ProtectedRoute() {
   const { isAuthenticated } = useAuth();
+  const location = useLocation();
 
-  // 3. Render the <Outlet /> (which will be your <AppLayout />) if logged in
-  //    Otherwise, redirect to the /login page
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
-};
+  // ✅ Allow public routes
+  if (PUBLIC_ROUTES.some((path) => location.pathname.startsWith(path))) {
+    return <Outlet />;
+  }
+
+  // 🔒 Block others
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Outlet />;
+}

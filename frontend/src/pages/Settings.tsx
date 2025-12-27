@@ -796,19 +796,29 @@ const SubscriptionManager: React.FC = () => {
 
                 {/* ACTIONS */}
                 <TableCell className="text-right space-x-2">
-                  <Button
-                  className="bg-green-600 hover:bg-green-500"
-                    onClick={() => handleStatusChange(user.id, "active")}
-                  >
-                    Activate
-                  </Button>
+                  {user.role !== "admin" && (
+                    <>
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleStatusChange(user.id, "active")}
+                      >
+                        Activate
+                      </Button>
 
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleStatusChange(user.id, "frozen")}
-                  >
-                    Freeze
-                  </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleStatusChange(user.id, "frozen")}
+                      >
+                        Freeze
+                      </Button>
+                    </>
+                  )}
+
+                  {user.role === "admin" && (
+                    <Badge className="bg-blue-600 text-white">Protected</Badge>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
