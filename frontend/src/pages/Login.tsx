@@ -7,7 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Eye, EyeOff, Zap, Lightbulb, ShieldCheck, Heart, Users, TrendingUp } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Zap,
+  Lightbulb,
+  ShieldCheck,
+  Heart,
+  Users,
+  TrendingUp,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Dialog,
@@ -24,7 +33,7 @@ import { cn } from "@/lib/utils"; // <-- Import 'cn' is included
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 // Import your Dattu image (make sure it's in /public/dattu-namaste.png)
-import DattuImage from "/Dattu Namaste Gesture.jpg"; 
+import DattuImage from "/Dattu Namaste Gesture.jpg";
 
 const safetyTips = [
   {
@@ -46,7 +55,7 @@ const safetyTips = [
   {
     icon: Heart,
     text: "Safety is not a cost. It is an investment in your most valuable asset: your people.",
-  }
+  },
 ];
 
 // --- Animation Variants ---
@@ -55,8 +64,8 @@ const formContainerVariant = {
   visible: {
     opacity: 1,
     transition: {
-      delayChildren: 0.3, 
-      staggerChildren: 0.1, 
+      delayChildren: 0.3,
+      staggerChildren: 0.1,
     },
   },
 };
@@ -71,8 +80,8 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false); 
-  const [currentTipIndex, setCurrentTipIndex] = useState(0); 
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const navigate = useNavigate();
 
   const { login, isAuthenticated } = useAuth();
@@ -80,23 +89,17 @@ export default function Login() {
 
   // --- Auth Logic ---
   useEffect(() => {
-    // 🚫 DO NOT redirect if user is resetting password
-    if (window.location.pathname.startsWith("//reset-password")) {
-      return;
-    }
-
     if (isAuthenticated) {
       toast.success("✅ Welcome back!");
       navigate("/");
     }
   }, [isAuthenticated, navigate]);
 
-
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     navigate("/");
-  //   }
-  // }, []); 
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, []);
 
   // --- Tip Rotator Logic ---
   useEffect(() => {
@@ -106,11 +109,12 @@ export default function Login() {
     return () => clearInterval(timer);
   }, []);
 
-
   // --- Full-Stack Login Function ---
   const handleLogin = async () => {
     if (!termsAccepted) {
-      toast.error("Please accept the terms and data privacy policy to continue.");
+      toast.error(
+        "Please accept the terms and data privacy policy to continue."
+      );
       return;
     }
     try {

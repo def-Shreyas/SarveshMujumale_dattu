@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Safety Data Analysis API",
-    version="2.0.0",
+    version="1.0.0",
     description="Safety Data Analysis API with JWT Authentication",
     lifespan=lifespan
 )

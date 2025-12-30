@@ -7,6 +7,12 @@ from auth.database import get_database
 from auth.auth_utils import get_subscription_limits
 from bson import ObjectId
 from fastapi import HTTPException, status
+from auth.subscription_utils import (
+    is_subscription_expired,
+    is_in_grace_period
+)
+
+
 
 
 async def check_rate_limit(user: dict) -> dict:
@@ -15,21 +21,30 @@ async def check_rate_limit(user: dict) -> dict:
     user_id = str(user["_id"])
     subscription_tier = user.get("subscription_tier", "free")
     limits = get_subscription_limits(subscription_tier)
-    
-    # Get user's current usage
-    # Convert date to datetime for MongoDB compatibility (BSON doesn't support date objects)
+
+    # 🔐 SUBSCRIPTION CHECK (NEW)
+    if is_subscription_expired(user) and not is_in_grace_period(user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "error": "subscription_expired",
+                "message": "Your subscription has expired. Please renew to continue.",
+                "subscription_end_date": user.get("subscription_end_date"),
+            }
+        )
+
+    # -------- existing logic below (unchanged) --------
+
     today_date = datetime.utcnow().date()
     today = datetime.combine(today_date, time.min)
     start_of_month_date = datetime.utcnow().replace(day=1).date()
     start_of_month = datetime.combine(start_of_month_date, time.min)
-    
-    # Get daily usage
+
     daily_stats = await db.usage_stats.find_one(
         {"user_id": user_id, "date": today}
     )
     daily_used = daily_stats.get("api_calls", 0) if daily_stats else 0
-    
-    # Get monthly usage
+
     monthly_stats = await db.usage_stats.aggregate([
         {
             "$match": {
@@ -44,38 +59,35 @@ async def check_rate_limit(user: dict) -> dict:
             }
         }
     ]).to_list(length=1)
-    
+
     monthly_used = monthly_stats[0]["total_calls"] if monthly_stats else 0
-    
-    # Check limits
+
     api_calls_limit = user.get("api_calls_limit", -1)
     api_calls_used = user.get("api_calls_used", 0)
-    
-    # Check monthly limit (if not unlimited)
+
     if api_calls_limit != -1 and api_calls_used >= api_calls_limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "error": "Rate limit exceeded",
+                "error": "rate_limit_exceeded",
                 "message": "Monthly API limit exceeded",
                 "limit": api_calls_limit,
                 "used": api_calls_used
             }
         )
-    
-    # Check daily limit (if not unlimited)
+
     daily_limit = limits["daily_limit"]
     if daily_limit != -1 and daily_used >= daily_limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail={
-                "error": "Rate limit exceeded",
+                "error": "rate_limit_exceeded",
                 "message": "Daily API limit exceeded",
                 "limit": daily_limit,
                 "used": daily_used
             }
         )
-    
+
     return {
         "api_calls_limit": api_calls_limit,
         "api_calls_used": api_calls_used,

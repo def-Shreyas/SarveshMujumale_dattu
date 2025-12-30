@@ -30,7 +30,7 @@ export default function ResetPassword() {
     }
   }, [token, navigate]);
 
-  const submit = async (e) => {
+  const submit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault();
 
     if (password.length < 8) {

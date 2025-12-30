@@ -1,42 +1,55 @@
-import smtplib
-from email.message import EmailMessage
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 SMTP_HOST = os.getenv("SMTP_HOST")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USERNAME")
 SMTP_PASS = os.getenv("SMTP_PASSWORD")
-SMTP_FROM = os.getenv("SMTP_FROM")
+FROM_EMAIL = os.getenv("SMTP_FROM")
 
-# 🔐 Hard fail if config missing
-if not SMTP_USER or not SMTP_PASS:
-    raise RuntimeError("SMTP credentials missing. Check .env file")
 
-def send_reset_email(to_email: str, reset_link: str):
-    msg = EmailMessage()
-    msg["Subject"] = "Reset your DATTU password"
-    msg["From"] = SMTP_FROM
-    msg["To"] = to_email
+def smtp_configured() -> bool:
+    return all([SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS])
 
-    msg.set_content(f"""
-Hello,
 
-You requested a password reset for your DATTU account.
+async def send_email(to: str, subject: str, html: str):
+    """
+    Generic SMTP sender (used by notifications)
+    """
+    if not smtp_configured():
+        print(f"[EMAIL DISABLED] {to} | {subject}")
+        return
 
-Click the link below to reset your password:
-{reset_link}
+    msg = MIMEMultipart("alternative")
+    msg["From"] = FROM_EMAIL
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(html, "html"))
 
-This link expires in 30 minutes.
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.sendmail(FROM_EMAIL, to, msg.as_string())
+    except Exception as e:
+        print(f"[EMAIL ERROR] {e}")
 
-If you didn’t request this, please ignore this email.
 
-— DATTU Support Team
-""")
+# ✅ KEEP THIS — password reset depends on it
+async def send_reset_email(email: str, reset_link: str):
+    html = f"""
+    <p>Hello,</p>
+    <p>You requested a password reset.</p>
+    <p><a href="{reset_link}">Click here to reset your password</a></p>
+    <br/>
+    <p>If you didn’t request this, please ignore.</p>
+    <p>— Team DATTU</p>
+    """
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
+    await send_email(
+        to=email,
+        subject="Reset your DATTU password",
+        html=html,
+    )

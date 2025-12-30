@@ -60,33 +60,41 @@ class AdminSubscriptionUpdateRequest(BaseModel):
 
 
 # Response Models
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel
+
 class UserResponse(BaseModel):
     """User response model"""
+
     id: str
     username: str
     email: str
+
+    # Subscription
     subscription_tier: SubscriptionTier
     api_calls_limit: int
     api_calls_used: int
+    subscription_end_date: Optional[datetime] = None
+    grace_period_days: int = 7
+
+    # Org info
     company_name: Optional[str] = None
     contact_person: Optional[str] = None
+
+    # Account state
     status: UserStatus
     role: UserRole
-    created_at: datetime
-    last_login: Optional[datetime] = None
     is_active: bool
-    #added below two fields.
-    # Why?
-    # Admin sets “3 months”
-    # Backend calculates end date
-    # Login checks expiry
-    subscription_start: Optional[datetime] = None
-    subscription_end: Optional[datetime] = None
 
+    # Activity
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
+    last_activity: Optional[datetime] = None
 
     class Config:
         from_attributes = True
-
 
 class TokenResponse(BaseModel):
     """Token response model"""

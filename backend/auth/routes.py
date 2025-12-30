@@ -1,6 +1,7 @@
 """
 Authentication routes for Safety Data Analysis API
 """
+#from arrow import now
 from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -12,6 +13,8 @@ from auth.email_service import send_reset_email
 from auth.auth_utils import get_password_hash
 from dotenv import load_dotenv
 from pydantic import BaseModel, EmailStr
+from auth.notification_email_service import send_notification_email
+from auth.email_templates import notification_email_template
 
 from auth.dependencies import (
     get_current_user,
@@ -45,6 +48,15 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # Load environment variables from .env file
 load_dotenv()
 Frontend = os.getenv("CORS_ORIGINS")
+
+SUBJECT_MAP = {
+    "inactive": "We Miss You at DATTU 👋",
+    "tokens_exhausted": "Your API Tokens Are Exhausted",
+    "tokens_warning": "Your API Tokens Are Running Low",
+    "subscription_ending": "Your Subscription Is About to End",
+    "subscription_ended": "Your Subscription Has Ended",
+    "all": "Important Update from DATTU",
+}
 
 def generate_password(length: int = 12) -> str:
     """Generate a random password"""
@@ -146,6 +158,7 @@ async def create_user(
     password = user_data.password or generate_password()
     hashed_password = get_password_hash(password)
     
+    now = datetime.utcnow()
     # Create user document
     user_doc = {
         "username": user_data.username,
@@ -161,7 +174,12 @@ async def create_user(
         "is_active": True,
         "created_at": datetime.utcnow(),
         "last_login": None,
-        "last_activity": None
+        "last_activity": None,
+        
+         # ✅ SUBSCRIPTION (HARDCODED 30 DAYS)
+        "subscription_start": now,
+        "subscription_end_date": now + timedelta(days=30),
+        "grace_period_days": 7,
     }
     
     result = await db.users.insert_one(user_doc)
@@ -601,3 +619,29 @@ async def upgrade_user_subscription(
             detail=f"Error upgrading subscription: {str(e)}"
         )
 
+class NotifyUsersRequest(BaseModel):
+    scenario: str
+    emails: List[EmailStr]
+
+
+@router.post("/notify-users")
+async def notify_users(
+    payload: NotifyUsersRequest,
+    background_tasks: BackgroundTasks,
+    current_admin: dict = Depends(get_current_admin_user),
+):
+    if not payload.emails:
+        raise HTTPException(status_code=400, detail="No recipients provided")
+
+    for email in payload.emails:
+        background_tasks.add_task(
+            send_notification_email,
+            email,
+            payload.scenario,
+        )
+
+    return {
+        "success": True,
+        "sent": len(payload.emails),
+        "scenario": payload.scenario,
+    }

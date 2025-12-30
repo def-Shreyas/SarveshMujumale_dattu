@@ -19,7 +19,7 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const submit = async (e) => {
+  const submit = async (e: { preventDefault: () => void; }) => {
     e.preventDefault(); // Prevent page refresh
     if (!email) {
       toast.error("Please enter your email");
