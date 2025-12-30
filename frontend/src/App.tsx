@@ -15,6 +15,7 @@ import { RCA } from "./pages/RCA";
 import { Environmental } from "./pages/Environmental";
 import { Governance } from "./pages/Governance";
 import { Settings } from "./pages/Settings";
+import SafetyChatPage from "./modules/safety-intelligence/pages/SafetyChatPage";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
           <Route path="/environmental" element={<Environmental />} />
           <Route path="/governance" element={<Governance />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/safety-intelligence" element={<SafetyChatPage/>} />
 
           {/* 👇 fallback ONLY for authenticated users */}
           <Route path="*" element={<Navigate to="/" replace />} />
