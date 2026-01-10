@@ -13,5 +13,5 @@ export interface Incident {
 export interface SafetyQueryResponse {
   query: string;
   total_cases: number;
-  cases: IncidentCase[];
+  //cases: IncidentCase[];
 }
