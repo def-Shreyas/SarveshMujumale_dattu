@@ -36,9 +36,12 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { sendChatMessage } from "@/lib/api";
 
 // ✅ Replace this with your real DATTU logo
 import DATTU_LOGO from "/public/Dattu Image.jpeg"; // placeholder comment
+
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /* ------------------ COLOR PALETTE ------------------ */
 const PALETTE = {
@@ -52,10 +55,25 @@ const PALETTE = {
   green: "#1E9A61",
 };
 
+interface Law {
+  pdf_name: string;
+  page_number: number;
+  text: string;
+}
+
+interface Screenshot {
+  image_url: string;
+  pdf_name: string;
+  page_number: number;
+}
+
 interface Message {
   id: string;
   role: "user" | "bot";
-  text: string;
+  text?: string; // user text OR fallback
+  answer?: string; // bot main answer
+  laws?: Law[]; // law references
+  screenshots?: Screenshot[];
   time?: string;
 }
 
@@ -104,8 +122,8 @@ export default function ChatbotUI() {
   }]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [__typingId, setTypingId] = useState<string | null>(null);
-  const [__lastPromptForRegenerate, setLastPromptForRegenerate] = useState<string | null>(null);
+  const [, setTypingId] = useState<string | null>(null);
+  const [, setLastPromptForRegenerate] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -120,61 +138,90 @@ export default function ChatbotUI() {
     inputRef.current?.focus();
   }, []);
 
+  // async function sendToBackend(message: string) {
+  //   const controller = new AbortController();
+
+  //   // ⏱️ 30 second hard timeout
+  //   const timeout = setTimeout(() => controller.abort(), 30000);
+
+  //   try {
+  //     const res = await fetch(`${BACKEND_URL}/chat`, {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({
+  //         message,
+  //         history: [],
+  //       }),
+  //       signal: controller.signal,
+  //     });
+
+  //     if (!res.ok) {
+  //       throw new Error(`HTTP ${res.status}`);
+  //     }
+
+  //     return await res.json();
+  //   } finally {
+  //     clearTimeout(timeout);
+  //   }
+  // }
+
   /* ------------------ MESSAGE HANDLERS ------------------ */
   const pushMessage = (m: Message) => setMessages((prev) => [...prev, m]);
 
   const sendMessage = async () => {
+    console.log("🔥 sendMessage fired");
+
     const trimmed = input.trim();
     if (!trimmed) return;
 
-    const userMsg: Message = {
+    // 1️⃣ Push user message
+    pushMessage({
       id: `u_${Date.now()}`,
       role: "user",
       text: trimmed,
-      time: nowTime()
-    };
-    pushMessage(userMsg);
+      time: nowTime(),
+    });
     setInput("");
-    setLastPromptForRegenerate(trimmed);
-
-    const botTypingId = `t_${Date.now()}`;
-    setTypingId(botTypingId);
     setIsTyping(true);
 
-    abortControllerRef.current?.abort();
-    abortControllerRef.current = new AbortController();
-
     try {
-      const botText = await simulateBotResponse(trimmed, abortControllerRef.current.signal);
-      const botMsg: Message = {
+      console.log("➡️ Calling sendChatMessage()");
+
+      // 2️⃣ CALL CENTRAL API FUNCTION
+      const data = await sendChatMessage(trimmed, []);
+
+      console.log("✅ Chat response:", data);
+
+      // 3️⃣ Push bot message
+      pushMessage({
         id: `b_${Date.now()}`,
         role: "bot",
-        text: botText,
-        time: nowTime()
-      };
-      pushMessage(botMsg);
+        answer: String(data.answer || ""), // ✅ STRING ONLY
+        laws: data.laws ?? [],
+        screenshots: data.screenshots ?? [],
+      });
+
+      console.log("🧠 BOT MESSAGE", {
+        answer: typeof data.answer,
+        laws: Array.isArray(data.laws),
+        screenshots: Array.isArray(data.screenshots),
+      });
+
+;
     } catch (err) {
-      if ((err as any)?.name === "AbortError") {
-        pushMessage({
-          id: `b_abort_${Date.now()}`,
-          role: "bot",
-          text: "Generation stopped.",
-          time: nowTime()
-        });
-      } else {
-        pushMessage({
-          id: `b_err_${Date.now()}`,
-          role: "bot",
-          text: "Sorry — something went wrong.",
-          time: nowTime()
-        });
-      }
+      console.error("❌ Chat error:", err);
+      pushMessage({
+        id: `b_err_${Date.now()}`,
+        role: "bot",
+        text: "Sorry, something went wrong.",
+        time: nowTime(),
+      });
     } finally {
+      // 4️⃣ STOP TYPING
       setIsTyping(false);
-      setTypingId(null);
-      abortControllerRef.current = null;
     }
   };
+
 
   const stopTyping = () => {
     abortControllerRef.current?.abort();
@@ -233,6 +280,7 @@ export default function ChatbotUI() {
     }
   };
 
+
   /* ------------------ DROPDOWN ACTIONS ------------------ */
   const handleUploadPhoto = () => toast.info("Photo uploaded ✔️ (mock)");
   const handleAttachFile = () => toast.info("File attached ✔️ (mock)");
@@ -266,7 +314,7 @@ export default function ChatbotUI() {
     <div
       style={{
         backgroundColor: PALETTE.warmIvory,
-        color: PALETTE.slate
+        color: PALETTE.slate,
       }}
       className="flex flex-col w-full h-full min-h-[calc(100vh-4rem)]"
     >
@@ -376,14 +424,20 @@ export default function ChatbotUI() {
         <div ref={scrollRef} className="space-y-5">
           <AnimatePresence initial={false}>
             {grouped.map((g, gi) => (
-              <div key={gi} className={`${g.role === "user" ? "text-right" : ""}`}>
+              <div
+                key={gi}
+                className={`${g.role === "user" ? "text-right" : ""}`}
+              >
                 {g.items.map((m) => (
                   <motion.div
                     key={m.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-3 flex gap-3"
-                    style={{ justifyContent: g.role === "user" ? "flex-end" : "flex-start" }}
+                    style={{
+                      justifyContent:
+                        g.role === "user" ? "flex-end" : "flex-start",
+                    }}
                   >
                     {/* Avatars */}
                     {m.role === "bot" && (
@@ -394,7 +448,10 @@ export default function ChatbotUI() {
                           border: `1px solid ${PALETTE.softBlue}30`,
                         }}
                       >
-                        <Bot className="w-5 h-5" style={{ color: PALETTE.softBlue }} />
+                        <Bot
+                          className="w-5 h-5"
+                          style={{ color: PALETTE.softBlue }}
+                        />
                       </div>
                     )}
 
@@ -409,7 +466,54 @@ export default function ChatbotUI() {
                         color: m.role === "user" ? "#fff" : PALETTE.slate,
                       }}
                     >
-                      <div className="p-4 text-sm">{m.text}</div>
+                      <div className="p-4 text-sm space-y-3">
+                        {/* MAIN ANSWER */}
+                        {/* BOT ANSWER */}
+                        {typeof m.answer === "string" && <p>{m.answer}</p>}
+
+                        {/* FALLBACK TEXT */}
+                        {m.text && !m.answer && <p>{m.text}</p>}
+
+                        {/* LAW REFERENCES */}
+                        {m.laws && m.laws.length > 0 && (
+                          <div className="border-t pt-2 space-y-2">
+                            <p className="text-xs font-semibold text-gray-600 uppercase">
+                              Applicable Laws
+                            </p>
+                            {m.laws.map((law, i) => (
+                              <div
+                                key={i}
+                                className="text-xs p-2 rounded bg-white border"
+                              >
+                                <strong>{law.pdf_name}</strong> — Page{" "}
+                                {law.page_number}
+                                <p className="mt-1 text-gray-700 line-clamp-3">
+                                  {law.text}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* SCREENSHOTS */}
+                        {m.screenshots && m.screenshots.length > 0 && (
+                          <div className="border-t pt-2">
+                            <p className="text-xs font-semibold text-gray-600 uppercase mb-2">
+                              Evidence from Law PDFs
+                            </p>
+                            <div className="flex gap-2 overflow-x-auto">
+                              {m.screenshots.map((s, i) => (
+                                <img
+                                  key={i}
+                                  src={s.image_url}
+                                  alt={`${s.pdf_name} page ${s.page_number}`}
+                                  className="h-32 rounded border cursor-pointer hover:scale-105 transition"
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </Card>
 
                     {m.role === "user" && (
@@ -419,7 +523,10 @@ export default function ChatbotUI() {
                           background: `linear-gradient(135deg, ${PALETTE.softBlue}20, ${PALETTE.tealAccent}20)`,
                         }}
                       >
-                        <User className="w-5 h-5" style={{ color: PALETTE.softBlue }} />
+                        <User
+                          className="w-5 h-5"
+                          style={{ color: PALETTE.softBlue }}
+                        />
                       </div>
                     )}
                   </motion.div>
@@ -465,7 +572,9 @@ export default function ChatbotUI() {
                   animate={{ y: [0, -6, 0] }}
                   transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
                 />
-                <div className="ml-2 text-sm text-[#10243A]/70">DATTU is typing...</div>
+                <div className="ml-2 text-sm text-[#10243A]/70">
+                  DATTU is typing...
+                </div>
                 <button
                   onClick={stopTyping}
                   className="ml-3 p-1 hover:bg-[#E6EDF5] rounded-md"
@@ -484,7 +593,10 @@ export default function ChatbotUI() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="px-6 py-4 border-t flex items-end gap-3"
-        style={{ borderColor: `${PALETTE.slate}10`, backgroundColor: PALETTE.warmIvory }}
+        style={{
+          borderColor: `${PALETTE.slate}10`,
+          backgroundColor: PALETTE.warmIvory,
+        }}
       >
         {/* + Menu */}
         <DropdownMenu.Root>
@@ -516,7 +628,8 @@ export default function ChatbotUI() {
             {/* Premade texts submenu */}
             <DropdownMenu.Sub>
               <DropdownMenu.SubTrigger className="flex items-center gap-2 p-2 rounded hover:bg-[#E6EDF5]">
-                <MessageSquare className="w-4 h-4 text-[#2B6CB0]" /> Premade Text
+                <MessageSquare className="w-4 h-4 text-[#2B6CB0]" /> Premade
+                Text
               </DropdownMenu.SubTrigger>
               <DropdownMenu.SubContent className="bg-white border shadow-lg rounded-md p-2 text-sm">
                 {[
@@ -544,7 +657,7 @@ export default function ChatbotUI() {
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder="Ask Anything"
             disabled={isTyping}
             className="text-base py-3 px-4 rounded-xl"
@@ -557,6 +670,7 @@ export default function ChatbotUI() {
         </div>
 
         <Button
+          type="button" // 🔥 THIS IS THE FIX
           onClick={sendMessage}
           disabled={!input.trim() || isTyping}
           className="px-5 py-3 rounded-xl text-white"

@@ -35,6 +35,8 @@ from auth.dependencies import get_current_active_user, track_api_usage
 from auth.rate_limiter import check_rate_limit, check_file_size_limit
 from auth.routes import router as auth_router
 from services.dashboard import router as dashboard_router, persist_charting_kpis
+from routers.chat import router as chat_router
+from routers.screenshots import router as file_router
 #from services.safety_intelligence.router import router as safety_router
 
 @asynccontextmanager
@@ -53,6 +55,9 @@ app = FastAPI(
     description="Safety Data Analysis API with JWT Authentication",
     lifespan=lifespan
 )
+
+app.include_router(chat_router)
+app.include_router(file_router)
 
 #app.include_router(safety_router)
 
