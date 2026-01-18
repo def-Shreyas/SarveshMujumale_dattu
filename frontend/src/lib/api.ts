@@ -124,6 +124,7 @@
 // };
 
 import { toast } from "sonner";
+import axios from "axios";
 
 // Get the API URL from your environment variables
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -298,4 +299,36 @@ export const uploadFile = async (endpoint: string, file: File) => {
   });
 
   return handleResponse(response);
+};
+
+export async function sendChatMessage(message: string, history: any[]) {
+  const res = await fetch(`${API_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+  });
+
+  if (!res.ok) {
+    throw new Error("Chat request failed");
+  }
+
+  const data = await res.json();
+
+  // ✅ Return the raw object with answer, laws, and screenshots
+  // The Chatbot page will handle rendering these properly
+  return data;
+}
+
+
+export const analyzeFile = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await axios.post(`${API_URL}/analyze-file`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data; // summary + report_url
 };

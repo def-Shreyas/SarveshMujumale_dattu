@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils";
 //import { useAuth } from "@/contexts/AuthContext";
 import { useApiUsage } from "@/contexts/ApiUsageContext";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+//import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 import {
   Tooltip,
@@ -26,13 +27,12 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ isCollapsed, setIsCollapsed }) => {
   //const { user } = useAuth();
   const { apiLimit, apiUsed, remainingApi, dailyLimit, dailyUsed, dailyRemaining, moduleUsage } = useApiUsage();
+  const navigate = useNavigate();
 
   const handleAskDattu = () => {
-    toast.info("Coming Soon!", {
-      description: "DATTU AI Assistant is getting ready to help you.",
-      duration: 3000,
-    });
+    navigate("/safety-intelligence");
   };
+
 
   const usagePercentage = (apiUsed / apiLimit) * 100;
   const getUsageColor = () => {

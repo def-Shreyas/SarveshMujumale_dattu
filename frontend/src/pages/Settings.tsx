@@ -794,9 +794,9 @@ const SubscriptionManager: React.FC = () => {
 
     try {
       if (status === "frozen") {
-        await apiClient.put(`/auth/admin/users/${userId}/freeze`);
+        await apiClient.put(`/auth/admin/users/${userId}/freeze`, {});
       } else {
-        await apiClient.put(`/auth/admin/users/${userId}/unfreeze`);
+        await apiClient.put(`/auth/admin/users/${userId}/unfreeze`, {});
       }
 
       toast.success(
