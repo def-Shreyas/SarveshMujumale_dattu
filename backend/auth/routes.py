@@ -9,7 +9,7 @@ from bson import ObjectId
 import secrets
 import string
 from uuid import uuid4
-from auth.email_service import send_reset_email
+from auth.email_service import send_reset_email, send_user_credentials_email
 from auth.auth_utils import get_password_hash
 from dotenv import load_dotenv
 from pydantic import BaseModel, EmailStr
@@ -185,18 +185,31 @@ async def create_user(
     result = await db.users.insert_one(user_doc)
     user_id = str(result.inserted_id)
     
-    # TODO: Send email with credentials (implement email service)
-    # send_user_credentials_email(user_data.email, user_data.username, password)
+    # Send email with credentials
+    email_sent = False
+    email_error = None
+    try:
+        # Check if email sent successfully (returns True/False)
+        email_sent = await send_user_credentials_email(user_data.email, user_data.username, password)
+        
+        if not email_sent:
+            email_error = "SMTP not configured or sending failed. Check server logs."
+            
+    except Exception as e:
+        print(f"Failed to send credentials email: {e}")
+        email_error = str(e)
     
     return {
         "success": True,
-        "message": "User account created successfully. Credentials sent via email.",
+        "message": "User account created successfully. " + ("Credentials sent via email." if email_sent else "Failed to send email."),
         "user_id": user_id,
         "username": user_data.username,
         "email": user_data.email,
         "subscription_tier": user_data.subscription_tier.value,
         "api_calls_limit": user_data.api_calls_limit,
-        "password": password  # Remove this in production, only for testing
+        # "password": password, # SECURITY: Do not return password in response
+        "email_sent": email_sent,
+        "email_error": email_error
     }
 
 
