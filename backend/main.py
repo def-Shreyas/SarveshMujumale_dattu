@@ -262,6 +262,7 @@ async def generate_report(
     user_id = str(current_user["_id"])
     endpoint = "/generate-report"
     
+    
     try:
         # Check rate limits
         await check_rate_limit(current_user)
@@ -276,14 +277,21 @@ async def generate_report(
         # Step 1: Summarize numeric data
         numeric_summary = phidata_agent.summarize_numeric_data(EXTRACTED_DIR)
         
-        if not numeric_summary:
+        # Filter to only Incident/Near-Miss related folders (like Training does)
+        incident_folders = ['Observations', 'Incidents', 'NearMisses', 'Employees']
+        incident_summary = [
+            s for s in numeric_summary 
+            if any(folder in s for folder in incident_folders)
+        ]
+        
+        if not incident_summary:
             raise HTTPException(
                 status_code=400,
-                detail="No data found in extracted tables."
+                detail="No Incident & Near-Miss data found in extracted tables. Please upload sample.xlsx first."
             )
         
-        # Step 2: Create analysis prompt
-        prompt = phidata_agent.create_analysis_prompt(numeric_summary)
+        # Step 2: Create analysis prompt (use filtered data)
+        prompt = phidata_agent.create_analysis_prompt(incident_summary)
         
         # Step 3: Generate report with Gemini
         report_content = phidata_agent.generate_report_with_gemini(prompt)

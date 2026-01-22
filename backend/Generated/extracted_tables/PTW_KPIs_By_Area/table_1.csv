@@ -1,10 +1,10 @@
 area,open_permits,permits_past_expiry,missing_controls,total_permits
-Assembly - Line 5,0,0,0,6
-Battery Area,0,0,2,10
+Assembly - Line 5,0,4,0,6
+Battery Area,0,3,2,10
 Body Shop - Booth A,1,1,3,9
 Maintenance Workshop,1,1,5,11
 Paint - Oven Area,1,1,2,7
-Stamping - Bay 1,0,0,2,9
+Stamping - Bay 1,0,2,2,9
 Testing - Dyno Bay,2,2,4,10
 Underground Tank Area,1,1,3,6
 Welding - Line 3,1,1,2,7
