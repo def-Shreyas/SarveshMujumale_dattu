@@ -41,7 +41,7 @@ matplotlib==3.10.7
 mdurl==0.1.2
 motor==3.7.1
 narwhals==2.10.2
-numpy==2.3.4
+numpy==1.26.4
 openpyxl==3.1.5
 packaging==25.0
 pandas==2.3.3
@@ -88,4 +88,5 @@ urllib3==2.5.0
 uvicorn==0.38.0
 xlsxwriter==3.2.9
 openai
+
 
