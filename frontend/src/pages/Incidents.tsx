@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -77,7 +76,7 @@ import type {
 } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getAuthToken, apiClient } from "@/lib/api";
+import { apiClient } from "@/lib/api";
 import { usePDF } from "react-to-pdf";
 import { ReportPDF } from "@/components/ReportPDF";
 
