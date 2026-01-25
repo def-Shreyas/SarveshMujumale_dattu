@@ -1,10 +1,20 @@
-import chromadb
+#import chromadb
+def get_chroma_collection():
+    import chromadb
+    from chromadb.config import Settings
 
-# Connect to persistent Chroma DB
-chroma_client = chromadb.PersistentClient(path="chroma_db")
+    client = chromadb.Client(
+        Settings(
+            persist_directory="./chroma",
+            anonymized_telemetry=False
+        )
+    )
 
-# Get existing collection (must already be created)
-collection = chroma_client.get_collection("laws_master")
+    try:
+        return client.get_collection("laws_master")
+    except Exception:
+        return client.create_collection("laws_master")
+
 
 
 def search_laws(query: str, top_k: int = 3):
