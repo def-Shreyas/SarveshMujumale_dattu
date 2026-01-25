@@ -1,105 +1,42 @@
 import io
 import pandas as pd
-import numpy as np
 from pathlib import Path
-from typing import Union, IO
+import os
 
-
-def extract_tables(excel_source: Union[str, Path, bytes, IO[bytes]], output_dir: Union[str, Path, None] = None):
+def extract_tables(file_content: bytes, output_dir: Path):
     """
-    Extract tables from an Excel workbook.
-
-    Args:
-        excel_source: Path to the Excel file, raw bytes, or a file-like object.
-        output_dir: Directory where extracted tables should be written. Required when excel_source
-                    is not a filesystem path.
+    Extracts all sheets from the Excel file bytes and saves them as CSV files.
+    
+    Structure: output_dir / SheetName / table_1.csv
     """
-    xls = None
-    out_dir = Path(output_dir) if output_dir is not None else None
-
-    # Prepare ExcelFile handle depending on source type
+    # Ensure output_dir exists
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Read Excel file
     try:
-        if isinstance(excel_source, (str, Path)):
-            excel_path = Path(excel_source)
-            if out_dir is None:
-                out_dir = excel_path.parent / "Generated" / "extracted_tables"
-            xls = pd.ExcelFile(excel_path)
-        else:
-            if isinstance(excel_source, bytes):
-                excel_bytes = excel_source
-            elif hasattr(excel_source, "read"):
-                excel_bytes = excel_source.read()
-            else:
-                raise TypeError("excel_source must be a path, bytes, or a file-like object.")
+        xls = pd.ExcelFile(io.BytesIO(file_content))
+    except Exception as e:
+        print(f"Error reading Excel file: {e}")
+        raise e
 
-            if out_dir is None:
-                raise ValueError("output_dir must be provided when excel_source is not a file path.")
-
-            xls = pd.ExcelFile(io.BytesIO(excel_bytes))
-
-        out_dir.mkdir(parents=True, exist_ok=True)
-        for sheet in xls.sheet_names:
-            df = xls.parse(sheet, header=None, dtype=object)
-            df = df.replace(r'^\s*$', np.nan, regex=True)  # treat blanks as NaN
-
-            # detect contiguous non-empty row blocks
-            is_full_nan_row = df.isna().all(axis=1)
-            segments = []
-            in_seg = False
-            seg_start = None
-            for i, val in enumerate(~is_full_nan_row):
-                if val and not in_seg:
-                    in_seg = True
-                    seg_start = i
-                elif not val and in_seg:
-                    in_seg = False
-                    segments.append((seg_start, i-1))
-            if in_seg:
-                segments.append((seg_start, len(is_full_nan_row)-1))
-
-            # save each segment as a table
-            sheet_out = out_dir / sheet
-            sheet_out.mkdir(exist_ok=True)
-            for idx, (r0, r1) in enumerate(segments, start=1):
-                block = df.iloc[r0:r1+1, :].copy()
-                block = block.dropna(axis=1, how='all')
-
-                # promote first row to header if mostly text
-                first_row = block.iloc[0].astype(str).str.strip().replace('nan', '')
-                num_nonempty = (first_row != '').sum()
-                if num_nonempty >= block.shape[1] / 2:
-                    block.columns = block.iloc[0].fillna("").astype(str)
-                    block = block.drop(block.index[0]).reset_index(drop=True)
-                else:
-                    block = block.reset_index(drop=True)
-
-                # try numeric conversion
-                for col in block.columns:
-                    try:
-                        block[col] = pd.to_numeric(block[col])
-                    except (ValueError, TypeError):
-                        # Keep original values if conversion fails
-                        pass
-
-                # Skip ID count tables for incidents and nearmisses
-                if sheet.lower() in ['incidents', 'nearmisses']:
-                    # Check if this table appears to be an ID count table
-                    # (typically has columns like IncidentID,Count or NearMissID,Count)
-                    col_names = [str(col).lower() for col in block.columns]
-                    has_id_col = any('id' in col for col in col_names)
-                    has_count_col = any('count' in col for col in col_names)
-                    if has_id_col and has_count_col and len(col_names) == 2:
-                        print(f"Skipped ID count table in {sheet} (table_{idx})")
-                        continue
-
-                csv_path = sheet_out / f"table_{idx}.csv"
-                block.to_csv(csv_path, index=False)
-                print(f"Saved {csv_path} ({block.shape[0]} rows, {block.shape[1]} cols)")
-    finally:
-        # Ensure ExcelFile is closed to unlock the file (important on Windows)
-        if xls is not None:
-            xls.close()
-
-
-if __name__ == "__main__":
-    extract_tables(r"C:\Users\Lenovo\Desktop\dattu\New\social_governance_database.xlsx")
+    for sheet_name in xls.sheet_names:
+        try:
+            # Clean sheet name to be filesystem friendly if necessary
+            # We strip whitespace to be safe, but keep original case as much as possible
+            safe_sheet_name = sheet_name.strip()
+            
+            # Create directory for this sheet
+            sheet_dir = output_dir / safe_sheet_name
+            sheet_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Read sheet data
+            df = xls.parse(sheet_name)
+            
+            # Save as CSV
+            output_path = sheet_dir / "table_1.csv"
+            df.to_csv(output_path, index=False)
+            print(f"Extracted {sheet_name} to {output_path}")
+            
+        except Exception as e:
+            print(f"Error extracting sheet {sheet_name}: {e}")

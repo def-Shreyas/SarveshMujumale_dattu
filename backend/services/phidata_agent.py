@@ -17,6 +17,8 @@ from dotenv import load_dotenv
 # from phi.model.openai import OpenAIChat
 from phi.agent import Agent
 from phi.model.openai import OpenAIChat
+from services.kpi_engine import calculate_kpis
+import numpy as np
 
 # Load environment variables from .env file
 load_dotenv()
@@ -48,8 +50,62 @@ def force_convert(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def strip_latex(text: str) -> str:
+    """
+    Remove ALL LaTeX formatting from text. SymPy provides plain-text formulas.
+    This function strips any LaTeX that the LLM might have generated.
+    """
+    if not text or not isinstance(text, str):
+        return text
+    
+    # Remove LaTeX display math blocks: \[ ... \]
+    text = re.sub(r'\\\[.*?\\\]', '', text, flags=re.DOTALL)
+    
+    # Remove LaTeX inline math: \( ... \)
+    text = re.sub(r'\\\(.*?\\\)', '', text, flags=re.DOTALL)
+    
+    # Remove \text{...} and replace with just the content inside
+    text = re.sub(r'\\text\{([^}]*)\}', r'\1', text)
+    
+    # Remove \textbf{...} and replace with just the content
+    text = re.sub(r'\\textbf\{([^}]*)\}', r'\1', text)
+    
+    # Remove \frac{...}{...} and replace with (numerator / denominator)
+    text = re.sub(r'\\frac\{([^}]*)\}\{([^}]*)\}', r'(\1 / \2)', text)
+    
+    # Remove \times and replace with *
+    text = re.sub(r'\\times', '*', text)
+    
+    # Remove \div and replace with /
+    text = re.sub(r'\\div', '/', text)
+    
+    # Remove \sum, \prod and similar
+    text = re.sub(r'\\sum', 'Sum', text)
+    text = re.sub(r'\\prod', 'Product', text)
+    
+    # Remove standalone backslash commands: \command
+    text = re.sub(r'\\[a-zA-Z]+', '', text)
+    
+    # Remove $ math delimiters
+    text = re.sub(r'\$([^$]*)\$', r'\1', text)
+    
+    # Remove double $$ math blocks
+    text = re.sub(r'\$\$([^$]*)\$\$', r'\1', text, flags=re.DOTALL)
+    
+    # Clean up any leftover backslashes before brackets
+    text = re.sub(r'\\[\[\]]', '', text)
+    
+    # Clean up multiple spaces
+    text = re.sub(r'  +', ' ', text)
+    
+    # Clean up empty lines created by removals
+    text = re.sub(r'\n\s*\n\s*\n', '\n\n', text)
+    
+    return text.strip()
+
+
 def extract_content_from_response(response) -> str:
-    """Extract markdown content from phidata response object."""
+    """Extract markdown content from phidata response object and strip LaTeX."""
     report_content = None
 
     # Try to get content directly from response
@@ -83,6 +139,8 @@ def extract_content_from_response(response) -> str:
     # Clean up escaped newlines if any
     if isinstance(report_content, str):
         report_content = report_content.replace('\\n', '\n')
+        # CRITICAL: Strip ALL LaTeX from the response
+        report_content = strip_latex(report_content)
 
     return report_content
 
@@ -97,6 +155,151 @@ def extract_tables_from_excel(extract_script: Path, extracted_dir: Path) -> None
         subprocess.run([sys.executable, str(extract_script)], check=True)
     else:
         print("[INFO] Tables already extracted.")
+
+
+def _clean_number(val) -> float:
+    """Convert input to float, handling strings with currency/pct/commas."""
+    if pd.isna(val):
+        return 0.0
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).lower().replace(',', '').replace('$', '').replace('%', '').strip()
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+def _find_col(df: pd.DataFrame, keywords: list) -> str:
+    """Find column containing any of the keywords (case-insensitive)."""
+    for col in df.columns:
+        c_lower = str(col).lower()
+        if any(k in c_lower for k in keywords):
+            return col
+    return None
+
+def _extract_metrics(extracted_dir: Path) -> dict:
+    """
+    Helper to extract raw metrics for SymPy KPI engine from CSVs.
+    Robustly handles flexible column names and string formatting.
+    """
+    metrics = {}
+    try:
+        # --- Incidents / Safety ---
+        incidents_path = extracted_dir / "Incidents" / "table_1.csv"
+        if incidents_path.exists():
+            df = pd.read_csv(incidents_path)
+            metrics["total_incidents"] = len(df)
+            
+            # Identify columns using robust matching
+            lti_col = _find_col(df, ["lost time", "lti", "days lost"])
+            rec_col = _find_col(df, ["recordable", "reportable", "severity"]) # Proxy if explicit recordable col missing
+            
+            if lti_col:
+                # Count valid LTI entries (e.g. "Yes", or > 0 days)
+                # Heuristic: if numeric > 0, or string starts with 'y'
+                is_lti = df[lti_col].apply(lambda x: 
+                    (isinstance(x, (int, float)) and x > 0) or 
+                    (isinstance(x, str) and str(x).lower().startswith('y'))
+                )
+                metrics["lost_time_injuries"] = is_lti.sum()
+            else:
+                 metrics["lost_time_injuries"] = 0
+            
+            if rec_col:
+                 metrics["total_recordables"] = len(df) # As worst case, assume all in 'incidents' are recordable
+            else:
+                 metrics["total_recordables"] = len(df)
+
+            metrics["total_hours"] = 200000.0 # Default if no employee data found
+
+        # --- Environmental ---
+        env_path = extracted_dir / "Environmental_Data" / "table_1.csv"
+        if env_path.exists():
+            df = pd.read_csv(env_path)
+            
+            recycled_col = _find_col(df, ["recycl"])
+            waste_col = _find_col(df, ["waste", "total garbage", "disposal"])
+            
+            if recycled_col:
+                metrics["recycled"] = df[recycled_col].apply(_clean_number).sum()
+            if waste_col:
+                metrics["total_waste"] = df[waste_col].apply(_clean_number).sum()
+            
+            # If we only have recycled and total_waste not explicit, assume remainder?
+            # Or if data is rows of monthly data
+            if "total_waste" not in metrics and "recycled" in metrics:
+                 # Try to find 'landfill' or similar to add to recycled for total?
+                 landfill_col = _find_col(df, ["landfill", "general"])
+                 if landfill_col:
+                     landfill = df[landfill_col].apply(_clean_number).sum()
+                     metrics["total_waste"] = metrics["recycled"] + landfill
+
+        # --- PPE ---
+        ppe_path = extracted_dir / "Assets & PPE" / "table_1.csv"
+        if not ppe_path.exists():
+             ppe_path = extracted_dir / "Assets_&_PPE" / "table_1.csv"
+
+        if ppe_path.exists():
+            df = pd.read_csv(ppe_path)
+            
+            issued_col = _find_col(df, ["issued", "distributed", "used"])
+            purchased_col = _find_col(df, ["purchased", "stock", "inventory", "total"])
+            
+            if issued_col:
+                metrics["issued"] = df[issued_col].apply(_clean_number).sum()
+            if purchased_col:
+                metrics["purchased"] = df[purchased_col].apply(_clean_number).sum()
+
+        # --- Corrective Actions (RCA) ---
+        rca_path = extracted_dir / "Corrective_Actions_RCA" / "table_1.csv"
+        if rca_path.exists():
+            df = pd.read_csv(rca_path)
+            metrics["total"] = len(df)
+            
+            status_col = _find_col(df, ["status", "state"])
+            if status_col:
+                metrics["closed"] = len(df[df[status_col].astype(str).str.lower().str.contains("closed")])
+            else:
+                metrics["closed"] = 0
+
+        # --- Training ---
+        try:
+             # Try recursively if exact path unknown
+             training_files = list(extracted_dir.rglob("Training*/table_1.csv"))
+             if training_files:
+                 df = pd.read_csv(training_files[0])
+                 metrics["total_employees"] = len(df)
+                 
+                 # Check for 'Status' = Completed or 'Score' > passing
+                 status_col = _find_col(df, ["status", "completion"])
+                 if status_col:
+                     metrics["trained"] = len(df[df[status_col].astype(str).str.lower().str.contains("completed|passed")])
+                     metrics["valid_certs"] = metrics["trained"] # Approximation
+                 else:
+                     metrics["trained"] = 0
+                     metrics["valid_certs"] = 0
+        except Exception:
+            pass
+
+        # --- Inspections ---
+        try:
+             insp_files = list(extracted_dir.rglob("Inspections*/table_1.csv"))
+             if insp_files:
+                 df = pd.read_csv(insp_files[0])
+                 metrics["total_inspected"] = len(df)
+                 
+                 result_col = _find_col(df, ["result", "outcome", "compliance"])
+                 if result_col:
+                     metrics["compliant"] = len(df[df[result_col].astype(str).str.lower().str.contains("pass|compliant|ok")])
+                 else:
+                     metrics["compliant"] = 0
+        except Exception:
+             pass
+
+    except Exception as e:
+        print(f"[WARN] Metric extraction failed: {e}")
+    
+    return metrics
 
 
 def summarize_numeric_data(extracted_dir: Path) -> list:
@@ -119,7 +322,40 @@ def summarize_numeric_data(extracted_dir: Path) -> list:
     return numeric_summary
 
 
-def create_analysis_prompt(numeric_summary: list) -> str:
+def format_kpis_for_prompt(kpis: list) -> str:
+    """
+    Format pre-calculated KPIs as plain text for injection into LLM prompts.
+    This ensures formulas are displayed using SymPy's plain-text format, NOT LaTeX.
+    """
+    if not kpis:
+        return ""
+    
+    lines = [
+        "\n## PRE-CALCULATED VERIFIED KPIs (SymPy Engine)",
+        "**IMPORTANT: Use these EXACT values and calculations in your report. DO NOT recalculate or use LaTeX.**\n"
+    ]
+    
+    for kpi in kpis:
+        # Use the plain-text formula from SymPy
+        formula_str = kpi.get("formula_str", "N/A")
+        substitution = kpi.get("substitution_pretty", "N/A")
+        result = kpi.get("result", "N/A")
+        unit = kpi.get("unit", "")
+        status = kpi.get("status", "")
+        label = kpi.get("label", kpi.get("key", "KPI"))
+        
+        lines.append(f"### {label}")
+        lines.append(f"- **Formula**: {formula_str}")
+        lines.append(f"- **Calculation**: {substitution} = {result}{unit}")
+        lines.append(f"- **Result**: **{result}{unit}** ({status})")
+        lines.append("")
+    
+    lines.append("**When mentioning these KPIs in your report, copy the calculation EXACTLY as shown above.**\n")
+    
+    return "\n".join(lines)
+
+
+def create_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for OpenAI GPT-4 mini analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -141,7 +377,18 @@ Please provide a comprehensive, detailed report similar to an executive safety a
 - Actionable Recommendations with specific actions, based on the data and trends identified.In neat and Tabulor Format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Incident Rate is 5.2%" or "High Risk Events constituted 34%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The high risk category accounts for 34.8% (High Risk Observations [150] / Total Observations [431] * 100 = 34.8%)."
 
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
 
 ## Data summaries
 {chr(10).join(numeric_summary)}
@@ -149,7 +396,7 @@ Please provide a comprehensive, detailed report similar to an executive safety a
     return prompt
 
 
-def create_ptw_analysis_prompt(numeric_summary: list) -> str:
+def create_ptw_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for PTW/KPI analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -184,6 +431,19 @@ Please provide a comprehensive, detailed report similar to an executive PTW anal
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -205,7 +465,17 @@ def generate_ptw_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    
+    # Calculate Deterministic KPIs
+    # For PTW, we need specific metrics. Currently _extract_metrics handles others.
+    # We can expand _extract_metrics later or add specific logic here.
+    report_content = extract_content_from_response(response)
+    
+    # Calculate Deterministic KPIs - filtered for PTW/safety module
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter="incidents")
+    
+    return report_content, kpis
 
 
 def save_ptw_report(report_content: str, report_path: Path) -> None:
@@ -217,7 +487,7 @@ def save_ptw_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] PTW/KPI Report generated: {report_path}")
 
 
-def create_inspections_analysis_prompt(numeric_summary: list) -> str:
+def create_inspections_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Inspections/Audit analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -261,6 +531,19 @@ Please provide a comprehensive, detailed report similar to an executive audit an
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -281,7 +564,9 @@ def generate_inspections_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter="inspections")
+    return report_content, kpis
 
 
 def save_inspections_report(report_content: str, report_path: Path) -> None:
@@ -293,7 +578,7 @@ def save_inspections_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Inspections/Audit Report generated: {report_path}")
 
 
-def create_medical_analysis_prompt(numeric_summary: list) -> str:
+def create_medical_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Medical Records analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -333,6 +618,19 @@ Please provide a comprehensive, detailed report similar to an executive medical 
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -353,7 +651,9 @@ def generate_medical_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter=None)  # Medical has no specific KPIs yet
+    return report_content, kpis
 
 
 def save_medical_report(report_content: str, report_path: Path) -> None:
@@ -365,7 +665,7 @@ def save_medical_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Medical Records Report generated: {report_path}")
 
 
-def create_training_analysis_prompt(numeric_summary: list) -> str:
+def create_training_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Training Database analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -406,6 +706,19 @@ Please provide a comprehensive, detailed report similar to an executive training
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Training Coverage is 85%" or "Effectiveness Score is 15"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "Training coverage is 85% (Total Trained [85] / Total Targeted [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -426,7 +739,9 @@ def generate_training_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter="training")
+    return report_content, kpis
 
 
 def save_training_report(report_content: str, report_path: Path) -> None:
@@ -438,7 +753,7 @@ def save_training_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Training Database Report generated: {report_path}")
 
 
-def create_ppe_analysis_prompt(numeric_summary: list) -> str:
+def create_ppe_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for PPE (Assets & PPE) analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -479,6 +794,20 @@ Please provide a comprehensive, detailed report similar to an executive PPE mana
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting of ANY kind (e.g., `\frac`, `\[`, `\]`, `\times`, `\sum`, `\text`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+- NEVER output strings like `\text{...}` or `\sum`. Use plain English: "Sum of..." or just the numbers.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -499,7 +828,9 @@ def generate_ppe_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter="ppe")
+    return report_content, kpis
 
 
 def save_ppe_report(report_content: str, report_path: Path) -> None:
@@ -511,7 +842,7 @@ def save_ppe_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] PPE Report generated: {report_path}")
 
 
-def create_rca_analysis_prompt(numeric_summary: list) -> str:
+def create_rca_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Corrective Actions & RCA analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -550,6 +881,19 @@ Please provide a comprehensive, detailed report similar to an executive correcti
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -570,7 +914,13 @@ def generate_rca_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    
+    # KPIs
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics)
+    # Filter for relevant ones if needed, or return all
+    
+    return report_content, kpis
 
 
 def save_rca_report(report_content: str, report_path: Path) -> None:
@@ -582,20 +932,20 @@ def save_rca_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Corrective Actions & RCA Report generated: {report_path}")
 
 
-def create_environmental_analysis_prompt(numeric_summary: list) -> str:
+def create_environmental_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Environmental & Resource Use analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
-    prompt = f"""
+    prompt = rf"""
 You are an Environmental and Resource Use Analysis Assistant.
 Analyze the provided environmental and resource consumption data.
 
 Goals:
 1. Analyze energy and emission trends over time.
 2. Analyze waste recycling patterns and identify improvement opportunities.
-3. Calculate and interpret key KPIs:
+3. Calculate and interpret key KPIs (Use PLAIN TEXT only, NO LaTeX):
    - Energy Intensity = kWh / Unit Produced (if production data available)
    - CO₂ Intensity = tCO₂ / Unit Produced (if production data available)
-   - Recycling % = Recycled / Total Waste × 100
+   - Recycling % = Recycled / Total Waste * 100
 4. AI Functions:
    - Detect abnormal resource consumption patterns and flag anomalies
    - Recommend reduction actions for energy, water, waste, and CO₂ emissions
@@ -622,6 +972,20 @@ Please provide a comprehensive, detailed report similar to an executive environm
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Recycling Rate is 65%" or "Energy Intensity decreased by 10%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The recycling rate improved to 75% (Total Recycled [150 tons] / Total Waste [200 tons] * 100 = 75%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting of ANY kind (e.g., `\frac`, `\[`, `\]`, `\times`, `\sum`, `\text`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+- NEVER output strings like `\text{...}` or `\sum`. Use plain English: "Sum of..." or just the numbers.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -642,7 +1006,12 @@ def generate_environmental_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    
+    # KPIs - filtered for environmental module only
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics, module_filter="environmental")
+    
+    return report_content, kpis
 
 
 def save_environmental_report(report_content: str, report_path: Path) -> None:
@@ -654,7 +1023,7 @@ def save_environmental_report(report_content: str, report_path: Path) -> None:
     print(f"[INFO] Environmental & Resource Use Report generated: {report_path}")
 
 
-def create_social_governance_analysis_prompt(numeric_summary: list) -> str:
+def create_social_governance_analysis_prompt(numeric_summary: list, kpis_text: str = "") -> str:
     """Create the prompt for Social & Governance analysis."""
     current_date = datetime.now().strftime("%B %d, %Y")
     prompt = f"""
@@ -697,6 +1066,19 @@ Please provide a comprehensive, detailed report similar to an executive social &
 - Actionable Recommendations with specific actions, based on the data and trends identified in neat and tabular format
 - Reference the data whenever and wherever possible.
 
+**CRITICAL INSTRUCTION FOR CALCULATIONS:**
+For **EVERY single percentage, rate, or calculated metrics** you mention in the report (e.g., "Compliance Rate is 85%"), you **MUST** show the full calculation logic in brackets immediately after the value.
+Format: `(Numerator [Value] / Denominator [Value] * 100 = Final Value%)`
+Example: "The compliance rate is 85% (Compliant Items [85] / Total Items [100] * 100 = 85%)."
+
+**FORBIDDEN FORMATTING:**
+- **DO NOT** use LaTeX formatting (e.g., `\frac`, `\[`, `\]`, `\times`).
+- **DO NOT** use complex math blocks.
+- **ONLY** use standard text-based arithmetic symbols: `+`, `-`, `*`, `/`, `=`.
+- Keep the calculation on the same line or a simple new line, but always in plain text.
+
+{kpis_text}
+
 ## Data summaries
 {chr(10).join(numeric_summary)}
 """
@@ -717,7 +1099,8 @@ def generate_social_governance_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    kpis = []
+    return report_content, kpis
 
 
 def save_social_governance_report(report_content: str, report_path: Path) -> None:
@@ -744,7 +1127,12 @@ def generate_report_with_gemini(prompt: str) -> str:
     response = agent.run(prompt)
     
     report_content = extract_content_from_response(response)
-    return report_content
+    
+    # KPIs (Safety)
+    metrics = _extract_metrics(EXTRACTED_DIR)
+    kpis = calculate_kpis(metrics)
+    
+    return report_content, kpis
 
 
 def save_report(report_content: str, report_path: Path) -> None:

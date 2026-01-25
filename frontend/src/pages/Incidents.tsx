@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
+  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -42,7 +43,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker"; // Assuming you created this
+import { DatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
@@ -75,7 +76,10 @@ import type {
   InjuryTypeData,
 } from "@/types";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner"; // Import from sonner// Assumes you have sonner/toast
+import { toast } from "sonner";
+import { getAuthToken, apiClient } from "@/lib/api";
+import { usePDF } from "react-to-pdf";
+import { ReportPDF } from "@/components/ReportPDF";
 
 // --- Mock Data (Replace with API calls) ---
 
@@ -155,6 +159,9 @@ export const Incidents: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [filterDate, setFilterDate] = useState<Date | undefined>();
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiReport, setAiReport] = useState("");
+  const { toPDF, targetRef } = usePDF({ filename: `Incident_Report_${new Date().toISOString().split('T')[0]}.pdf` });
 
   // const { toast } = useToast(); // For notifications
 
@@ -206,18 +213,22 @@ export const Incidents: React.FC = () => {
     } as Incident;
     setIncidents([newIncident, ...incidents]);
     setIsModalOpen(false);
-     toast.success("Success", { description: "New incident reported." });
+    toast.success("Success", { description: "New incident reported." });
   };
-  
-  const handleGenerateAISummary = () => {
-    if (!selectedIncident) return;
-    // TODO: API call to AI backend
-    // fetch(`/api/incidents/ai-summary?id=${selectedIncident.id}`)
-    //   .then(res => res.json())
-    //   .then(data => {
-    //     // setAiSummary(data.summary)
-    //   })
-    alert(`Generating AI summary for ${selectedIncident.id}...`);
+
+  const handleGenerateAISummary = async () => {
+    setAiLoading(true);
+    try {
+      const response = await apiClient.post("/generate-report");
+      if (response && response.report_content) {
+        setAiReport(response.report_content);
+        toast.success("AI Analysis Generated", { description: "Safety report generated." });
+      }
+    } catch (e) {
+      toast.error("Generation Failed", { description: "Ensure safety file is uploaded in Unsafety module." });
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   return (
@@ -274,7 +285,7 @@ export const Incidents: React.FC = () => {
                   Visual Analytics
                 </TabsTrigger>
               </TabsList>
-              
+
               {/* Records Tab */}
               <TabsContent value="records" className="mt-4">
                 <Card>
@@ -286,13 +297,13 @@ export const Incidents: React.FC = () => {
                     {/* Filters */}
                     <div className="flex flex-wrap items-center gap-2 pt-4">
                       <Filter className="h-4 w-4 text-gray-500" />
-                      <DatePicker 
+                      <DatePicker
                         date={filterDate}
                         onSelect={(date) => {
-                        setFilterDate(date);
-                        handleFilterChange(); // Optionally filter immediately
-                            }}
-                        />
+                          setFilterDate(date);
+                          handleFilterChange(); // Optionally filter immediately
+                        }}
+                      />
                       <Select onValueChange={handleFilterChange}>
                         <SelectTrigger className="w-[160px]">
                           <SelectValue placeholder="Department" />
@@ -326,8 +337,8 @@ export const Incidents: React.FC = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <IncidentTable 
-                      incidents={incidents} 
+                    <IncidentTable
+                      incidents={incidents}
                       onRowClick={(inc) => setSelectedIncident(inc)}
                     />
                   </CardContent>
@@ -431,10 +442,25 @@ export const Incidents: React.FC = () => {
                         3 similar incidents in {selectedIncident.department} in 60 days.
                       </p>
                     </div>
-                    <Button className="w-full gap-2" onClick={handleGenerateAISummary}>
+                    <Button className="w-full gap-2" onClick={handleGenerateAISummary} disabled={aiLoading}>
                       <Zap className="h-4 w-4" />
-                      Regenerate AI Insights
+                      {aiLoading ? "Analyzing..." : "Generate Site Safety Analysis"}
                     </Button>
+                    {aiReport && (
+                      <div className="mt-4 space-y-4">
+                        <div className="prose prose-sm max-h-[300px] overflow-y-auto">
+                          <p className="whitespace-pre-wrap">{aiReport.substring(0, 500)}...</p>
+                        </div>
+                      </div>
+                    )}
+                    {aiReport && (
+                      <div className="mt-2">
+                        <Button variant="outline" className="w-full gap-2" onClick={() => toPDF()}>
+                          <FileText className="h-4 w-4" />
+                          Download Report PDF
+                        </Button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="flex h-[200px] items-center justify-center rounded-md border border-dashed text-center text-gray-500">
@@ -444,6 +470,10 @@ export const Incidents: React.FC = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+        {/* Hidden PDF Report */}
+        <div className="fixed top-0 left-0 hidden">
+          <ReportPDF ref={targetRef} reportContent={aiReport} kpis={[]} title={`Incident Report: ${selectedIncident?.id || 'General'}`} />
         </div>
       </motion.div>
     </TooltipProvider>
@@ -556,7 +586,7 @@ const ReportIncidentModal: React.FC<ReportIncidentModalProps> = ({
   };
 
   return (
-<DialogContent className="sm:max-w-[600px]">
+    <DialogContent className="sm:max-w-[600px]">
       <DialogHeader>
         <DialogTitle>Report New Incident</DialogTitle>
         <DialogDescription>
@@ -566,9 +596,9 @@ const ReportIncidentModal: React.FC<ReportIncidentModalProps> = ({
       <div className="grid max-h-[60vh] grid-cols-1 gap-4 overflow-y-auto p-1 md:grid-cols-2">
         <div>
           <label className="text-sm font-medium">Incident Date</label>
-          <DatePicker 
+          <DatePicker
             // 1. ADDED THIS DATE PROP
-            date={formData.date as Date | undefined} 
+            date={formData.date as Date | undefined}
             onSelect={(date) => handleChange("date", date)}
           />
         </div>
@@ -583,8 +613,8 @@ const ReportIncidentModal: React.FC<ReportIncidentModalProps> = ({
             <SelectItem value="Logistics">Logistics</SelectItem>
           </SelectContent>
         </Select>
-        <Select 
-          defaultValue="Near Miss" 
+        <Select
+          defaultValue="Near Miss"
           onValueChange={(val) => handleChange("type", val)}
         >
           <SelectTrigger>
@@ -634,10 +664,10 @@ const ReportIncidentModal: React.FC<ReportIncidentModalProps> = ({
         </div>
         <div>
           <label className="text-sm font-medium">Days Lost (if LTI)</label>
-          <Input 
-            type="number" 
+          <Input
+            type="number"
             placeholder="0"
-            onChange={(e) => handleChange("daysLost", parseInt(e.target.value) || 0)} 
+            onChange={(e) => handleChange("daysLost", parseInt(e.target.value) || 0)}
           />
         </div>
       </div>
@@ -649,7 +679,7 @@ const ReportIncidentModal: React.FC<ReportIncidentModalProps> = ({
           <Check className="mr-2 h-4 w-4" />
           Submit Report
         </Button>
-    </DialogFooter>
-  </DialogContent>
+      </DialogFooter>
+    </DialogContent>
   );
 };

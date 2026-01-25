@@ -201,9 +201,8 @@ const SafeMarkdown: React.FC<SafeMarkdownProps> = ({ content }) => {
             .map((c) => c.trim())
             .filter((c) => c && !c.match(/^[-:|\s]+$/));
           if (cells.length === headers.length) {
-            tableHtml += `<tr class="${
-              idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-            } hover:bg-gray-100">`;
+            tableHtml += `<tr class="${idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              } hover:bg-gray-100">`;
             cells.forEach((cell) => {
               let cellContent = escapeHtml(cell);
               cellContent = cellContent.replace(
@@ -588,9 +587,8 @@ export const Training: React.FC = () => {
         setAiReport(reportContent);
         setShowReport(true);
         toast.success("Report Generated!", {
-          description: `Report generated successfully (${
-            response.report_length || 0
-          } characters)`,
+          description: `Report generated successfully (${response.report_length || 0
+            } characters)`,
         });
       } else {
         throw new Error("Invalid response from server: missing report_content");
@@ -718,6 +716,7 @@ export const Training: React.FC = () => {
     setIsUploading(true);
     setFileUploaded(false);
     setShowReport(false);
+    setShowCharts(false);
     setShowCharts(false);
     setAiReport("");
     setChartList([]);
@@ -1539,11 +1538,11 @@ export const Training: React.FC = () => {
                 const safeContent: string =
                   typeof aiReport === "string"
                     ? aiReport
-                        .replace(/Of course.*?\.\s*/, "")
-                        .split("\n")
-                        .map((line) => (line.trim() === "*" ? "" : line))
-                        .join("\n")
-                        .replace(/\n{3,}/g, "\n\n")
+                      .replace(/Of course.*?\.\s*/, "")
+                      .split("\n")
+                      .map((line) => (line.trim() === "*" ? "" : line))
+                      .join("\n")
+                      .replace(/\n{3,}/g, "\n\n")
                     : String(aiReport || "");
 
                 if (typeof aiReport !== "string") {
@@ -1667,8 +1666,8 @@ export const Training: React.FC = () => {
             {showReport
               ? " Training Report"
               : showCharts
-              ? " Training Charts"
-              : "Dashboard"}
+                ? " Training Charts"
+                : "Dashboard"}
           </h1>
           <p className="text-lg text-gray-600 max-w-3xl">
             Analysis of: {selectedFile?.name}
@@ -1814,7 +1813,9 @@ export const Training: React.FC = () => {
             </TabsContent>
           </Tabs>
         ) : showReport ? (
-          renderReportContent()
+          <>
+            {renderReportContent()}
+          </>
         ) : showCharts ? (
           renderChartsContent()
         ) : null}

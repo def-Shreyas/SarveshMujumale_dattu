@@ -41,7 +41,7 @@ import { sendChatMessage } from "@/lib/api";
 // ✅ Replace this with your real DATTU logo
 import DATTU_LOGO from "/public/Dattu Image.jpeg"; // placeholder comment
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /* ------------------ COLOR PALETTE ------------------ */
 const PALETTE = {
@@ -87,30 +87,30 @@ function nowTime(): string {
 }
 
 // Mock bot responses for simulation
-async function simulateBotResponse(prompt: string, signal?: AbortSignal) {
-  const responses = [
-    "Sure — I can help with that. Could you provide more details?",
-    "Got it. Here's a concise plan you can follow.",
-    "I understand. Next steps: analyze the dataset, filter by date, and visualize.",
-    "Thanks — I'll summarize the findings and propose actions.",
-    "Okay — here's a high-level suggestion tailored to your needs.",
-  ];
-
-  const wait = (ms: number) =>
-    new Promise<void>((res, rej) => {
-      const t = setTimeout(() => res(), ms);
-      if (signal)
-        signal.addEventListener("abort", () => {
-          clearTimeout(t);
-          rej(new DOMException("Aborted", "AbortError"));
-        });
-    });
-
-  await wait(700 + Math.random() * 800);
-  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
-  const chosen = responses[Math.floor(Math.random() * responses.length)];
-  return `${chosen} (Ref: "${prompt.slice(0, 120)}${prompt.length > 120 ? "…" : ""}")`;
-}
+// async function simulateBotResponse(prompt: string, signal?: AbortSignal) {
+//   const responses = [
+//     "Sure — I can help with that. Could you provide more details?",
+//     "Got it. Here's a concise plan you can follow.",
+//     "I understand. Next steps: analyze the dataset, filter by date, and visualize.",
+//     "Thanks — I'll summarize the findings and propose actions.",
+//     "Okay — here's a high-level suggestion tailored to your needs.",
+//   ];
+// 
+//   const wait = (ms: number) =>
+//     new Promise<void>((res, rej) => {
+//       const t = setTimeout(() => res(), ms);
+//       if (signal)
+//         signal.addEventListener("abort", () => {
+//           clearTimeout(t);
+//           rej(new DOMException("Aborted", "AbortError"));
+//         });
+//     });
+// 
+//   await wait(700 + Math.random() * 800);
+//   if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+//   const chosen = responses[Math.floor(Math.random() * responses.length)];
+//   return `${chosen} (Ref: "${prompt.slice(0, 120)}${prompt.length > 120 ? "…" : ""}")`;
+// }
 
 /* ------------------ MAIN COMPONENT ------------------ */
 export default function ChatbotUI() {
@@ -122,8 +122,8 @@ export default function ChatbotUI() {
   }]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [, setTypingId] = useState<string | null>(null);
-  const [, setLastPromptForRegenerate] = useState<string | null>(null);
+  // const [, setTypingId] = useState<string | null>(null);
+  // const [, setLastPromptForRegenerate] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -169,8 +169,6 @@ export default function ChatbotUI() {
   const pushMessage = (m: Message) => setMessages((prev) => [...prev, m]);
 
   const sendMessage = async () => {
-    console.log("🔥 sendMessage fired");
-
     const trimmed = input.trim();
     if (!trimmed) return;
 
@@ -185,31 +183,19 @@ export default function ChatbotUI() {
     setIsTyping(true);
 
     try {
-      console.log("➡️ Calling sendChatMessage()");
-
       // 2️⃣ CALL CENTRAL API FUNCTION
       const data = await sendChatMessage(trimmed, []);
-
-      console.log("✅ Chat response:", data);
 
       // 3️⃣ Push bot message
       pushMessage({
         id: `b_${Date.now()}`,
         role: "bot",
-        answer: String(data.answer || ""), // ✅ STRING ONLY
+        answer: data.answer,
         laws: data.laws ?? [],
         screenshots: data.screenshots ?? [],
       });
-
-      console.log("🧠 BOT MESSAGE", {
-        answer: typeof data.answer,
-        laws: Array.isArray(data.laws),
-        screenshots: Array.isArray(data.screenshots),
-      });
-
-;
     } catch (err) {
-      console.error("❌ Chat error:", err);
+      console.error("Chat error:", err);
       pushMessage({
         id: `b_err_${Date.now()}`,
         role: "bot",
@@ -226,7 +212,7 @@ export default function ChatbotUI() {
   const stopTyping = () => {
     abortControllerRef.current?.abort();
     setIsTyping(false);
-    setTypingId(null);
+    // setTypingId(null);
   };
 
   // const regenerate = async () => {
@@ -670,7 +656,7 @@ export default function ChatbotUI() {
         </div>
 
         <Button
-          type="button" // 🔥 THIS IS THE FIX
+          type="button"
           onClick={sendMessage}
           disabled={!input.trim() || isTyping}
           className="px-5 py-3 rounded-xl text-white"

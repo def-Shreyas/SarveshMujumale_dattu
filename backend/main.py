@@ -290,11 +290,16 @@ async def generate_report(
                 detail="No Incident & Near-Miss data found in extracted tables. Please upload sample.xlsx first."
             )
         
-        # Step 2: Create analysis prompt (use filtered data)
-        prompt = phidata_agent.create_analysis_prompt(incident_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="incidents")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_report_with_gemini(prompt)
+        # Step 3: Create analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_analysis_prompt(incident_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -312,6 +317,7 @@ async def generate_report(
             "message": "Report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -647,11 +653,16 @@ async def generate_ptw_report(
                 detail="No PTW/KPI data found in extracted tables."
             )
         
-        # Step 2: Create PTW analysis prompt
-        prompt = phidata_agent.create_ptw_analysis_prompt(ptw_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="ptw")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_ptw_report_with_gemini(prompt)
+        # Step 3: Create PTW analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_ptw_analysis_prompt(ptw_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_ptw_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -669,6 +680,7 @@ async def generate_ptw_report(
             "message": "PTW/KPI report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -1063,11 +1075,16 @@ async def generate_inspections_report(
                 detail="No Inspections/Audit data found in extracted tables."
             )
         
-        # Step 2: Create inspections analysis prompt
-        prompt = phidata_agent.create_inspections_analysis_prompt(inspections_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="inspections")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_inspections_report_with_gemini(prompt)
+        # Step 3: Create inspections analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_inspections_analysis_prompt(inspections_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_inspections_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -1085,6 +1102,7 @@ async def generate_inspections_report(
             "message": "Inspections/Audit report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -1344,11 +1362,16 @@ async def generate_medical_report(
                 detail="No Medical Records data found in extracted tables."
             )
         
-        # Step 2: Create medical analysis prompt
-        prompt = phidata_agent.create_medical_analysis_prompt(medical_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="medical")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_medical_report_with_gemini(prompt)
+        # Step 3: Create medical analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_medical_analysis_prompt(medical_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_medical_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -1366,6 +1389,7 @@ async def generate_medical_report(
             "message": "Medical Records report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -1624,11 +1648,16 @@ async def generate_training_report(
                 detail="No Training Database data found in extracted tables."
             )
         
-        # Step 2: Create training analysis prompt
-        prompt = phidata_agent.create_training_analysis_prompt(training_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="training")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_training_report_with_gemini(prompt)
+        # Step 3: Create training analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_training_analysis_prompt(training_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_training_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -1646,6 +1675,7 @@ async def generate_training_report(
             "message": "Training Database report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -1914,11 +1944,16 @@ async def generate_ppe_report(
                 detail="No PPE data found in extracted tables."
             )
         
-        # Step 2: Create PPE analysis prompt
-        prompt = phidata_agent.create_ppe_analysis_prompt(ppe_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="ppe")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_ppe_report_with_gemini(prompt)
+        # Step 3: Create PPE analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_ppe_analysis_prompt(ppe_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_ppe_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -1936,6 +1971,7 @@ async def generate_ppe_report(
             "message": "PPE (Assets & PPE) report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -2215,11 +2251,16 @@ async def generate_rca_report(
                 detail="No Corrective Actions & RCA data found in extracted tables."
             )
         
-        # Step 2: Create RCA analysis prompt
-        prompt = phidata_agent.create_rca_analysis_prompt(rca_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="rca")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_rca_report_with_gemini(prompt)
+        # Step 3: Create RCA analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_rca_analysis_prompt(rca_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_rca_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -2237,6 +2278,7 @@ async def generate_rca_report(
             "message": "Corrective Actions & RCA report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -2523,11 +2565,16 @@ async def generate_environmental_report(
                 detail="No Environmental & Resource Use data found in extracted tables."
             )
         
-        # Step 2: Create environmental analysis prompt
-        prompt = phidata_agent.create_environmental_analysis_prompt(env_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="environmental")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_environmental_report_with_gemini(prompt)
+        # Step 3: Create environmental analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_environmental_analysis_prompt(env_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated, just return them)
+        report_content, _ = phidata_agent.generate_environmental_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -2545,6 +2592,7 @@ async def generate_environmental_report(
             "message": "Environmental & Resource Use report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
@@ -2842,11 +2890,16 @@ async def generate_social_governance_report(
                 detail="No Social & Governance data found in extracted tables."
             )
         
-        # Step 2: Create social/governance analysis prompt
-        prompt = phidata_agent.create_social_governance_analysis_prompt(social_summary)
+        # Step 2: PRE-CALCULATE KPIs using SymPy BEFORE LLM call
+        metrics = phidata_agent._extract_metrics(EXTRACTED_DIR)
+        kpis = phidata_agent.calculate_kpis(metrics, module_filter="social")
+        kpis_text = phidata_agent.format_kpis_for_prompt(kpis)
         
-        # Step 3: Generate report with Gemini
-        report_content = phidata_agent.generate_social_governance_report_with_gemini(prompt)
+        # Step 3: Create social/governance analysis prompt with pre-calculated KPIs embedded
+        prompt = phidata_agent.create_social_governance_analysis_prompt(social_summary, kpis_text=kpis_text)
+        
+        # Step 4: Generate report with Gemini (KPIs already calculated)
+        report_content, _ = phidata_agent.generate_social_governance_report_with_gemini(prompt)
         
         response_time = time.time() - start_time
         
@@ -2864,6 +2917,7 @@ async def generate_social_governance_report(
             "message": "Social & Governance report generated successfully",
             "report_length": len(report_content),
             "report_content": report_content,
+            "kpis": kpis,
             "api_calls_limit": usage_stats["api_calls_limit"] if usage_stats else None
         }
     
