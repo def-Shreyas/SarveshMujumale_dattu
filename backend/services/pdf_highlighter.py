@@ -1,15 +1,25 @@
-import fitz
 import os
 
 HIGHLIGHT_DIR = "screenshots"
 os.makedirs(HIGHLIGHT_DIR, exist_ok=True)
 
+
 def highlight_text_in_pdf(pdf_name, page_number, search_text):
+    try:
+        import fitz  # PyMuPDF (lazy import)
+    except ImportError:
+        # PDF highlighting not available in cloud environment
+        return None
+
     pdf_path = f"laws/{pdf_name}"
+
+    if not os.path.exists(pdf_path):
+        return None
+
     doc = fitz.open(pdf_path)
     page = doc.load_page(page_number - 1)
 
-    # Search occurrences
+    # Search occurrences (limit length for performance)
     text_instances = page.search_for(search_text[:80])
 
     if not text_instances:
