@@ -88,5 +88,8 @@ urllib3==2.5.0
 uvicorn==0.38.0
 xlsxwriter==3.2.9
 openai
+sympy
+pymupdf
+chromadb
 
 
